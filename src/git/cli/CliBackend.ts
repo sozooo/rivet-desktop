@@ -1,4 +1,5 @@
 import type { GitBackend } from "../backend";
+import { lfsPointer, type LfsPointer } from "../fileKinds";
 import type {
   Commit,
   CommitScope,
@@ -50,6 +51,9 @@ export class CliBackend implements GitBackend {
   private branch = "";
   private upstream: string | null = null;
   private loaded = false;
+  /** Unity GUID lookups; cleared with every snapshot, since files move. */
+  private guids = new Map<string, Promise<string | null>>();
+  private commonDir?: Promise<string>;
 
   constructor(private git: GitRunner) {}
 
@@ -83,6 +87,7 @@ export class CliBackend implements GitBackend {
   }
 
   async snapshot(): Promise<RepoSnapshot> {
+    this.guids.clear();
     const [
       statusOut,
       unstagedOut,
@@ -261,6 +266,13 @@ export class CliBackend implements GitBackend {
   }
 
   async readFile(path: string, revision: Revision) {
+    const bytes = await this.readBlob(path, revision);
+    // Commits hold only pointers to LFS files; the files themselves are in .git/lfs.
+    const pointer = lfsPointer(bytes);
+    return pointer ? ((await this.lfsObject(pointer)) ?? bytes) : bytes;
+  }
+
+  private async readBlob(path: string, revision: Revision) {
     if (revision === "worktree") return this.git.readWorktree(path);
     const spec = revision === "index" ? `:${path}` : `${revision}:${path}`;
     try {
@@ -270,12 +282,36 @@ export class CliBackend implements GitBackend {
     }
   }
 
+  /** A downloaded LFS object, or null when only its pointer is here. */
+  private async lfsObject({ oid, size }: LfsPointer) {
+    this.commonDir ??= this.tryRun(["rev-parse", "--git-common-dir"]).then(
+      (out) => out.trim(),
+    );
+    const dir = await this.commonDir;
+    if (!dir) return null;
+    const object = await this.git.readWorktree(
+      `${dir}/lfs/objects/${oid.slice(0, 2)}/${oid.slice(2, 4)}/${oid}`,
+    );
+    return object?.length === size ? object : null;
+  }
+
   async resolveGuid(guid: string) {
     if (!/^[0-9a-f]{32}$/i.test(guid)) return null;
+    let found = this.guids.get(guid);
+    if (!found) {
+      found = this.findGuid(guid);
+      this.guids.set(guid, found);
+    }
+    return found;
+  }
+
+  private async findGuid(guid: string) {
+    // New assets count too: an artist often uses a texture before committing it.
     const out = await this.tryRun([
       "grep",
       "-l",
       "-F",
+      "--untracked",
       `guid: ${guid}`,
       "--",
       "*.meta",

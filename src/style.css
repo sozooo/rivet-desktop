@@ -2947,6 +2947,10 @@ textarea::placeholder {
   color: var(--muted);
   font-size: 10px;
 }
+.image-panel figcaption span.resized {
+  color: var(--accent);
+  font-weight: 600;
+}
 .checker {
   position: relative;
   display: flex;
@@ -2974,6 +2978,7 @@ textarea::placeholder {
   display: block;
   max-width: 100%;
   max-height: 58vh;
+  object-fit: contain;
   image-rendering: pixelated;
 }
 .checker.stacked {
@@ -3020,18 +3025,68 @@ textarea::placeholder {
   height: 18px;
   color: var(--accent);
 }
+.card-subtitle {
+  font-size: 11px;
+}
+.card-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: -6px 0 14px;
+}
+.card-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border: 1px solid #c0665e66;
+  border-radius: 6px;
+  background: var(--del);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.card-warning svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #c0665e;
+}
+.card-more {
+  margin-top: 10px;
+  color: var(--accent);
+}
+.material-spheres {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 120px;
+  margin: 0 0 16px;
+}
+.material-spheres img {
+  width: 120px;
+  height: 120px;
+}
+.material-spheres figcaption {
+  align-self: flex-end;
+  font-size: 10px;
+  color: var(--faint);
+}
+.model-note {
+  margin: 10px 0 0;
+}
 .card-preview.notice p {
   font-size: 12px;
   line-height: 1.7;
   margin: 0;
 }
-.material-rows {
+.change-rows {
   display: grid;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
 }
-.material-row {
+.change-row {
   display: grid;
   grid-template-columns: minmax(130px, 200px) 1fr 18px 1fr;
   align-items: center;
@@ -3039,13 +3094,13 @@ textarea::placeholder {
   padding: 10px 14px;
   font-size: 12px;
 }
-.material-row + .material-row {
+.change-row + .change-row {
   border-top: 1px solid var(--border);
 }
-.material-name {
+.change-name {
   color: var(--muted);
 }
-.material-value {
+.change-value {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -3054,7 +3109,7 @@ textarea::placeholder {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.material-arrow {
+.change-arrow {
   width: 14px;
   height: 14px;
   color: var(--faint);

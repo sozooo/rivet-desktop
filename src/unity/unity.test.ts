@@ -6,6 +6,7 @@ import {
   guids,
   treePrefab,
 } from "../git/mock/assets";
+import { heroWave } from "../git/mock/samples";
 import { diffMaterials, parseMaterial } from "./material";
 import { diffScenes } from "./scene";
 import { parseUnityYaml, parseYamlBlock } from "./yaml";
@@ -69,6 +70,7 @@ describe("diffScenes", () => {
       kind: "added",
       path: "Tree/Leaves/Bird",
       parent: "Tree/Leaves",
+      prefab: false,
     });
     expect(changes).toContainEqual({
       kind: "position",
@@ -89,17 +91,29 @@ describe("diffScenes", () => {
       after: [0, 15, 0],
     });
     expect(changes).toContainEqual({
-      kind: "component-changed",
+      kind: "fields",
       path: "Tree",
       component: "MeshRenderer",
-      fields: ["m_CastShadows", "m_Materials"],
+      fields: [
+        {
+          name: "m_CastShadows",
+          values: { before: { text: "1" }, after: { text: "0" } },
+        },
+        {
+          name: "m_Materials",
+          values: {
+            before: { asset: guids.barkMaterial },
+            after: { asset: guids.mossyMaterial },
+          },
+        },
+      ],
     });
     expect(changes).toContainEqual({
       kind: "override",
       path: "Tree/Leaves/Nest",
       property: "m_LocalPosition.y",
-      before: "1.2",
-      after: "1.5",
+      before: { text: "1.2" },
+      after: { text: "1.5" },
     });
   });
 
@@ -107,7 +121,7 @@ describe("diffScenes", () => {
     const changes = diffScenes(null, treePrefab.before);
     expect(
       changes.filter((c) => c.kind === "added").map((c) => c.path),
-    ).toEqual(["Tree", "Tree/Trunk", "Tree/Leaves"]);
+    ).toEqual(["Tree", "Tree/Trunk", "Tree/Leaves", "Tree/Leaves/Nest"]);
   });
 });
 
@@ -163,5 +177,21 @@ describe("sample FBX", () => {
     expect(after.animations.map((a) => [a.name, a.duration])).toEqual([
       ["Spin", 1],
     ]);
+  });
+
+  it("loads an animation that has bones but no mesh", () => {
+    const root = new FBXLoader().parse(
+      new TextEncoder().encode(heroWave).buffer,
+      "",
+    );
+    const kinds: string[] = [];
+    root.traverse((o) => o !== root && kinds.push(o.type));
+    expect(kinds).toHaveLength(18);
+    expect(new Set(kinds)).toEqual(new Set(["Bone"]));
+    expect(root.getObjectByName("Hand_R")?.parent?.name).toBe("ForeArm_R");
+    const [clip] = root.animations;
+    expect(root.animations).toHaveLength(1);
+    expect(clip.name).toBe("Wave");
+    expect(clip.duration).toBeCloseTo(1.8);
   });
 });

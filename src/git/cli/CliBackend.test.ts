@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { CliBackend } from "./CliBackend";
 import { cleanup, git, makeRepo, nodeRunner, write } from "./testRepo";
@@ -125,8 +126,32 @@ describe("CliBackend on a real repository", () => {
     );
     git(dir, "add", "-A");
     git(dir, "commit", "-q", "-m", "Texture");
+    // A texture that is not committed yet can already be used by a material.
+    const fresh = "3e5a7c9b1d2f40e6a8c0b2d4f6e8a0c2";
+    write(dir, "Assets/Textures/Moss.tga.meta", `guid: ${fresh}\n`);
     expect(await backend.resolveGuid(guid)).toBe("Assets/Textures/Bark.png");
+    expect(await backend.resolveGuid(fresh)).toBe("Assets/Textures/Moss.tga");
     expect(await backend.resolveGuid("0".repeat(32))).toBeNull();
+  });
+
+  it("reads Git LFS files from the local object store", async () => {
+    const { dir, backend } = await repoWithCommit();
+    const content = new Uint8Array([0x38, 0x42, 0x50, 0x53, 0, 1, 2, 3]);
+    const oid = createHash("sha256").update(content).digest("hex");
+    const pointer = `version https://git-lfs.github.com/spec/v1\noid sha256:${oid}\nsize ${content.length}\n`;
+    write(dir, "Art/Cliff.psd", pointer);
+    git(dir, "add", "-A");
+    git(dir, "commit", "-q", "-m", "Cliff");
+    // Not downloaded: the pointer is all there is, and the preview says so.
+    const missing = await backend.readFile("Art/Cliff.psd", "HEAD");
+    expect(new TextDecoder().decode(missing!)).toBe(pointer);
+
+    const object = `.git/lfs/objects/${oid.slice(0, 2)}/${oid.slice(2, 4)}/${oid}`;
+    write(dir, object, content);
+    expect(await backend.readFile("Art/Cliff.psd", "HEAD")).toEqual(content);
+    expect(await backend.readFile("Art/Cliff.psd", "worktree")).toEqual(
+      content,
+    );
   });
 
   it("detects renames and discards every kind of change", async () => {
