@@ -31,6 +31,12 @@ function useDecoded(path: string, bytes: Uint8Array | null) {
 
 type Layout = "side" | "swipe" | "onion";
 
+/** Small textures are blown up by whole pixels, so a 64 px icon is still readable. */
+const enlarged = ({ width, height }: DecodedImage) => {
+  const zoom = Math.max(1, Math.floor(320 / Math.max(width, height, 1)));
+  return { width: width * zoom, height: height * zoom };
+};
+
 export function ImageDiff({ path, pair }: { path: string; pair: Pair }) {
   const { t, language } = useI18n();
   const before = useDecoded(path, pair.before);
@@ -49,12 +55,16 @@ export function ImageDiff({ path, pair }: { path: string; pair: Pair }) {
           size: formatSize(bytes.length, language),
         })
       : "";
+  const resized =
+    ready(before) &&
+    ready(after) &&
+    (before.width !== after.width || before.height !== after.height);
 
   const panel = (side: Side, bytes: Uint8Array | null, label: string) => (
     <figure className="image-panel">
       <figcaption>
         <strong>{label}</strong>
-        <span>{caption(side, bytes)}</span>
+        <span className={resized ? "resized" : ""}>{caption(side, bytes)}</span>
       </figcaption>
       <div className="checker">
         {side === undefined ? (
@@ -62,7 +72,7 @@ export function ImageDiff({ path, pair }: { path: string; pair: Pair }) {
         ) : side === "failed" ? (
           <span className="muted">{t("preview.imageFailed")}</span>
         ) : side ? (
-          <img src={side.url} alt={label} />
+          <img src={side.url} alt={label} style={enlarged(side)} />
         ) : null}
       </div>
     </figure>

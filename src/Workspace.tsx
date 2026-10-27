@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 import { AlertTriangle } from "lucide-react";
 import { NavRail, type Mode } from "./chrome/NavRail";
 import { StatusBar } from "./chrome/StatusBar";
@@ -19,7 +25,7 @@ import { RepositorySetup } from "./setup/RepositorySetup";
 import type { Preferences } from "./App";
 import { useI18n } from "./i18n/i18n";
 import { platform } from "./platform";
-import { BackendContext } from "./preview/data";
+import { PreviewContext } from "./preview/data";
 import { useStoredState } from "./ui/hooks";
 import { SidebarContext } from "./ui/Panes";
 import { useNotify } from "./ui/Toast";
@@ -112,6 +118,8 @@ export function Workspace({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  // Previews read files through the backend and draw 3D views to match the theme.
+  const preview = useMemo(() => ({ backend, dark }), [backend, dark]);
 
   if (!snapshot)
     return loadError ? (
@@ -187,7 +195,7 @@ export function Workspace({
   const view = uiMode === "simple" && mode === "Branches" ? "Changes" : mode;
 
   return (
-    <BackendContext.Provider value={backend}>
+    <PreviewContext.Provider value={preview}>
       <TopBar
         snapshot={snapshot}
         repository={repository}
@@ -289,6 +297,6 @@ export function Workspace({
       {dialog?.kind === "pull-requests" && (
         <PullRequests onClose={() => setDialog(null)} />
       )}
-    </BackendContext.Provider>
+    </PreviewContext.Provider>
   );
 }

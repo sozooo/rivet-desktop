@@ -1,5 +1,17 @@
 import type { Commit, DiffLine, FileChange, Hunk, Person } from "../types";
 import { barkMaterial, crateModel, paintBark, treePrefab } from "./assets";
+import {
+  binaryScene,
+  cliffPointers,
+  forestScene,
+  grassMeta,
+  heroWave,
+  paintBarkNormal,
+  paintMoss,
+  paintPoster,
+  pipelineAsset,
+  windSound,
+} from "./samples";
 
 const lines = (
   before: string[],
@@ -21,6 +33,7 @@ export const people = {
   alex: { name: "Alex Morgan", email: "alex@kinetic.dev" },
   jamie: { name: "Jamie Chen", email: "jamie@kinetic.dev" },
   sam: { name: "Sam Rivera", email: "sam@kinetic.dev" },
+  mira: { name: "Mira Sokolova", email: "mira@kinetic.dev" },
 } satisfies Record<string, Person>;
 
 /** One hunk around the lines that differ, with three lines of context. */
@@ -76,26 +89,95 @@ function artChanges(): FileChange[] {
       status: "modified",
       hunks: [textHunk(treePrefab.before, treePrefab.after)],
     },
+    {
+      path: "Assets/Scenes/Forest.unity",
+      status: "modified",
+      hunks: [textHunk(forestScene.before, forestScene.after)],
+    },
+    {
+      path: "Assets/Textures/Grass.png.meta",
+      status: "modified",
+      hunks: [textHunk(grassMeta.before, grassMeta.after)],
+    },
+  ];
+}
+
+const pointerText = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
+
+/** A texturing pass: every kind of file a preview has to cope with. */
+function artPass(): FileChange[] {
+  const binary = (path: string, status: FileChange["status"] = "modified") => ({
+    path,
+    status,
+    hunks: [],
+    binary: true,
+  });
+  return [
+    binary("Assets/Textures/Moss.tga"),
+    binary("Assets/Art/Poster.psd"),
+    {
+      // Git LFS keeps the real file elsewhere; Git itself diffs the pointers.
+      path: "Assets/Art/Cliffs.psd",
+      status: "modified",
+      hunks: [
+        textHunk(
+          pointerText(cliffPointers.before),
+          pointerText(cliffPointers.after),
+        ),
+      ],
+    },
+    binary("Assets/Animations/Hero@Wave.fbx", "added"),
+    binary("Assets/Textures/Bark_Old.png", "deleted"),
+    binary("Assets/Audio/Wind.wav"),
+    binary("Assets/Scenes/Cave.unity"),
+    {
+      path: "Assets/Settings/URP-HighFidelity.asset",
+      status: "modified",
+      hunks: [textHunk(pipelineAsset.before, pipelineAsset.after)],
+    },
   ];
 }
 
 const encode = (text: string) => new TextEncoder().encode(text);
 
 /** Contents of the sample art files: the version before a change, or after it. */
-export function sampleFile(path: string, before: boolean) {
+export function sampleFile(
+  path: string,
+  before: boolean,
+): Uint8Array | null | undefined | Promise<Uint8Array | null> {
+  const pick = <T>(pair: { before: T; after: T }) =>
+    before ? pair.before : pair.after;
   switch (path) {
     case "Assets/Textures/Bark.png":
       return paintBark(!before);
     case "Assets/Textures/Bark_Old.png":
       return paintBark(false);
     case "Assets/Textures/Bark_Normal.png":
-      return paintBark(true);
+      return paintBarkNormal();
     case "Assets/Models/Crate.fbx":
-      return encode(before ? crateModel.before : crateModel.after);
+      return encode(pick(crateModel));
     case "Assets/Materials/Bark.mat":
-      return encode(before ? barkMaterial.before : barkMaterial.after);
+      return encode(pick(barkMaterial));
     case "Assets/Prefabs/Tree.prefab":
-      return encode(before ? treePrefab.before : treePrefab.after);
+      return encode(pick(treePrefab));
+    case "Assets/Scenes/Forest.unity":
+      return encode(pick(forestScene));
+    case "Assets/Textures/Grass.png.meta":
+      return encode(pick(grassMeta));
+    case "Assets/Textures/Moss.tga":
+      return paintMoss(!before);
+    case "Assets/Art/Poster.psd":
+      return paintPoster(!before);
+    case "Assets/Art/Cliffs.psd":
+      return pick(cliffPointers);
+    case "Assets/Animations/Hero@Wave.fbx":
+      return encode(heroWave);
+    case "Assets/Audio/Wind.wav":
+      return windSound(!before);
+    case "Assets/Scenes/Cave.unity":
+      return binaryScene(!before);
+    case "Assets/Settings/URP-HighFidelity.asset":
+      return encode(pick(pipelineAsset));
   }
 }
 
@@ -468,10 +550,18 @@ export function history(): Commit[] {
         "Set up player movement and collision",
         people.alex,
         days(1),
-        ["e29a641"],
+        ["c5d2f80"],
       ),
       refs: ["main", "origin/main"],
     },
+    commit(
+      "c5d2f80",
+      "Texture pass: moss, cliffs, poster and a waving hero",
+      people.mira,
+      hours(25),
+      ["e29a641"],
+      "Moss is greener, the cliff source got a sky layer, the poster says FOREST now. Old bark texture removed.",
+    ),
     commit(
       "e29a641",
       "Add outline shader for interactable objects",
@@ -504,6 +594,7 @@ export function commitContents(): Map<string, FileChange[]> {
     ["a7c92e1", gamepad],
     ["d84e2a9", gamepad],
     ["f1b03c7", artChanges()],
+    ["c5d2f80", artPass()],
   ]);
 }
 
@@ -519,7 +610,11 @@ export function stashes() {
       message: "WIP: inventory interaction",
       branch: "feature/player-movement",
       date: hours(2),
-      files: [changes[2], changes[3]],
+      files: [
+        changes[2],
+        changes[3],
+        changes.find((c) => c.path === "Assets/Textures/Bark.png")!,
+      ],
     },
     {
       message: "Before camera refactor",

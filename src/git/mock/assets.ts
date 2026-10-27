@@ -1,9 +1,9 @@
 // Sample Unity assets for the demo repository: a prefab, a material and an
 // FBX model in two versions each. Textures are painted at runtime.
 
-const header = "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n";
+export const header = "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n";
 
-const transform = (
+export const transform = (
   id: number,
   owner: number,
   father: number,
@@ -23,7 +23,7 @@ Transform:
   m_Father: {fileID: ${father}}
 `;
 
-const gameObject = (
+export const gameObject = (
   id: number,
   name: string,
   components: number[],
@@ -39,7 +39,7 @@ ${components.map((c) => `  - component: {fileID: ${c}}`).join("\n")}
   m_IsActive: 1
 `;
 
-const renderer = (
+export const renderer = (
   id: number,
   owner: number,
   material: string,
@@ -80,6 +80,9 @@ export const guids = {
   oldBarkTexture: "9d1e7f3a5c2b48d6b4f2e0a1c9d8b7f5",
   barkNormal: "3e5a7c9b1d2f40e6a8c0b2d4f6e8a0c2",
   urpLit: "933532a4fcc9baf4fa0491de14d08ed7",
+  treePrefab: "7e1d4c2b9a8f4e6d8c3b2a1f0e9d8c7b",
+  rockPrefab: "5f6a7b8c9d0e41f2a3b4c5d6e7f80912",
+  playerScript: "6a7b8c9d0e1f42a3b4c5d6e7f8091a2b",
 };
 
 export const guidPaths: Record<string, string> = {
@@ -88,6 +91,9 @@ export const guidPaths: Record<string, string> = {
   [guids.barkTexture]: "Assets/Textures/Bark.png",
   [guids.oldBarkTexture]: "Assets/Textures/Bark_Old.png",
   [guids.barkNormal]: "Assets/Textures/Bark_Normal.png",
+  [guids.treePrefab]: "Assets/Prefabs/Tree.prefab",
+  [guids.rockPrefab]: "Assets/Prefabs/Rock_Big.prefab",
+  [guids.playerScript]: "Assets/Scripts/PlayerController.cs",
 };
 
 export const treePrefab = {
@@ -283,6 +289,11 @@ export function makeFbx(boxes: Box[], spin: boolean) {
       `	C: "OP",7000,6000, "d|Y"`,
     );
   }
+  return fbxDocument(nodes, links);
+}
+
+/** An ASCII FBX 7.4 file around the given objects and connections. */
+export function fbxDocument(nodes: string[], links: string[]) {
   return `; FBX 7.4.0 project file
 FBXHeaderExtension:  {
 	FBXHeaderVersion: 1003

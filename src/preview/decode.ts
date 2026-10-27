@@ -16,7 +16,7 @@ export async function decodeImage(
   bytes: Uint8Array,
 ): Promise<DecodedImage> {
   const ext = extension(path);
-  if (ext === "tga") return fromCanvas(decodeTga(bytes));
+  if (ext === "tga") return fromPixels(decodeTga(bytes));
   if (ext === "psd") {
     const { readPsd } = await import("ag-psd");
     const psd = readPsd(
@@ -38,7 +38,12 @@ export async function decodeImage(
   const url = URL.createObjectURL(blob);
   const image = new Image();
   image.src = url;
-  await image.decode();
+  try {
+    await image.decode();
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
   return { url, width: image.naturalWidth, height: image.naturalHeight };
 }
 
@@ -50,8 +55,27 @@ function fromCanvas(canvas: HTMLCanvasElement): DecodedImage {
   };
 }
 
-/** Truevision TGA: uncompressed or RLE, 24 or 32 bits, as Unity projects use it. */
-export function decodeTga(bytes: Uint8Array): HTMLCanvasElement {
+function fromPixels({ width, height, pixels }: Pixels) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const image = new ImageData(width, height);
+  image.data.set(pixels);
+  canvas.getContext("2d")!.putImageData(image, 0, 0);
+  return fromCanvas(canvas);
+}
+
+export type Pixels = {
+  width: number;
+  height: number;
+  pixels: Uint8ClampedArray;
+};
+
+/**
+ * Truevision TGA as Unity projects use it: true-color (16, 24 or 32 bits) or
+ * grayscale, plain or RLE-compressed. Returns RGBA rows from the top.
+ */
+export function decodeTga(bytes: Uint8Array): Pixels {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const idLength = bytes[0];
   const type = bytes[2];
@@ -59,25 +83,50 @@ export function decodeTga(bytes: Uint8Array): HTMLCanvasElement {
   const height = view.getUint16(14, true);
   const depth = bytes[16];
   const descriptor = bytes[17];
-  if ((type !== 2 && type !== 10) || (depth !== 24 && depth !== 32))
+  const gray = type === 3 || type === 11;
+  if (
+    ![2, 3, 10, 11].includes(type) ||
+    (gray ? depth !== 8 : ![16, 24, 32].includes(depth))
+  )
     throw new Error(`unsupported TGA (type ${type}, ${depth} bits)`);
   const pixelSize = depth / 8;
   const pixels = new Uint8ClampedArray(width * height * 4);
-  let offset = 18 + idLength;
+  // TGA rows start at the bottom unless bit 5 of the descriptor says otherwise.
+  const topDown = (descriptor & 0x20) !== 0;
   const put = (index: number, at: number) => {
-    pixels[index * 4] = bytes[at + 2];
-    pixels[index * 4 + 1] = bytes[at + 1];
-    pixels[index * 4 + 2] = bytes[at];
-    pixels[index * 4 + 3] = pixelSize === 4 ? bytes[at + 3] : 255;
+    const row = Math.floor(index / width);
+    const o =
+      ((topDown ? row : height - 1 - row) * width + (index % width)) * 4;
+    if (gray) {
+      pixels[o] = pixels[o + 1] = pixels[o + 2] = bytes[at];
+      pixels[o + 3] = 255;
+    } else if (pixelSize === 2) {
+      // 5 bits per channel; the attribute bit is unreliable, so 16-bit images are opaque.
+      const v = bytes[at] | (bytes[at + 1] << 8);
+      pixels[o] = (((v >> 10) & 31) * 255) / 31;
+      pixels[o + 1] = (((v >> 5) & 31) * 255) / 31;
+      pixels[o + 2] = ((v & 31) * 255) / 31;
+      pixels[o + 3] = 255;
+    } else {
+      pixels[o] = bytes[at + 2];
+      pixels[o + 1] = bytes[at + 1];
+      pixels[o + 2] = bytes[at];
+      pixels[o + 3] = pixelSize === 4 ? bytes[at + 3] : 255;
+    }
   };
-  for (let i = 0; i < width * height;) {
-    if (type === 2) {
+  let offset =
+    18 +
+    idLength +
+    (bytes[1] ? view.getUint16(5, true) * Math.ceil(bytes[7] / 8) : 0);
+  const rle = type >= 9;
+  for (let i = 0; i < width * height && offset < bytes.length;) {
+    if (!rle) {
       put(i++, offset);
       offset += pixelSize;
       continue;
     }
     const packet = bytes[offset++];
-    const count = (packet & 0x7f) + 1;
+    const count = Math.min((packet & 0x7f) + 1, width * height - i);
     if (packet & 0x80) {
       for (let n = 0; n < count; n++) put(i++, offset);
       offset += pixelSize;
@@ -87,19 +136,5 @@ export function decodeTga(bytes: Uint8Array): HTMLCanvasElement {
         offset += pixelSize;
       }
   }
-  // TGA rows start at the bottom unless bit 5 of the descriptor says otherwise.
-  const topDown = (descriptor & 0x20) !== 0;
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const image = new ImageData(width, height);
-  for (let y = 0; y < height; y++) {
-    const row = topDown ? y : height - 1 - y;
-    image.data.set(
-      pixels.subarray(row * width * 4, (row + 1) * width * 4),
-      y * width * 4,
-    );
-  }
-  canvas.getContext("2d")!.putImageData(image, 0, 0);
-  return canvas;
+  return { width, height, pixels };
 }
