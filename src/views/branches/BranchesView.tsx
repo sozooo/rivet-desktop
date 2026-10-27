@@ -10,7 +10,8 @@ import {
   Tag,
 } from "lucide-react";
 import { shortSha } from "../../git/paths";
-import { timeAgo, useAsync } from "../../ui/hooks";
+import { useI18n } from "../../i18n/i18n";
+import { useAsync } from "../../ui/hooks";
 import { Panes } from "../../ui/Panes";
 import type { RepoApi } from "../repoApi";
 
@@ -25,6 +26,7 @@ export function BranchesView({
 }) {
   const { snapshot, backend, openOperation } = repo;
   const { branches, commits } = snapshot;
+  const { t, timeAgo } = useI18n();
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState(branches.current);
   const isCurrent = target === branches.current;
@@ -34,20 +36,20 @@ export function BranchesView({
     [target],
   );
   const groups = [
-    { label: "LOCAL", items: branches.local, Icon: GitBranch },
-    { label: "REMOTE", items: branches.remote, Icon: Globe },
-    { label: "TAGS", items: branches.tags, Icon: Tag },
+    { label: t("branches.local"), items: branches.local, Icon: GitBranch },
+    { label: t("branches.remote"), items: branches.remote, Icon: Globe },
+    { label: t("branches.tags"), items: branches.tags, Icon: Tag },
   ];
   const q = query.toLowerCase();
 
   return (
     <Panes
-      title="Branches"
+      title={t("branches.title")}
       phase={phase}
       search={{
         value: query,
         onChange: setQuery,
-        placeholder: "Search branches…",
+        placeholder: t("branches.search"),
       }}
       sidebar={groups.map(({ label, items, Icon }) => (
         <section key={label}>
@@ -66,7 +68,7 @@ export function BranchesView({
                 <Icon size={16} />
                 <span>{b}</span>
                 {b === branches.current && (
-                  <Check size={14} aria-label="Current branch" />
+                  <Check size={14} aria-label={t("branches.current")} />
                 )}
               </button>
             ))}
@@ -74,13 +76,13 @@ export function BranchesView({
       ))}
       footer={
         <>
-          <span className="status-dot" /> Local repository
-          {repo.demo && <span className="muted">Demo</span>}
+          <span className="status-dot" /> {t("history.footer")}
+          {repo.demo && <span className="muted">{t("common.demo")}</span>}
         </>
       }
       main={
         <div className="branch-workspace">
-          <div className="eyebrow">BRANCH OVERVIEW</div>
+          <div className="eyebrow">{t("branches.overview")}</div>
           <div className="branch-heading">
             <div className="branch-symbol">
               <GitBranch size={25} />
@@ -91,12 +93,10 @@ export function BranchesView({
                 {isCurrent ? (
                   <>
                     <span className="status-dot" />
-                    You are on this branch
+                    {t("branches.youAreHere")}
                   </>
-                ) : isLocal ? (
-                  "Local branch"
                 ) : (
-                  "Remote branch or tag"
+                  t(isLocal ? "branches.localBranch" : "branches.remoteOrTag")
                 )}
               </p>
             </div>
@@ -108,60 +108,60 @@ export function BranchesView({
                 onClick={() => openOperation("new-branch")}
               >
                 <GitBranch size={14} />
-                New branch from here…
+                {t("branches.newFromHere")}
               </button>
             ) : (
               <>
                 <button
                   className="button primary"
                   disabled={!isLocal}
-                  title={
-                    isLocal
-                      ? undefined
-                      : "Only local branches can be switched to"
-                  }
+                  title={isLocal ? undefined : t("branches.onlyLocal")}
                   onClick={() => openOperation("switch-branch", { target })}
                 >
                   <GitBranch size={14} />
-                  Switch to this branch
+                  {t("branches.switch")}
                 </button>
                 <button
                   className="button"
                   onClick={() => openOperation("merge", { target })}
                 >
-                  Merge into {branches.current}…
+                  {t("branches.merge", { branch: branches.current })}
                 </button>
                 <button
                   className="button"
                   onClick={() => openOperation("rebase", { target })}
                 >
-                  Rebase {branches.current} onto this…
+                  {t("branches.rebase", { branch: branches.current })}
                 </button>
               </>
             )}
           </div>
           <div className="branch-card">
             <div className="branch-card-title">
-              <strong>Compared to main</strong>
+              <strong>{t("branches.compared")}</strong>
               <span className="tag">origin</span>
             </div>
             <div className="divergence">
               <div>
                 <ArrowUp />
                 <strong>{divergence?.ahead ?? "–"}</strong>
-                <span>commits ahead</span>
+                <span>
+                  {t("branches.ahead", { count: divergence?.ahead ?? 0 })}
+                </span>
               </div>
               <div>
                 <ArrowDown />
                 <strong>{divergence?.behind ?? "–"}</strong>
-                <span>commits behind</span>
+                <span>
+                  {t("branches.behind", { count: divergence?.behind ?? 0 })}
+                </span>
               </div>
             </div>
             <div className="branch-diagram precise-diagram">
               <svg
                 viewBox="0 0 560 100"
                 role="img"
-                aria-label={`main and ${target} diverge from a shared commit`}
+                aria-label={t("branches.diagram", { branch: target })}
               >
                 <path className="main-track" d="M20 25H132" />
                 <path className="feature-track" d="M20 25V47Q20 70 44 70H188" />
@@ -191,15 +191,12 @@ export function BranchesView({
                 </text>
               </svg>
             </div>
-            <div className="card-note">
-              Changes stay on their branch. Operations happen only when you
-              choose.
-            </div>
+            <div className="card-note">{t("branches.note")}</div>
           </div>
           <div className="recent-heading">
-            <h3>Recent commits</h3>
+            <h3>{t("branches.recent")}</h3>
             <button className="text-button" onClick={onHistory}>
-              View history <ArrowRight size={14} />
+              {t("branches.viewHistory")} <ArrowRight size={14} />
             </button>
           </div>
           {commits.slice(0, 3).map((c) => (

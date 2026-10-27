@@ -14,6 +14,7 @@ import {
   type Repository,
   type SetupMode,
 } from "../repositories";
+import { useI18n, type Key } from "../i18n/i18n";
 import { DrawIcon } from "../ui/DrawIcon";
 import { useFadeSwitch } from "../ui/useFadeSwitch";
 import { setupModeMeta } from "./modes";
@@ -26,31 +27,10 @@ const lastSegment = (value: string) =>
     .split(/[\\/:]/)
     .pop() || "";
 
-const intro = {
-  clone: {
-    title: (
-      <>
-        Clone a <em>repository.</em>
-      </>
-    ),
-    text: "Start with a remote project and make it your own local workspace.",
-  },
-  open: {
-    title: (
-      <>
-        Bring your work <em>together.</em>
-      </>
-    ),
-    text: "Add a repository that is already on this computer. Your project stays where it is.",
-  },
-  create: {
-    title: (
-      <>
-        Start something <em>new.</em>
-      </>
-    ),
-    text: "Give your next project a home. Begin with a clean working tree and a main branch.",
-  },
+/** Errors the platform reports by code; anything else is git's own message. */
+const platformErrors: Record<string, Key> = {
+  "folder-missing": "setup.error.folderMissing",
+  "not-a-repository": "setup.error.notRepository",
 };
 
 export function RepositorySetup({
@@ -66,6 +46,7 @@ export function RepositorySetup({
   onComplete: (repo: Repository) => void;
 }) {
   const [mode, setMode, phase] = useFadeSwitch(initialMode);
+  const { t } = useI18n();
   const [name, setName] = useState(""),
     [path, setPath] = useState("D:\\Projects"),
     [url, setUrl] = useState(""),
@@ -101,16 +82,15 @@ export function RepositorySetup({
     e.preventDefault();
     if (busy) return;
     if (!resolvedName || !path.trim())
-      return setError("Enter a repository name and location.");
+      return setError(t("setup.error.nameLocation"));
     if (
       mode === "clone" &&
       !/^(https?:\/\/[^/\s]+\/.+|git@[^:\s]+:.+)$/i.test(url.trim())
     )
-      return setError("Enter an HTTPS or SSH repository URL.");
+      return setError(t("setup.error.url"));
     if (mode === "create" && /[\\/:*?"<>|]/.test(name))
-      return setError("Use a folder name without special path characters.");
-    if (isAdded(destination))
-      return setError("This location is already in your repository list.");
+      return setError(t("setup.error.folderName"));
+    if (isAdded(destination)) return setError(t("setup.error.duplicate"));
     setBusy(true);
     setError("");
     try {
@@ -120,7 +100,7 @@ export function RepositorySetup({
           ? await platform.repositoryRoot(destination)
           : destination;
       if (mode === "open" && isAdded(location))
-        throw new Error("This repository is already in your list.");
+        throw new Error(t("setup.error.duplicateRepository"));
       if (mode === "clone") await platform.clone(url.trim(), location);
       if (mode === "create") await platform.init(location);
       onComplete({
@@ -131,7 +111,11 @@ export function RepositorySetup({
         url: mode === "clone" ? url.trim() : undefined,
       });
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : String(failure));
+      const message =
+        failure instanceof Error ? failure.message : String(failure);
+      setError(
+        message in platformErrors ? t(platformErrors[message]) : message,
+      );
     } finally {
       setBusy(false);
     }
@@ -142,13 +126,13 @@ export function RepositorySetup({
       className="repository-setup"
       role="dialog"
       aria-modal="true"
-      aria-label={setupModeMeta[mode].menu.replace("…", "")}
+      aria-label={t(setupModeMeta[mode].tab)}
     >
       <div className="setup-left">
         {onCancel ? (
           <button className="text-button setup-back" onClick={onCancel}>
             <ArrowLeft />
-            Back to workspace
+            {t("setup.back")}
           </button>
         ) : (
           <span className="setup-back" />
@@ -169,22 +153,27 @@ export function RepositorySetup({
                   }}
                 >
                   <DrawIcon icon={Icon} active={m === mode} />
-                  {tab}
+                  {t(tab)}
                 </button>
               );
             })}
           </div>
           <div className={`setup-page fade-switch ${phase}`}>
             <div className="setup-intro">
-              <div className="eyebrow">A PLACE FOR YOUR NEXT IDEA</div>
-              <h1>{intro[mode].title}</h1>
-              <p className="setup-description">{intro[mode].text}</p>
+              <div className="eyebrow">{t("setup.eyebrow")}</div>
+              <h1>
+                {t(`setup.${mode}.titleStart` as Key)}{" "}
+                <em>{t(`setup.${mode}.titleEm` as Key)}</em>
+              </h1>
+              <p className="setup-description">
+                {t(`setup.${mode}.text` as Key)}
+              </p>
             </div>
             <form onSubmit={submit}>
               <div className={`setup-fields ${mode}`}>
                 {mode === "clone" && (
                   <label>
-                    Repository URL
+                    {t("setup.url")}
                     <input
                       autoFocus
                       value={url}
@@ -192,14 +181,12 @@ export function RepositorySetup({
                       placeholder="https://github.com/owner/repository.git"
                       required
                     />
-                    <small>
-                      HTTPS and SSH URLs are supported in this preview.
-                    </small>
+                    <small>{t("setup.urlHint")}</small>
                   </label>
                 )}
                 {mode === "create" && (
                   <label>
-                    Repository name
+                    {t("setup.name")}
                     <input
                       autoFocus
                       value={name}
@@ -210,11 +197,7 @@ export function RepositorySetup({
                   </label>
                 )}
                 <label>
-                  {mode === "open"
-                    ? "Repository folder"
-                    : mode === "clone"
-                      ? "Where to clone"
-                      : "Parent folder"}
+                  {t(`setup.folder.${mode}` as Key)}
                   <span className="path-field">
                     <input
                       value={path}
@@ -224,28 +207,25 @@ export function RepositorySetup({
                     />
                     <button type="button" className="button" onClick={browse}>
                       <FolderSearch />
-                      Browse…
+                      {t("setup.browse")}
                     </button>
                   </span>
                   <small>
-                    {mode === "open"
-                      ? "Choose a folder, or pick one of the projects found below."
-                      : "The repository will use its own subfolder."}
+                    {t(
+                      mode === "open" ? "setup.hint.open" : "setup.hint.other",
+                    )}
                   </small>
                 </label>
                 {mode === "create" && (
                   <div className="setup-default">
                     <Check />
-                    Initial branch <code>main</code>
+                    {t("setup.initialBranch")} <code>main</code>
                   </div>
                 )}
               </div>
               {mode === "open" ? (
-                <div
-                  className="found-repos"
-                  aria-label="Repositories found on this computer"
-                >
-                  <div className="found-heading">FOUND ON THIS COMPUTER</div>
+                <div className="found-repos" aria-label={t("setup.found")}>
+                  <div className="found-heading">{t("setup.found")}</div>
                   {found.map((f) => {
                     const added = isAdded(f.path);
                     return (
@@ -254,7 +234,11 @@ export function RepositorySetup({
                         key={f.path}
                         className="found-repo"
                         disabled={added}
-                        title={added ? "Already in your list" : `Add ${f.path}`}
+                        title={
+                          added
+                            ? t("setup.alreadyAdded")
+                            : t("setup.addPath", { path: f.path })
+                        }
                         onClick={() =>
                           onComplete({
                             id: crypto.randomUUID(),
@@ -276,11 +260,11 @@ export function RepositorySetup({
                         <span className="found-action">
                           {added ? (
                             <>
-                              <Check /> Added
+                              <Check /> {t("setup.added")}
                             </>
                           ) : (
                             <>
-                              <Plus /> Add
+                              <Plus /> {t("setup.add")}
                             </>
                           )}
                         </span>
@@ -290,16 +274,16 @@ export function RepositorySetup({
                 </div>
               ) : (
                 <div className="setup-preview">
-                  <span>LOCAL WORKSPACE</span>
+                  <span>{t("setup.localWorkspace")}</span>
                   <code>{destination}</code>
                 </div>
               )}
               <p className="setup-demo">
                 {platform.desktop
                   ? mode === "clone"
-                    ? "Sign-in, if the server asks for it, opens in its own window."
-                    : " "
-                  : "UI preview · Saves an entry in this browser. No folders are created, read or cloned."}
+                    ? t("setup.note.signIn")
+                    : "\u00a0"
+                  : t("setup.note.browser")}
               </p>
               <p className="setup-error" role={error ? "alert" : undefined}>
                 {error || "\u00a0"}
@@ -307,7 +291,7 @@ export function RepositorySetup({
               <div className="setup-actions">
                 {onCancel && (
                   <button type="button" className="button" onClick={onCancel}>
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                 )}
                 <button
@@ -315,26 +299,28 @@ export function RepositorySetup({
                   type="submit"
                   disabled={busy}
                 >
-                  {busy
-                    ? mode === "clone"
-                      ? "Cloning…"
-                      : "Working…"
-                    : mode === "clone"
-                      ? platform.desktop
-                        ? "Clone"
-                        : "Add clone preview"
+                  {t(
+                    busy
+                      ? mode === "clone"
+                        ? "setup.cloning"
+                        : "setup.working"
                       : mode === "open"
-                        ? "Add repository"
-                        : platform.desktop
-                          ? "Create repository"
-                          : "Create preview"}
+                        ? "setup.submit.open"
+                        : !platform.desktop
+                          ? mode === "clone"
+                            ? "setup.submit.clonePreview"
+                            : "setup.submit.createPreview"
+                          : mode === "clone"
+                            ? "setup.submit.clone"
+                            : "setup.submit.create",
+                  )}
                   <ArrowRight />
                 </button>
               </div>
             </form>
           </div>
         </div>
-        <span className="setup-footer">Your repositories. Your workflow.</span>
+        <span className="setup-footer">{t("setup.footer")}</span>
       </div>
       <SetupArt onClose={onCancel} />
     </section>

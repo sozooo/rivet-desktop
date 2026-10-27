@@ -1,6 +1,7 @@
 import type { GitBackend } from "../git/backend";
 import { shortSha } from "../git/paths";
 import type { Commit, FileChange, StashEntry, SyncState } from "../git/types";
+import type { Key, Params } from "../i18n/i18n";
 
 export type OpContext = {
   branch: string;
@@ -10,139 +11,123 @@ export type OpContext = {
   target?: string;
   commit?: Commit;
   stash?: StashEntry;
+  /** Display name for the stash (its message, or a friendlier default). */
+  stashName?: string;
   file?: FileChange;
+  /** More files that go with `file`, such as its Unity .meta file. */
+  extraPaths?: string[];
 };
 
+type Translate = (key: Key, params?: Params) => string;
+
+/**
+ * A Git operation shown in a dialog. Its texts live in the dictionaries under
+ * "op.<id>.title", ".describe", ".confirm" and ".done"; `params` fills them in.
+ */
 export type Operation = {
-  title: string;
-  describe: (c: OpContext) => string;
+  params: (c: OpContext, t: Translate, input: string) => Params;
   command: (c: OpContext, input: string) => string;
-  confirm: string;
   danger?: boolean;
   /** A text field shown in the dialog, e.g. the new branch name. */
   input?: {
-    label: string;
+    label: Key;
     placeholder: string;
     sanitize: (value: string) => string;
-    problem: (value: string, c: OpContext) => string | null;
+    problem: (value: string, c: OpContext) => Key | null;
   };
-  /** Absent for operations the demo only previews. */
+  /** Absent for operations Rivet only explains for now. */
   run?: (backend: GitBackend, c: OpContext, input: string) => Promise<unknown>;
-  done?: (c: OpContext, input: string) => string;
 };
-
-const short = (c: OpContext) => shortSha(c.commit?.sha ?? "");
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const definitions = {
   "switch-branch": {
-    title: "Switch branch",
-    describe: (c) =>
-      `Switch from ${c.branch} to ${c.target}. Uncommitted changes come with you.`,
+    params: (c) => ({ branch: c.branch, target: c.target ?? "" }),
     command: (c) => `git switch ${c.target}`,
-    confirm: "Switch branch",
     run: (b, c) => b.switchBranch(c.target!),
-    done: (c) => `Switched to ${c.target}.`,
   },
   "new-branch": {
-    title: "New branch",
-    describe: (c) =>
-      `Create a branch from the latest commit on ${c.branch}. You stay on ${c.branch}.`,
+    params: (c, _, name) => ({ branch: c.branch, name: name.trim() }),
     command: (_, name) => `git branch ${name || "<name>"}`,
-    confirm: "Create branch",
     input: {
-      label: "Branch name",
+      label: "op.new-branch.label",
       placeholder: "feature/branch-name",
       sanitize: (v) => v.replace(/[^a-zA-Z0-9/_.-]/g, ""),
       problem: (v, c) =>
         !v.trim()
-          ? "Enter a name."
+          ? "op.new-branch.empty"
           : c.branches.includes(v.trim())
-            ? "A branch with this name already exists."
+            ? "op.new-branch.exists"
             : null,
     },
     run: (b, _, name) => b.createBranch(name.trim()),
-    done: (_, name) => `Created ${name.trim()}.`,
   },
   pull: {
-    title: "Pull",
-    describe: (c) =>
-      `Bring ${plural(c.sync.behind, "commit")} from ${c.sync.upstream} into ${c.branch}. ` +
-      (c.sync.ahead
-        ? "Your branch also has unpublished commits, so Git joins both histories with a merge commit. Nothing is rebased."
-        : "Your branch moves forward to include them."),
+    params: (c, t) => ({
+      count: c.sync.behind,
+      upstream: c.sync.upstream ?? "",
+      branch: c.branch,
+      how: t(c.sync.ahead ? "op.pull.merge" : "op.pull.forward"),
+    }),
     command: (c) => `git pull --no-rebase origin ${c.branch}`,
-    confirm: "Pull",
     run: (b) => b.pull(),
-    done: () => "Pulled the latest commits.",
   },
   push: {
-    title: "Push",
-    describe: (c) =>
-      `Publish ${plural(c.sync.ahead, "commit")} from ${c.branch} to ${c.sync.upstream}.`,
+    params: (c) => ({
+      count: c.sync.ahead,
+      branch: c.branch,
+      upstream: c.sync.upstream ?? "origin",
+    }),
     command: (c) => `git push origin ${c.branch}`,
-    confirm: "Push",
     run: (b) => b.push(),
-    done: () => "Pushed. The remote is up to date.",
   },
   "discard-file": {
-    title: "Discard changes",
-    describe: (c) =>
-      `Throw away every change to ${c.file?.path}, including parts selected for the commit. This can't be undone.`,
+    params: (c) => ({ path: c.file?.path ?? "" }),
     command: (c) =>
       c.file?.status === "added"
         ? `git rm --force -- ${c.file.path}`
         : `git restore --source=HEAD --staged --worktree -- ${c.file?.path}`,
-    confirm: "Discard changes",
     danger: true,
-    run: (b, c) => b.discard(c.file!.path),
-    done: (c) => `Discarded changes to ${c.file?.path}.`,
+    run: async (b, c) => {
+      for (const path of [c.file!.path, ...(c.extraPaths ?? [])])
+        await b.discard(path);
+    },
   },
   "drop-stash": {
-    title: "Delete stash",
-    describe: (c) =>
-      `Delete "${c.stash?.message}" with ${plural(c.stash?.fileCount ?? 0, "file")}. This can't be undone.`,
+    params: (c) => ({
+      name: c.stashName ?? c.stash?.message ?? "",
+      count: c.stash?.fileCount ?? 0,
+    }),
     command: (c) => `git stash drop stash@{${c.stash?.index}}`,
-    confirm: "Delete stash",
     danger: true,
     run: (b, c) => b.stashDrop(c.stash!.index),
-    done: () => "Stash deleted.",
   },
   merge: {
-    title: "Merge",
-    describe: (c) => `Merge ${c.target} into your current branch, ${c.branch}.`,
+    params: (c) => ({ branch: c.branch, target: c.target ?? "" }),
     command: (c) => `git merge ${c.target}`,
-    confirm: "Merge",
   },
   rebase: {
-    title: "Rebase",
-    describe: (c) =>
-      `Replay the commits of ${c.branch} on top of ${c.target}. Their identifiers will change.`,
+    params: (c) => ({ branch: c.branch, target: c.target ?? "" }),
     command: (c) => `git rebase ${c.target}`,
-    confirm: "Rebase",
   },
   checkout: {
-    title: "Check out commit",
-    describe: (c) =>
-      `Look at the project exactly as it was at ${short(c)}. You will not be on a branch until you switch back.`,
+    params: (c) => ({ sha: shortSha(c.commit?.sha ?? "") }),
     command: (c) => `git switch --detach ${c.commit?.sha}`,
-    confirm: "Check out",
   },
   "cherry-pick": {
-    title: "Cherry-pick",
-    describe: (c) =>
-      `Copy the changes of ${short(c)} onto ${c.branch} as a new commit.`,
+    params: (c) => ({ sha: shortSha(c.commit?.sha ?? ""), branch: c.branch }),
     command: (c) => `git cherry-pick ${c.commit?.sha}`,
-    confirm: "Cherry-pick",
   },
   revert: {
-    title: "Revert",
-    describe: (c) =>
-      `Add a new commit on ${c.branch} that undoes ${short(c)}. History stays intact.`,
+    params: (c) => ({ sha: shortSha(c.commit?.sha ?? ""), branch: c.branch }),
     command: (c) => `git revert ${c.commit?.sha}`,
-    confirm: "Revert",
   },
 } satisfies Record<string, Operation>;
 
 export type OperationId = keyof typeof definitions;
 export const operations: Record<OperationId, Operation> = definitions;
+
+/** Dictionary key for one of an operation's texts. */
+export const opKey = (
+  id: OperationId,
+  part: "title" | "describe" | "confirm" | "done",
+) => `op.${id}.${part}` as Key;

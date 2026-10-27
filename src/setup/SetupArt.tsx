@@ -1,26 +1,28 @@
 import { X } from "lucide-react";
+import { useI18n } from "../i18n/i18n";
 
 /** The decorative panel beside the repository setup form. */
 export function SetupArt({ onClose }: { onClose?: () => void }) {
+  const { t } = useI18n();
   return (
     <aside className="setup-art">
       {onClose && (
         <button
           className="setup-close icon-button"
-          aria-label="Close repository setup"
+          aria-label={t("setup.closeLabel")}
           onClick={onClose}
         >
           <X />
         </button>
       )}
       <div className="art-label">
-        <span className="brand-mark">r</span> MAKE ROOM FOR WHAT’S NEXT
+        <span className="brand-mark">r</span> {t("art.label")}
       </div>
       <svg
         className="repo-illustration"
         viewBox="0 0 440 430"
         role="img"
-        aria-label="Connected repository folders and commit paths"
+        aria-label={t("art.illustration")}
       >
         <defs>
           <pattern
@@ -110,16 +112,17 @@ export function SetupArt({ onClose }: { onClose?: () => void }) {
         </g>
       </svg>
       <h2>
-        A clearer view.
-        <br />A little more flow.
+        {t("art.title1")}
+        <br />
+        {t("art.title2")}
       </h2>
       <p>
-        Everything you need to follow your changes,
+        {t("art.text1")}
         <br />
-        from the first commit to what comes next.
+        {t("art.text2")}
       </p>
       <div className="art-bottom">
-        BUILT AROUND GIT <span>01 — YOUR WORKSPACE</span>
+        {t("art.bottom")} <span>{t("art.bottomRight")}</span>
       </div>
     </aside>
   );

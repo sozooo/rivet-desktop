@@ -6,6 +6,7 @@ import { TopBar } from "./chrome/TopBar";
 import { SettingsDialog, ShortcutsDialog } from "./dialogs/InfoDialogs";
 import { OperationDialog } from "./dialogs/OperationDialog";
 import {
+  opKey,
   operations,
   type OpContext,
   type OperationId,
@@ -15,7 +16,8 @@ import type { GitBackend } from "./git/backend";
 import type { RepoSnapshot } from "./git/types";
 import type { Repository, SetupMode } from "./repositories";
 import { RepositorySetup } from "./setup/RepositorySetup";
-import type { ThemePreference } from "./App";
+import type { Preferences } from "./App";
+import { useI18n } from "./i18n/i18n";
 import { platform } from "./platform";
 import { useStoredState } from "./ui/hooks";
 import { SidebarContext } from "./ui/Panes";
@@ -35,8 +37,7 @@ export function Workspace({
   repositories,
   backend,
   dark,
-  theme,
-  setTheme,
+  preferences,
   onSwitchRepository,
   onAddRepository,
   onRemoveRepository,
@@ -45,13 +46,13 @@ export function Workspace({
   repositories: Repository[];
   backend: GitBackend;
   dark: boolean;
-  theme: ThemePreference;
-  setTheme: (theme: ThemePreference) => void;
+  preferences: Preferences;
   onSwitchRepository: (id: string) => void;
   onAddRepository: (repository: Repository) => void;
   onRemoveRepository: (id: string) => void;
 }) {
   const notify = useNotify();
+  const { t, mode: uiMode } = useI18n();
   const [snapshot, setSnapshot] = useState<RepoSnapshot>();
   const [mode, setMode, phase] = useFadeSwitch<Mode>("Changes");
   const [setup, setSetup] = useState<SetupMode | null>(null);
@@ -115,18 +116,18 @@ export function Workspace({
     return loadError ? (
       <div className="load-error">
         <AlertTriangle />
-        <h2>Couldn't open {repository.name}</h2>
+        <h2>{t("load.title", { name: repository.name })}</h2>
         <code>{repository.path}</code>
         <p>{loadError}</p>
         <div className="row">
           <button className="button primary" onClick={refresh}>
-            Try again
+            {t("load.retry")}
           </button>
           <button
             className="button"
             onClick={() => onRemoveRepository(repository.id)}
           >
-            Remove from the list
+            {t("load.remove")}
           </button>
         </div>
       </div>
@@ -154,16 +155,35 @@ export function Workspace({
   };
 
   async function fetchRemote() {
-    setWorking("Checking…");
+    setWorking(t("top.working.check"));
     const next = await act((b) => b.fetch());
     setWorking(null);
     if (next)
       notify(
         next.sync.behind
-          ? `${next.sync.behind} new commits on ${next.sync.upstream}. Pull to bring them in.`
-          : "Checked the remote. Nothing new.",
+          ? t("fetch.newCommits", {
+              count: next.sync.behind,
+              upstream: next.sync.upstream ?? "",
+            })
+          : t("fetch.nothing"),
       );
   }
+
+  /** Simple mode's one button: get others' work, then send ours. */
+  async function sync() {
+    setWorking(t("top.working.sync"));
+    await act(async (b) => {
+      await b.fetch();
+      let state = (await b.snapshot()).sync;
+      if (state.behind) await b.pull();
+      state = (await b.snapshot()).sync;
+      if (state.ahead || !state.upstream) await b.push();
+    }, t("sync.done"));
+    setWorking(null);
+  }
+
+  // Branches are a full-mode tool.
+  const view = uiMode === "simple" && mode === "Branches" ? "Changes" : mode;
 
   return (
     <>
@@ -174,6 +194,7 @@ export function Workspace({
         working={working}
         pullRequests={demo ? openPullRequests : null}
         onFetch={fetchRemote}
+        onSync={sync}
         onBranches={() => setMode("Branches")}
         onSwitchRepository={onSwitchRepository}
         onRemoveRepository={onRemoveRepository}
@@ -188,11 +209,11 @@ export function Workspace({
         style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}
       >
         <NavRail
-          mode={mode}
+          mode={view}
           onMode={setMode}
           hasChanges={snapshot.files.length > 0}
           dark={dark}
-          onToggleTheme={() => setTheme(dark ? "light" : "dark")}
+          onToggleTheme={() => preferences.setTheme(dark ? "light" : "dark")}
           onSettings={() => setDialog({ kind: "settings" })}
           user={snapshot.user.name}
         />
@@ -204,9 +225,9 @@ export function Workspace({
             setWidth: setSidebarWidth,
           }}
         >
-          {mode === "Changes" ? (
+          {view === "Changes" ? (
             <ChangesView repo={repo} phase={phase} />
-          ) : mode === "History" ? (
+          ) : view === "History" ? (
             <HistoryView repo={repo} phase={phase} />
           ) : (
             <BranchesView
@@ -243,12 +264,13 @@ export function Workspace({
           demo={demo}
           onClose={() => setDialog(null)}
           onRun={async (input) => {
-            const op = operations[dialog.id];
+            const { id, context } = dialog;
+            const op = operations[id];
             setDialog(null);
-            setWorking(`${op.title}…`);
+            setWorking(`${t(opKey(id, "title"))}…`);
             await act(
-              (b) => op.run!(b, dialog.context, input),
-              op.done?.(dialog.context, input),
+              (b) => op.run!(b, context, input),
+              t(opKey(id, "done"), op.params(context, t, input)),
             );
             setWorking(null);
           }}
@@ -256,8 +278,7 @@ export function Workspace({
       )}
       {dialog?.kind === "settings" && (
         <SettingsDialog
-          theme={theme}
-          setTheme={setTheme}
+          preferences={preferences}
           onClose={() => setDialog(null)}
         />
       )}

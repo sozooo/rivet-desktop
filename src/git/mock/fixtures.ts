@@ -236,6 +236,81 @@ export function workingChanges(): FileChange[] {
         },
       ],
     },
+    {
+      path: "Assets/Scripts/Input/InputManager.cs.meta",
+      status: "added",
+      hunks: [
+        {
+          header: "@@ -0,0 +1,3 @@",
+          staged: false,
+          lines: lines(
+            [],
+            [],
+            [
+              "fileFormatVersion: 2",
+              "guid: 5b2f0c41a7e94d1c9f3e8a6d2c7b1e04",
+              "MonoImporter:",
+            ],
+            [],
+          ),
+        },
+      ],
+    },
+    {
+      path: "Assets/Scripts/Input/LegacyInput.cs.meta",
+      status: "deleted",
+      hunks: [
+        {
+          header: "@@ -1,2 +0,0 @@",
+          staged: false,
+          lines: lines(
+            [],
+            ["fileFormatVersion: 2", "guid: 9a41e2b7c0d34f5e8b1a6c3d7e2f9b10"],
+            [],
+            [],
+          ),
+        },
+      ],
+    },
+    {
+      path: "Assets/Textures/Bark.png.meta",
+      status: "modified",
+      hunks: [
+        {
+          header: "@@ -54,6 +54,6 @@  platformSettings:",
+          staged: false,
+          lines: lines(
+            [
+              "  - serializedVersion: 3",
+              "    buildTarget: DefaultTexturePlatform",
+            ],
+            ["    maxTextureSize: 1024"],
+            ["    maxTextureSize: 2048"],
+            ["    resizeAlgorithm: 0", "    textureFormat: -1"],
+          ),
+        },
+      ],
+    },
+    {
+      path: "Assets/Settings.meta",
+      status: "added",
+      hunks: [
+        {
+          header: "@@ -0,0 +1,3 @@",
+          staged: false,
+          lines: lines(
+            [],
+            [],
+            [
+              "fileFormatVersion: 2",
+              "guid: c8e3a1f5b6d24e7a9c0b2d4f6a8e1c37",
+              "folderAsset: yes",
+            ],
+            [],
+          ),
+        },
+      ],
+    },
   ];
 }
 

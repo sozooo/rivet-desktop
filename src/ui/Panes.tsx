@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { useI18n } from "../i18n/i18n";
 
 export type SidebarState = {
   open: boolean;
@@ -40,6 +41,7 @@ export function Panes({
   phase: string;
 }) {
   const { open, setOpen, width, setWidth } = useContext(SidebarContext);
+  const { t } = useI18n();
   return (
     <>
       {open && (
@@ -51,7 +53,7 @@ export function Panes({
                 {count !== undefined && <span className="count">{count}</span>}
                 <button
                   className="icon-button"
-                  title="Collapse sidebar"
+                  title={t("panes.collapse")}
                   onClick={() => setOpen(false)}
                 >
                   <PanelLeftClose size={17} />
@@ -77,7 +79,7 @@ export function Panes({
           <div
             className="resize-handle"
             role="separator"
-            aria-label="Resize sidebar"
+            aria-label={t("panes.resize")}
             aria-orientation="vertical"
             aria-valuenow={width}
             aria-valuemin={260}
@@ -114,7 +116,7 @@ export function Panes({
         {!open && (
           <button
             className="restore-sidebar icon-button"
-            title="Expand sidebar"
+            title={t("panes.expand")}
             onClick={() => setOpen(true)}
           >
             <PanelLeftOpen />

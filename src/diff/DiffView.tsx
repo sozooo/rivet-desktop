@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { dirName, fileName, lineStats } from "../git/paths";
 import type { FileChange } from "../git/types";
+import { useI18n } from "../i18n/i18n";
 import { FileIcon, StatusIcon } from "../ui/FileIcon";
 import { useDismiss, useStoredState } from "../ui/hooks";
 import { useNotify } from "../ui/Toast";
@@ -37,6 +38,9 @@ export function DiffView({
   const menuRef = useRef<HTMLDivElement>(null);
   useDismiss(menuRef, menu, () => setMenu(false));
   const notify = useNotify();
+  const { t, mode } = useI18n();
+  // Simple mode keeps one plain view: no layout or whitespace switches.
+  const advanced = mode === "full";
 
   if (!file) return <>{empty}</>;
   const { added, removed } = lineStats(file.hunks);
@@ -54,28 +58,30 @@ export function DiffView({
           </span>
         </div>
         <div className="row" ref={menuRef}>
-          <div className="segmented">
-            <button
-              className={!split ? "active" : ""}
-              title="Unified diff"
-              aria-label="Unified diff"
-              onClick={() => setSplit(false)}
-            >
-              <AlignJustify />
-            </button>
-            <button
-              className={split ? "active" : ""}
-              title="Side-by-side diff"
-              aria-label="Side-by-side diff"
-              onClick={() => setSplit(true)}
-            >
-              <Columns2 />
-            </button>
-          </div>
+          {advanced && (
+            <div className="segmented">
+              <button
+                className={!split ? "active" : ""}
+                title={t("diff.unified")}
+                aria-label={t("diff.unified")}
+                onClick={() => setSplit(false)}
+              >
+                <AlignJustify />
+              </button>
+              <button
+                className={split ? "active" : ""}
+                title={t("diff.split")}
+                aria-label={t("diff.split")}
+                onClick={() => setSplit(true)}
+              >
+                <Columns2 />
+              </button>
+            </div>
+          )}
           <button
             className="icon-button"
-            title="File actions"
-            aria-label="File actions"
+            title={t("diff.actions")}
+            aria-label={t("diff.actions")}
             aria-expanded={menu}
             onClick={() => setMenu(!menu)}
           >
@@ -88,12 +94,14 @@ export function DiffView({
                   setMenu(false);
                   navigator.clipboard
                     .writeText(file.path)
-                    .then(() => notify("Path copied"))
-                    .catch(() => notify("Clipboard unavailable", "error"));
+                    .then(() => notify(t("common.pathCopied")))
+                    .catch(() =>
+                      notify(t("common.clipboardUnavailable"), "error"),
+                    );
                 }}
               >
                 <Copy />
-                Copy path
+                {t("diff.copyPath")}
               </button>
               {onDiscard && (
                 <button
@@ -104,7 +112,7 @@ export function DiffView({
                   }}
                 >
                   <RotateCcw />
-                  Discard changes…
+                  {t("diff.discard")}
                 </button>
               )}
             </div>
@@ -113,34 +121,36 @@ export function DiffView({
       </div>
       <div className="diff-subbar">
         <span>
-          {folder || "Repository root"} <ChevronRight size={12} />{" "}
+          {folder || t("common.repositoryRoot")} <ChevronRight size={12} />{" "}
           {fileName(file.path)}
         </span>
-        <div className="row">
-          <button
-            className={whitespace ? "text-button accent" : "text-button"}
-            onClick={() => setWhitespace(!whitespace)}
-            title="Toggle whitespace visibility"
-          >
-            ¶ <span>Whitespace</span>
-          </button>
-          <span className="separator" />
-          <span>{context}</span>
-        </div>
+        {advanced && (
+          <div className="row">
+            <button
+              className={whitespace ? "text-button accent" : "text-button"}
+              onClick={() => setWhitespace(!whitespace)}
+              title={t("diff.whitespaceTitle")}
+            >
+              ¶ <span>{t("diff.whitespace")}</span>
+            </button>
+            <span className="separator" />
+            <span>{context}</span>
+          </div>
+        )}
       </div>
       <div className="diff-scroll">
-        {split && (
+        {split && advanced && (
           <div className="split-label">
-            <span>Original</span>
-            <span>Modified</span>
+            <span>{t("diff.original")}</span>
+            <span>{t("diff.modified")}</span>
           </div>
         )}
         {file.hunks.map((hunk, i) => (
           <DiffHunk
             key={i}
             hunk={hunk}
-            split={split}
-            whitespace={whitespace}
+            split={split && advanced}
+            whitespace={whitespace && advanced}
             onToggle={onToggleHunk && (() => onToggleHunk(i))}
           />
         ))}

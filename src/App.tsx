@@ -3,6 +3,7 @@ import type { GitBackend } from "./git/backend";
 import { CliBackend } from "./git/cli/CliBackend";
 import { tauriRunner } from "./git/cli/tauriRunner";
 import { MockBackend } from "./git/mock/MockBackend";
+import { I18nProvider, type Language, type UiMode } from "./i18n/i18n";
 import { platform } from "./platform";
 import {
   demoRepositories,
@@ -16,6 +17,16 @@ import { ToastProvider } from "./ui/Toast";
 import { Workspace } from "./Workspace";
 
 export type ThemePreference = "light" | "dark" | "system";
+
+/** Settings that apply to every repository. */
+export type Preferences = {
+  theme: ThemePreference;
+  setTheme: (theme: ThemePreference) => void;
+  language: Language;
+  setLanguage: (language: Language) => void;
+  mode: UiMode;
+  setMode: (mode: UiMode) => void;
+};
 
 function useSystemDark() {
   const query = "(prefers-color-scheme: dark)";
@@ -49,6 +60,20 @@ export function App() {
     "rivet.theme",
     "system",
   );
+  const [language, setLanguage] = useStoredState<Language>(
+    "rivet.language",
+    "ru",
+  );
+  // New installs start simple; developers switch to full in Settings.
+  const [mode, setMode] = useStoredState<UiMode>("rivet.mode", "simple");
+  const preferences: Preferences = {
+    theme,
+    setTheme,
+    language,
+    setLanguage,
+    mode,
+    setMode,
+  };
   const systemDark = useSystemDark();
   const dark = theme === "dark" || (theme === "system" && systemDark);
   // Each repository keeps its backend, and with it its working state, while you switch.
@@ -72,34 +97,35 @@ export function App() {
   }
 
   return (
-    <div className={`app ${dark ? "dark" : ""}`}>
-      <ToastProvider>
-        {repository && backend ? (
-          <Workspace
-            key={repository.id}
-            repository={repository}
-            repositories={repositories}
-            backend={backend}
-            dark={dark}
-            theme={theme}
-            setTheme={setTheme}
-            onSwitchRepository={setActiveId}
-            onAddRepository={add}
-            onRemoveRepository={(id) => {
-              const next = repositories.filter((r) => r.id !== id);
-              backends.current.delete(id);
-              update(next);
-              if (id === repository.id) setActiveId(next[0]?.id ?? null);
-            }}
-          />
-        ) : (
-          <RepositorySetup
-            initialMode="open"
-            repositories={repositories}
-            onComplete={add}
-          />
-        )}
-      </ToastProvider>
+    <div className={`app ${dark ? "dark" : ""}`} lang={language}>
+      <I18nProvider language={language} mode={mode}>
+        <ToastProvider>
+          {repository && backend ? (
+            <Workspace
+              key={repository.id}
+              repository={repository}
+              repositories={repositories}
+              backend={backend}
+              dark={dark}
+              preferences={preferences}
+              onSwitchRepository={setActiveId}
+              onAddRepository={add}
+              onRemoveRepository={(id) => {
+                const next = repositories.filter((r) => r.id !== id);
+                backends.current.delete(id);
+                update(next);
+                if (id === repository.id) setActiveId(next[0]?.id ?? null);
+              }}
+            />
+          ) : (
+            <RepositorySetup
+              initialMode="open"
+              repositories={repositories}
+              onComplete={add}
+            />
+          )}
+        </ToastProvider>
+      </I18nProvider>
     </div>
   );
 }

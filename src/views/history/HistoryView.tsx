@@ -4,7 +4,8 @@ import { CommitFiles } from "../../diff/CommitFiles";
 import { DiffView } from "../../diff/DiffView";
 import { layoutGraph, type GraphRow } from "../../git/graph";
 import { shortSha } from "../../git/paths";
-import { initials, timeAgo, useAsync } from "../../ui/hooks";
+import { useI18n } from "../../i18n/i18n";
+import { initials, useAsync } from "../../ui/hooks";
 import { Panes } from "../../ui/Panes";
 import { useNotify } from "../../ui/Toast";
 import type { RepoApi } from "../repoApi";
@@ -54,6 +55,7 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
   const { snapshot, backend, openOperation } = repo;
   const { commits, branches } = snapshot;
   const notify = useNotify();
+  const { t, mode, timeAgo } = useI18n();
   const [query, setQuery] = useState("");
   const [sha, setSha] = useState<string>();
   const [path, setPath] = useState<string>();
@@ -77,17 +79,17 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
 
   return (
     <Panes
-      title="History"
+      title={t("history.title")}
       phase={phase}
       search={{
         value: query,
         onChange: setQuery,
-        placeholder: "Search history…",
+        placeholder: t("history.search"),
       }}
       sidebar={
         <>
           <div className="group-heading">
-            <span>ALL COMMITS</span>
+            <span>{t("history.all")}</span>
             <span>{commits.length}</span>
           </div>
           {commits.map((c, i) =>
@@ -125,26 +127,28 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
               </button>
             ),
           )}
-          {!matches.size && <p className="list-empty">No matching commits.</p>}
+          {!matches.size && (
+            <p className="list-empty">{t("history.noMatches")}</p>
+          )}
         </>
       }
       footer={
         <>
-          <span className="status-dot" /> Local repository
-          {repo.demo && <span className="muted">Demo</span>}
+          <span className="status-dot" /> {t("history.footer")}
+          {repo.demo && <span className="muted">{t("common.demo")}</span>}
         </>
       }
       main={
         !commit ? (
           <div className="empty">
             <GitCommitHorizontal />
-            <h2>No commits yet</h2>
-            <p>Your first commit will appear here.</p>
+            <h2>{t("history.emptyTitle")}</h2>
+            <p>{t("history.emptyText")}</p>
           </div>
         ) : (
           <>
             <div className="detail-header">
-              <div className="eyebrow">COMMIT DETAILS</div>
+              <div className="eyebrow">{t("history.details")}</div>
               <h2>{commit.summary}</h2>
               <div className="metadata">
                 <span className="avatar tiny">
@@ -155,42 +159,45 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
                 <code>{shortSha(commit.sha)}</code>
                 <button
                   className="icon-button"
-                  title="Copy SHA"
+                  title={t("history.copySha")}
                   onClick={() =>
                     navigator.clipboard
                       .writeText(commit.sha)
-                      .then(() => notify("SHA copied"))
-                      .catch(() => notify("Clipboard unavailable", "error"))
+                      .then(() => notify(t("common.shaCopied")))
+                      .catch(() =>
+                        notify(t("common.clipboardUnavailable"), "error"),
+                      )
                   }
                 >
                   <Copy size={13} />
                 </button>
                 <span>
-                  {commit.parents.length > 1 ? "Parents" : "Parent"}{" "}
+                  {t("history.parent", { count: commit.parents.length })}{" "}
                   {commit.parents.map(shortSha).join(", ") || "—"}
                 </span>
               </div>
               {commit.description && (
                 <p className="commit-description">{commit.description}</p>
               )}
-              <div className="detail-actions">
-                {(["checkout", "cherry-pick", "revert"] as const).map((id) => (
-                  <button
-                    className="button"
-                    key={id}
-                    onClick={() => openOperation(id, { commit })}
-                  >
-                    {
-                      {
-                        checkout: "Check out",
-                        "cherry-pick": "Cherry-pick",
-                        revert: "Revert",
-                      }[id]
-                    }
-                    …
-                  </button>
-                ))}
-              </div>
+              {mode === "full" && (
+                <div className="detail-actions">
+                  {(
+                    [
+                      ["checkout", "history.checkout"],
+                      ["cherry-pick", "history.cherryPick"],
+                      ["revert", "history.revert"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      className="button"
+                      key={id}
+                      onClick={() => openOperation(id, { commit })}
+                    >
+                      {t(label)}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {files && (
               <CommitFiles
@@ -199,7 +206,7 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
                 selected={current?.path}
                 onSelect={setPath}
               >
-                <DiffView file={current} context="Commit → Parent" />
+                <DiffView file={current} context={t("history.context")} />
               </CommitFiles>
             )}
           </>

@@ -53,17 +53,6 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[]) {
   return value;
 }
 
-const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-
-export function timeAgo(date: number, now = Date.now()) {
-  const minutes = Math.round((date - now) / 60_000);
-  if (minutes > -1) return "just now";
-  if (minutes > -60) return relative.format(minutes, "minute");
-  const hours = Math.round(minutes / 60);
-  if (hours > -24) return relative.format(hours, "hour");
-  return relative.format(Math.round(hours / 24), "day");
-}
-
 export const initials = (name: string) =>
   name
     .split(/\s+/)

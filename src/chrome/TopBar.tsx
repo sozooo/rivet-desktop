@@ -12,9 +12,10 @@ import {
   X,
 } from "lucide-react";
 import type { RepoSnapshot } from "../git/types";
+import { useI18n } from "../i18n/i18n";
 import { setupModes, type Repository, type SetupMode } from "../repositories";
 import { setupModeMeta } from "../setup/modes";
-import { timeAgo, useDismiss } from "../ui/hooks";
+import { useDismiss } from "../ui/hooks";
 
 /** Re-renders every minute so relative times stay fresh. */
 function useMinuteTick() {
@@ -25,23 +26,6 @@ function useMinuteTick() {
   }, []);
 }
 
-function syncSummary({
-  ahead,
-  behind,
-  upstream,
-  lastFetched,
-}: RepoSnapshot["sync"]) {
-  if (!upstream) return "This branch is not published yet.";
-  const parts = [
-    behind ? `${behind} incoming from ${upstream}` : "",
-    ahead ? `${ahead} ready to push` : "",
-  ].filter(Boolean);
-  const checked = lastFetched
-    ? `Checked ${timeAgo(lastFetched)}.`
-    : "Not checked yet.";
-  return `${checked} ${parts.length ? parts.join(", ") + "." : "You're up to date."} Click to check again.`;
-}
-
 export function TopBar({
   snapshot,
   repository,
@@ -49,6 +33,7 @@ export function TopBar({
   working,
   pullRequests,
   onFetch,
+  onSync,
   onBranches,
   onSwitchRepository,
   onRemoveRepository,
@@ -66,6 +51,8 @@ export function TopBar({
   /** Open pull requests, or null when no hosting service is connected. */
   pullRequests: number | null;
   onFetch: () => void;
+  /** Simple mode's one button: fetch, pull and push as needed. */
+  onSync: () => void;
   onBranches: () => void;
   onSwitchRepository: (id: string) => void;
   onRemoveRepository: (id: string) => void;
@@ -76,10 +63,41 @@ export function TopBar({
   onPullRequests: () => void;
 }) {
   useMinuteTick();
+  const { t, mode, timeAgo } = useI18n();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useDismiss(menuRef, menu, () => setMenu(false));
   const { sync, branches } = snapshot;
+  const simple = mode === "simple";
+  const hasRemote = !!sync.upstream || branches.remote.length > 0;
+
+  function syncSummary() {
+    if (!sync.upstream) return t("top.sync.unpublished");
+    const parts = [
+      sync.behind
+        ? t("top.sync.incoming", {
+            count: sync.behind,
+            upstream: sync.upstream,
+          })
+        : "",
+      sync.ahead ? t("top.sync.toPush", { count: sync.ahead }) : "",
+    ].filter(Boolean);
+    const checked = sync.lastFetched
+      ? t("top.sync.checked", { time: timeAgo(sync.lastFetched) })
+      : t("top.sync.notChecked");
+    return `${checked} ${parts.length ? parts.join(", ") + "." : t("top.sync.upToDate")} ${t("top.sync.clickToCheck")}`;
+  }
+
+  const syncState = !hasRemote
+    ? t("top.state.local")
+    : sync.behind && sync.ahead
+      ? t("top.state.both", { behind: sync.behind, ahead: sync.ahead })
+      : sync.behind
+        ? t("top.state.updates", { count: sync.behind })
+        : sync.ahead || !sync.upstream
+          ? t("top.state.unsent", { count: sync.ahead })
+          : t("top.state.upToDate");
+
   return (
     <header className="topbar">
       <div className="brand">
@@ -88,35 +106,37 @@ export function TopBar({
           rivet<span className="brand-dot">.</span>
         </span>
       </div>
-      <div className="branch-fetch-group">
-        <button
-          className="branch-selector"
-          title={`Current branch: ${branches.current}`}
-          onClick={onBranches}
-        >
-          <GitBranch />
-          <span>{branches.current}</span>
-          <ChevronDown size={13} />
-        </button>
-        <button
-          className="fetch-control"
-          title={syncSummary(sync)}
-          aria-label="Check the remote for new commits"
-          disabled={!!working || !sync.upstream}
-          onClick={onFetch}
-        >
-          <RefreshCw className={working ? "spinning" : ""} />
-          <span>
-            {working
-              ? working
-              : !sync.upstream
-                ? "No remote"
-                : sync.lastFetched
-                  ? timeAgo(sync.lastFetched)
-                  : "Never checked"}
-          </span>
-        </button>
-      </div>
+      {!simple && (
+        <div className="branch-fetch-group">
+          <button
+            className="branch-selector"
+            title={t("top.currentBranch", { branch: branches.current })}
+            onClick={onBranches}
+          >
+            <GitBranch />
+            <span>{branches.current}</span>
+            <ChevronDown size={13} />
+          </button>
+          <button
+            className="fetch-control"
+            title={syncSummary()}
+            aria-label={t("top.checkRemote")}
+            disabled={!!working || !sync.upstream}
+            onClick={onFetch}
+          >
+            <RefreshCw className={working ? "spinning" : ""} />
+            <span>
+              {working
+                ? working
+                : !sync.upstream
+                  ? t("top.noRemote")
+                  : sync.lastFetched
+                    ? timeAgo(sync.lastFetched)
+                    : t("top.neverChecked")}
+            </span>
+          </button>
+        </div>
+      )}
       <div className="repo-wrap" ref={menuRef}>
         <button
           className="repo-selector"
@@ -129,7 +149,7 @@ export function TopBar({
         </button>
         {menu && (
           <div className="dropdown repository-menu">
-            <small>YOUR REPOSITORIES</small>
+            <small>{t("top.repositories")}</small>
             <div className="repository-list">
               {repositories.map((r) => (
                 <div className="repository-item" key={r.id}>
@@ -148,8 +168,10 @@ export function TopBar({
                   </button>
                   <button
                     className="icon-button repository-remove"
-                    title={`Remove ${r.name} from the list (files stay on disk)`}
-                    aria-label={`Remove ${r.name} from the list`}
+                    title={t("top.removeRepository", { name: r.name })}
+                    aria-label={t("top.removeRepositoryLabel", {
+                      name: r.name,
+                    })}
                     onClick={() => onRemoveRepository(r.id)}
                   >
                     <X />
@@ -158,18 +180,18 @@ export function TopBar({
               ))}
             </div>
             <div className="repository-menu-actions">
-              {setupModes.map((mode) => {
-                const { menu: label, Icon } = setupModeMeta[mode];
+              {setupModes.map((setupMode) => {
+                const { menu: label, Icon } = setupModeMeta[setupMode];
                 return (
                   <button
-                    key={mode}
+                    key={setupMode}
                     onClick={() => {
                       setMenu(false);
-                      onSetup(mode);
+                      onSetup(setupMode);
                     }}
                   >
                     <Icon />
-                    {label}
+                    {t(label)}
                   </button>
                 );
               })}
@@ -178,52 +200,82 @@ export function TopBar({
         )}
       </div>
       <div className="top-actions">
-        {pullRequests !== null && (
-          <button
-            className="text-button pr-trigger"
-            onClick={onPullRequests}
-            title="Browse open pull requests"
-          >
-            <GitPullRequest />
-            <span>Pull requests</span>
-            <span className="count">{pullRequests}</span>
-          </button>
+        {simple ? (
+          <>
+            <span
+              className={`sync-state ${sync.behind || sync.ahead ? "pending" : ""}`}
+            >
+              {syncState}
+            </span>
+            <button
+              className="button primary sync-button"
+              disabled={!!working || !hasRemote}
+              title={t("top.syncTitle")}
+              onClick={onSync}
+            >
+              <RefreshCw className={working ? "spinning" : ""} />
+              {working ?? t("top.sync")}
+            </button>
+          </>
+        ) : (
+          <>
+            {pullRequests !== null && (
+              <button
+                className="text-button pr-trigger"
+                onClick={onPullRequests}
+                title={t("top.pullRequestsTitle")}
+              >
+                <GitPullRequest />
+                <span>{t("top.pullRequests")}</span>
+                <span className="count">{pullRequests}</span>
+              </button>
+            )}
+            <button
+              className="button"
+              disabled={!sync.behind || !!working}
+              onClick={onPull}
+              title={
+                sync.behind
+                  ? t("top.pullTitle", {
+                      count: sync.behind,
+                      upstream: sync.upstream ?? "",
+                      branch: branches.current,
+                    })
+                  : t("top.nothingToPull")
+              }
+            >
+              <ArrowDown />
+              {t("top.pull")}
+              {sync.behind ? ` ${sync.behind}` : ""}
+            </button>
+            <button
+              className="button push"
+              disabled={!sync.ahead || !sync.upstream || !!working}
+              onClick={onPush}
+              title={
+                sync.ahead
+                  ? t("top.pushTitle", {
+                      count: sync.ahead,
+                      upstream: sync.upstream ?? "",
+                    })
+                  : t("top.nothingToPush")
+              }
+            >
+              <ArrowUp />
+              {t("top.push")}
+              {sync.ahead ? ` ${sync.ahead}` : ""}
+            </button>
+            <span className="separator" />
+            <button
+              className="icon-button"
+              title={t("top.newBranch")}
+              aria-label={t("top.newBranch")}
+              onClick={onNewBranch}
+            >
+              <Plus />
+            </button>
+          </>
         )}
-        <button
-          className="button"
-          disabled={!sync.behind || !!working}
-          onClick={onPull}
-          title={
-            sync.behind
-              ? `Bring ${sync.behind} commits from ${sync.upstream} into ${branches.current}`
-              : "Nothing to pull"
-          }
-        >
-          <ArrowDown />
-          Pull{sync.behind ? ` ${sync.behind}` : ""}
-        </button>
-        <button
-          className="button push"
-          disabled={!sync.ahead || !sync.upstream || !!working}
-          onClick={onPush}
-          title={
-            sync.ahead
-              ? `Publish ${sync.ahead} commits to ${sync.upstream}`
-              : "Nothing to push"
-          }
-        >
-          <ArrowUp />
-          Push{sync.ahead ? ` ${sync.ahead}` : ""}
-        </button>
-        <span className="separator" />
-        <button
-          className="icon-button"
-          title="New branch"
-          aria-label="New branch"
-          onClick={onNewBranch}
-        >
-          <Plus />
-        </button>
       </div>
     </header>
   );

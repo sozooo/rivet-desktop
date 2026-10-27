@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useI18n } from "../i18n/i18n";
 import {
   GitPullRequest,
   X,
@@ -56,24 +57,27 @@ export const openPullRequests = requests.length;
 export function PullRequests({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState(42);
   const pr = requests.find((p) => p.id === selected)!;
+  const { t } = useI18n();
   return (
     <div className="modal-overlay" onClick={onClose}>
       <section
         className="pr-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Pull requests"
+        aria-label={t("prs.title")}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="pr-header">
           <div>
             <GitPullRequest />
-            <h2>Pull requests</h2>
-            <span className="count">{requests.length} open</span>
+            <h2>{t("prs.title")}</h2>
+            <span className="count">
+              {t("prs.open", { count: requests.length })}
+            </span>
           </div>
           <button
             className="icon-button"
-            aria-label="Close pull requests"
+            aria-label={t("prs.close")}
             onClick={onClose}
           >
             <X />
@@ -99,7 +103,7 @@ export function PullRequests({ onClose }: { onClose: () => void }) {
             ))}
           </div>
           <article className="pr-detail" key={pr.id}>
-            <div className="eyebrow">PULL REQUEST #{pr.id}</div>
+            <div className="eyebrow">{t("prs.eyebrow", { id: pr.id })}</div>
             <h3>{pr.title}</h3>
             <p>{pr.description}</p>
             <div className="pr-branches">
@@ -118,17 +122,13 @@ export function PullRequests({ onClose }: { onClose: () => void }) {
             </div>
             <div className="pr-check">
               <MessageSquare />
-              {pr.comments} comments <span>· {pr.files} changed files</span>
+              {t("prs.comments", { count: pr.comments })}{" "}
+              <span>· {t("prs.files", { count: pr.files })}</span>
             </div>
-            <p className="pr-explanation">
-              A pull request proposes merging one branch into another. Use Pull
-              in the toolbar to download commits into your current branch.
-            </p>
+            <p className="pr-explanation">{t("prs.explanation")}</p>
           </article>
         </div>
-        <footer className="pr-footer">
-          Demo pull requests · Hosting integration is not connected.
-        </footer>
+        <footer className="pr-footer">{t("prs.footer")}</footer>
       </section>
     </div>
   );

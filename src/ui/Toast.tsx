@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { AlertCircle, CheckCircle2, X } from "lucide-react";
+import { useI18n } from "../i18n/i18n";
 
 type Tone = "success" | "error";
 type Notify = (message: string, tone?: Tone) => void;
@@ -18,6 +19,7 @@ export const useNotify = () => useContext(ToastContext);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<{ message: string; tone: Tone }>();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { t } = useI18n();
   const notify = useCallback<Notify>((message, tone = "success") => {
     clearTimeout(timer.current);
     setToast({ message, tone });
@@ -43,7 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {toast.message}
           <button
             className="icon-button"
-            aria-label="Dismiss"
+            aria-label={t("common.dismiss")}
             onClick={() => setToast(undefined)}
           >
             <X size={14} />

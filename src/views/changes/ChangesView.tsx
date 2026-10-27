@@ -1,25 +1,40 @@
 import { useState } from "react";
 import { Archive, CheckCircle2 } from "lucide-react";
 import { DiffView } from "../../diff/DiffView";
-import { dirName, fileName, selectionOf } from "../../git/paths";
-import type { FileChange, StashEntry } from "../../git/types";
+import { dirName, fileName } from "../../git/paths";
+import type { StashEntry } from "../../git/types";
+import {
+  groupFiles,
+  groupSelection,
+  groupStatus,
+  groupWithMeta,
+  metaOnlyNote,
+  primaryFile,
+  type FileGroup,
+} from "../../git/unity";
+import { useI18n } from "../../i18n/i18n";
 import { Checkbox } from "../../ui/Checkbox";
 import { FileIcon, StatusIcon } from "../../ui/FileIcon";
 import { Panes } from "../../ui/Panes";
 import type { RepoApi } from "../repoApi";
 import { Composer } from "./Composer";
-import { StashDetail, StashList } from "./Stashes";
+import { StashDetail, StashList, useStashName } from "./Stashes";
 
 export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
   const { snapshot, act, openOperation } = repo;
   const { files, stashes } = snapshot;
+  const { t, mode } = useI18n();
+  const stashName = useStashName();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string>();
   // Stashes renumber when one is removed, so remember the viewed one by date.
   const [viewingStash, setViewingStash] = useState<number | null>(null);
 
-  const current = files.find((f) => f.path === selected) ?? files[0];
-  const states = files.map(selectionOf);
+  // An asset and its Unity .meta file are one row, selected together.
+  const groups = groupWithMeta(files);
+  const currentGroup = groups.find((g) => g.path === selected) ?? groups[0];
+  const current = currentGroup && primaryFile(currentGroup);
+  const states = groups.map(groupSelection);
   const selectedCount = states.filter((s) => s !== "none").length;
   const allState =
     selectedCount === 0
@@ -27,49 +42,60 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
       : states.every((s) => s === "all")
         ? true
         : ("mixed" as const);
-  const visible = files.filter((f) =>
-    f.path.toLowerCase().includes(query.toLowerCase()),
+  const visible = groups.filter((g) =>
+    g.path.toLowerCase().includes(query.toLowerCase()),
   );
   const stash = stashes.find((s) => s.date === viewingStash);
 
   const restore = (index: number) => {
     setViewingStash(null);
-    act((b) => b.stashPop(index), "Stashed changes restored.");
+    act((b) => b.stashPop(index), t("changes.restored"));
   };
-  const remove = (s: StashEntry) => openOperation("drop-stash", { stash: s });
+  const remove = (s: StashEntry) =>
+    openOperation("drop-stash", { stash: s, stashName: stashName(s) });
+  const toggle = (g: FileGroup) => {
+    const select = groupSelection(g) !== "all";
+    return act(async (b) => {
+      for (const f of groupFiles(g)) await b.setStaged(f.path, select);
+    });
+  };
 
-  const fileRow = (f: FileChange) => {
-    const state = selectionOf(f);
-    const name = fileName(f.path);
+  const fileRow = (g: FileGroup) => {
+    const state = groupSelection(g);
+    const name = fileName(g.path);
+    const note = metaOnlyNote(g);
+    const status = groupStatus(g);
     return (
       <div
-        key={f.path}
-        className={`file-row ${!stash && current?.path === f.path ? "selected" : ""} ${f.status === "deleted" ? "deleted" : ""}`}
+        key={g.path}
+        className={`file-row ${!stash && currentGroup?.path === g.path ? "selected" : ""} ${status === "deleted" ? "deleted" : ""}`}
       >
         <Checkbox
           checked={
             state === "all" ? true : state === "partial" ? "mixed" : false
           }
-          label={
-            state === "all"
-              ? `Leave ${name} out of the commit`
-              : `Include ${name} in the commit`
-          }
-          onChange={() => act((b) => b.setStaged(f.path, state !== "all"))}
+          label={t(state === "all" ? "changes.exclude" : "changes.include", {
+            name,
+          })}
+          onChange={() => toggle(g)}
         />
         <button
           className="file-select"
+          title={g.meta && g.file ? t("meta.withMeta") : undefined}
           onClick={() => {
-            setSelected(f.path);
+            setSelected(g.path);
             setViewingStash(null);
           }}
         >
-          <FileIcon path={f.path} />
+          <FileIcon path={g.path} />
           <span className="file-label">
             <span>{name}</span>
-            <small>{dirName(f.path) || "Repository root"}</small>
+            <small>
+              {note ? t(note) : dirName(g.path) || t("common.repositoryRoot")}
+            </small>
           </span>
-          <StatusIcon status={f.status} />
+          {/* A .meta-only change explains itself in the second line. */}
+          {!note && <StatusIcon status={status} word={mode === "simple"} />}
         </button>
       </div>
     );
@@ -77,13 +103,13 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
 
   return (
     <Panes
-      title="Changes"
-      count={files.length}
+      title={t("changes.title")}
+      count={groups.length}
       phase={phase}
       search={{
         value: query,
         onChange: setQuery,
-        placeholder: "Filter files…",
+        placeholder: t("changes.filter"),
       }}
       sidebar={
         <>
@@ -92,31 +118,30 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
               <Checkbox
                 checked={allState}
                 disabled={!files.length}
-                label={allState === true ? "Unselect all" : "Select all"}
+                label={t(
+                  allState === true
+                    ? "changes.unselectAll"
+                    : "changes.selectAll",
+                )}
                 onChange={() => act((b) => b.setAllStaged(allState !== true))}
               />
-              {files.length ? `${files.length} CHANGED` : "NO CHANGES"}
+              {groups.length
+                ? t("changes.count", { count: groups.length })
+                : t("changes.none")}
             </span>
             <button
               className="text-button"
               disabled={!files.length}
-              title="Put all changes aside and get a clean working tree. Restore them any time from the list below."
-              onClick={() =>
-                act(
-                  (b) => b.stash(),
-                  "Changes stashed. Restore them from the list below.",
-                )
-              }
+              title={t("changes.stashAllTitle")}
+              onClick={() => act((b) => b.stash(), t("changes.stashed"))}
             >
-              <Archive size={12} /> Stash all
+              <Archive size={12} /> {t("changes.stashAll")}
             </button>
           </div>
           {visible.map(fileRow)}
-          {!files.length && (
-            <p className="list-empty">Your working tree is clean.</p>
-          )}
+          {!files.length && <p className="list-empty">{t("changes.clean")}</p>}
           {files.length > 0 && !visible.length && (
-            <p className="list-empty">No matching files.</p>
+            <p className="list-empty">{t("changes.noMatches")}</p>
           )}
           <StashList
             stashes={stashes}
@@ -129,8 +154,8 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
       }
       footer={
         <>
-          <span className="status-dot" /> Working tree
-          {repo.demo && <span className="muted">Demo</span>}
+          <span className="status-dot" /> {t("changes.footer")}
+          {repo.demo && <span className="muted">{t("common.demo")}</span>}
         </>
       }
       main={
@@ -147,33 +172,49 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
           <>
             <div className="workspace-label">
               <span>
-                <span className="status-dot" /> Working changes
+                <span className="status-dot" /> {t("changes.workingChanges")}
               </span>
-              <span>Review. Select. Commit.</span>
+              <span>{t("changes.motto")}</span>
             </div>
             <DiffView
               file={current}
-              context="Working tree → HEAD"
-              onToggleHunk={(i) =>
-                current &&
-                act((b) =>
-                  b.setStaged(current.path, !current.hunks[i].staged, i),
-                )
+              context={t("changes.diffContext")}
+              onToggleHunk={
+                // Picking parts of a file is a full-mode tool.
+                mode === "full"
+                  ? (i) =>
+                      current &&
+                      act((b) =>
+                        b.setStaged(current.path, !current.hunks[i].staged, i),
+                      )
+                  : undefined
               }
-              onDiscard={() => openOperation("discard-file", { file: current })}
+              onDiscard={() =>
+                currentGroup &&
+                openOperation("discard-file", {
+                  file: current,
+                  extraPaths: groupFiles(currentGroup)
+                    .map((f) => f.path)
+                    .filter((p) => p !== current?.path),
+                })
+              }
               empty={
                 <div className="empty">
                   <CheckCircle2 />
-                  <h2>Everything in its place.</h2>
+                  <h2>{t("changes.emptyTitle")}</h2>
                   <p>
-                    {stashes.length
-                      ? "Your working tree is clean. Stashed changes are waiting in the list."
-                      : "Your working tree is clean."}
+                    {t(
+                      stashes.length ? "changes.emptyStashed" : "changes.clean",
+                    )}
                   </p>
                 </div>
               }
             />
-            <Composer repo={repo} selectedCount={selectedCount} />
+            <Composer
+              repo={repo}
+              selectedCount={selectedCount}
+              total={groups.length}
+            />
           </>
         )
       }

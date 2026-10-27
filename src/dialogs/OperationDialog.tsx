@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, CircleDot, X } from "lucide-react";
-import { operations, type OpContext, type OperationId } from "./operations";
+import { useI18n } from "../i18n/i18n";
+import {
+  opKey,
+  operations,
+  type OpContext,
+  type OperationId,
+} from "./operations";
 
 export function OperationDialog({
   id,
@@ -15,32 +21,34 @@ export function OperationDialog({
   onRun: (input: string) => void;
   onClose: () => void;
 }) {
+  const { t, mode } = useI18n();
   const op = operations[id];
   const [input, setInput] = useState("");
   // Rivet can't run every operation yet; then the command is the useful part.
   const [details, setDetails] = useState(!op.run);
   const problem = op.input?.problem(input, context) ?? null;
+  const params = op.params(context, t, input);
   return (
     <div className="modal-overlay" onClick={onClose}>
       <section
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label={op.title}
+        aria-label={t(opKey(id, "title"))}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           className="modal-close icon-button"
-          aria-label="Close dialog"
+          aria-label={t("dialog.close")}
           onClick={onClose}
         >
           <X />
         </button>
         <div className="eyebrow">
-          {op.run ? "GIT OPERATION" : "GIT OPERATION PREVIEW"}
+          {t(op.run ? "dialog.eyebrow" : "dialog.eyebrowPreview")}
         </div>
-        <h2>{op.title}</h2>
-        <p>{op.describe(context)}</p>
+        <h2>{t(opKey(id, "title"))}</h2>
+        <p>{t(opKey(id, "describe"), params)}</p>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -50,7 +58,7 @@ export function OperationDialog({
           {op.input && (
             <input
               autoFocus
-              aria-label={op.input.label}
+              aria-label={t(op.input.label)}
               placeholder={op.input.placeholder}
               value={input}
               onChange={(e) => setInput(op.input!.sanitize(e.target.value))}
@@ -59,33 +67,35 @@ export function OperationDialog({
           {(demo || !op.run) && (
             <div className="preview-note">
               <CircleDot size={17} />
-              <span>
-                {!op.run
-                  ? "Rivet can't do this yet. The Git command below does it from a terminal."
-                  : "Demo repository: nothing on disk changes."}
-              </span>
+              <span>{t(op.run ? "dialog.demoNote" : "dialog.cannotYet")}</span>
             </div>
           )}
-          <button
-            type="button"
-            className="text-button"
-            onClick={() => setDetails(!details)}
-          >
-            {details ? <ChevronDown /> : <ChevronRight />}Show Git command
-          </button>
-          {details && <pre>{op.command(context, input)}</pre>}
+          {/* Simple mode doesn't talk about Git commands. */}
+          {mode === "full" && (
+            <>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setDetails(!details)}
+              >
+                {details ? <ChevronDown /> : <ChevronRight />}
+                {t("dialog.showCommand")}
+              </button>
+              {details && <pre>{op.command(context, input)}</pre>}
+            </>
+          )}
           <div className="modal-actions">
             <button type="button" className="button" onClick={onClose}>
-              {op.run ? "Cancel" : "Close"}
+              {t(op.run ? "common.cancel" : "common.close")}
             </button>
             {op.run && (
               <button
                 type="submit"
                 className={`button ${op.danger ? "danger" : "primary"}`}
                 disabled={!!problem}
-                title={problem ?? undefined}
+                title={problem ? t(problem) : undefined}
               >
-                {op.confirm}
+                {t(opKey(id, "confirm"))}
               </button>
             )}
           </div>

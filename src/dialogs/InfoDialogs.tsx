@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Monitor, Moon, Sun, X } from "lucide-react";
-import type { ThemePreference } from "../App";
+import type { Preferences } from "../App";
+import { useI18n, type Key } from "../i18n/i18n";
 
 function Dialog({
   eyebrow,
@@ -13,6 +14,7 @@ function Dialog({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <div className="modal-overlay" onClick={onClose}>
       <section
@@ -24,7 +26,7 @@ function Dialog({
       >
         <button
           className="modal-close icon-button"
-          aria-label="Close dialog"
+          aria-label={t("dialog.close")}
           onClick={onClose}
         >
           <X />
@@ -37,62 +39,111 @@ function Dialog({
   );
 }
 
-const themes = [
-  { value: "light", label: "Light", Icon: Sun },
-  { value: "dark", label: "Dark", Icon: Moon },
-  { value: "system", label: "System", Icon: Monitor },
-] as const;
-
-export function SettingsDialog({
-  theme,
-  setTheme,
-  onClose,
+function Choice<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
 }: {
-  theme: ThemePreference;
-  setTheme: (theme: ThemePreference) => void;
-  onClose: () => void;
+  label: string;
+  value: T;
+  options: { value: T; label: string; Icon?: typeof Sun }[];
+  onChange: (value: T) => void;
 }) {
   return (
-    <Dialog
-      eyebrow="PERSONALIZE YOUR WORKSPACE"
-      title="Settings"
-      onClose={onClose}
-    >
-      <p>Choose the appearance that works for you.</p>
-      <div className="theme-options">
-        {themes.map(({ value, label, Icon }) => (
+    <div className="setting">
+      <span className="setting-label">{label}</span>
+      <div className="theme-options" role="radiogroup" aria-label={label}>
+        {options.map((option) => (
           <button
-            key={value}
-            className={`button ${theme === value ? "primary" : ""}`}
-            onClick={() => setTheme(value)}
+            key={option.value}
+            role="radio"
+            aria-checked={value === option.value}
+            className={`button ${value === option.value ? "primary" : ""}`}
+            onClick={() => onChange(option.value)}
           >
-            <Icon />
-            {label}
+            {option.Icon && <option.Icon />}
+            {option.label}
           </button>
         ))}
       </div>
-      <p className="muted">Rivet 0.1 · Interactive UI prototype</p>
+    </div>
+  );
+}
+
+export function SettingsDialog({
+  preferences,
+  onClose,
+}: {
+  preferences: Preferences;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const { theme, setTheme, language, setLanguage, mode, setMode } = preferences;
+  return (
+    <Dialog
+      eyebrow={t("settings.eyebrow")}
+      title={t("settings.title")}
+      onClose={onClose}
+    >
+      <Choice
+        label={t("settings.mode")}
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: "simple", label: t("settings.simple") },
+          { value: "full", label: t("settings.full") },
+        ]}
+      />
+      <p className="setting-hint">
+        {t(mode === "simple" ? "settings.simpleHint" : "settings.fullHint")}
+      </p>
+      <Choice
+        label={t("settings.language")}
+        value={language}
+        onChange={setLanguage}
+        options={[
+          { value: "ru", label: "Русский" },
+          { value: "en", label: "English" },
+        ]}
+      />
+      <Choice
+        label={t("settings.appearance")}
+        value={theme}
+        onChange={setTheme}
+        options={[
+          { value: "light", label: t("settings.light"), Icon: Sun },
+          { value: "dark", label: t("settings.dark"), Icon: Moon },
+          { value: "system", label: t("settings.system"), Icon: Monitor },
+        ]}
+      />
+      <p className="muted">{t("settings.version")}</p>
     </Dialog>
   );
 }
 
-const shortcuts = [
-  ["Ctrl + Enter", "Commit from the message fields"],
-  ["Esc", "Close a dialog or menu"],
-  ["← →", "Resize the focused divider"],
-  ["Tab / Enter / Space", "Move between and use controls"],
+const shortcuts: [string, Key][] = [
+  ["Ctrl + Enter", "shortcuts.commit"],
+  ["Esc", "shortcuts.escape"],
+  ["← →", "shortcuts.resize"],
+  ["Tab / Enter / Space", "shortcuts.tab"],
 ];
 
 export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   return (
-    <Dialog eyebrow="QUICK REFERENCE" title="Shortcuts" onClose={onClose}>
+    <Dialog
+      eyebrow={t("shortcuts.eyebrow")}
+      title={t("shortcuts.title")}
+      onClose={onClose}
+    >
       <dl className="shortcut-list">
         {shortcuts.map(([keys, action]) => (
           <div key={keys}>
             <dt>
               <kbd>{keys}</kbd>
             </dt>
-            <dd>{action}</dd>
+            <dd>{t(action)}</dd>
           </div>
         ))}
       </dl>

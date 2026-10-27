@@ -1,20 +1,17 @@
 import { FolderOpen, FolderPlus, GitFork } from "lucide-react";
+import type { Key } from "../i18n/i18n";
 import type { SetupMode } from "../repositories";
 
 /** Labels and icons shared by the repository menu and the setup tabs. */
 export const setupModeMeta: Record<
   SetupMode,
-  { tab: string; menu: string; Icon: typeof GitFork }
+  { tab: Key; menu: Key; Icon: typeof GitFork }
 > = {
-  clone: { tab: "Clone", menu: "Clone repository…", Icon: GitFork },
-  open: {
-    tab: "Add existing",
-    menu: "Add existing repository…",
-    Icon: FolderOpen,
-  },
+  clone: { tab: "setup.tab.clone", menu: "setup.menu.clone", Icon: GitFork },
+  open: { tab: "setup.tab.open", menu: "setup.menu.open", Icon: FolderOpen },
   create: {
-    tab: "Create new",
-    menu: "Create new repository…",
+    tab: "setup.tab.create",
+    menu: "setup.menu.create",
     Icon: FolderPlus,
   },
 };

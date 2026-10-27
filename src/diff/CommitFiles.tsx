@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { dirName, fileName, lineStats } from "../git/paths";
 import type { FileChange } from "../git/types";
+import { useI18n } from "../i18n/i18n";
 import { FileIcon, StatusIcon } from "../ui/FileIcon";
 
 /** A searchable, folder-grouped file list beside the diff of the selected file. */
@@ -28,6 +29,7 @@ export function CommitFiles({
     [width, setWidth] = useState(245),
     [closed, setClosed] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
   useEffect(() => {
     const list = listRef.current,
       row = list?.querySelector<HTMLElement>('[aria-current="true"]');
@@ -52,7 +54,7 @@ export function CommitFiles({
         <div className="commit-files-collapsed">
           <button
             className="icon-button"
-            title={`Show ${files.length} changed files`}
+            title={t("files.show", { count: files.length })}
             onClick={() => setCollapsed(false)}
           >
             <PanelLeftOpen />
@@ -64,15 +66,16 @@ export function CommitFiles({
           <section
             className="commit-files"
             style={{ width }}
-            aria-label="Changed files"
+            aria-label={t("files.changed")}
           >
             <div className="commit-files-heading">
               <strong>
-                Changed files <span className="count">{files.length}</span>
+                {t("files.changed")}{" "}
+                <span className="count">{files.length}</span>
               </strong>
               <button
                 className="icon-button"
-                title="Collapse changed files"
+                title={t("files.collapse")}
                 onClick={() => setCollapsed(true)}
               >
                 <PanelLeftClose />
@@ -83,15 +86,15 @@ export function CommitFiles({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Find a file or folder…"
-                aria-label="Search changed files"
+                placeholder={t("files.find")}
+                aria-label={t("files.searchLabel")}
               />
             </div>
             <div
               className="commit-file-scroll"
               ref={listRef}
               tabIndex={0}
-              aria-label="Changed file list"
+              aria-label={t("files.list")}
             >
               {groups.map((folder) => {
                 const open = !closed.includes(folder) || !!query;
@@ -102,7 +105,7 @@ export function CommitFiles({
                   <div key={folder}>
                     <button
                       className="commit-folder"
-                      title={folder || "Repository root"}
+                      title={folder || t("common.repositoryRoot")}
                       onClick={() =>
                         setClosed((c) =>
                           c.includes(folder)
@@ -113,7 +116,7 @@ export function CommitFiles({
                     >
                       {open ? <ChevronDown /> : <ChevronRight />}
                       <Folder />
-                      <span>{folder || "Repository root"}</span>
+                      <span>{folder || t("common.repositoryRoot")}</span>
                       <small>{inFolder.length}</small>
                     </button>
                     {open &&
@@ -123,7 +126,7 @@ export function CommitFiles({
                           <button
                             key={f.path}
                             title={`${f.path} · +${added} −${removed}`}
-                            aria-label={`Inspect ${f.path}`}
+                            aria-label={t("files.inspect", { path: f.path })}
                             aria-current={
                               selected === f.path ? "true" : undefined
                             }
@@ -142,18 +145,22 @@ export function CommitFiles({
                 );
               })}
               {!filtered.length && (
-                <p className="list-empty">No matching files.</p>
+                <p className="list-empty">{t("files.noMatches")}</p>
               )}
             </div>
             <div className="commit-file-summary">
-              {query ? `${filtered.length} of ${files.length}` : files.length}{" "}
-              files · Select to review
+              {query
+                ? t("files.summaryFiltered", {
+                    shown: filtered.length,
+                    count: files.length,
+                  })
+                : t("files.summary", { count: files.length })}
             </div>
           </section>
           <div
             className="resize-handle commit-files-divider"
             role="separator"
-            aria-label="Resize changed files"
+            aria-label={t("files.resize")}
             aria-orientation="vertical"
             aria-valuenow={width}
             aria-valuemin={200}

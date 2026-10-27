@@ -1,4 +1,5 @@
 import type { Hunk } from "../git/types";
+import { useI18n } from "../i18n/i18n";
 import { Checkbox } from "../ui/Checkbox";
 import { alignLines, changedRange, hunkLabel, type Cell } from "./align";
 
@@ -57,6 +58,7 @@ export function DiffHunk({
   onToggle?: () => void;
 }) {
   const rows = alignLines(hunk);
+  const { t } = useI18n();
   return (
     <section className="hunk">
       <div className="hunk-header">
@@ -64,11 +66,7 @@ export function DiffHunk({
           <Checkbox
             checked={hunk.staged}
             onChange={onToggle}
-            label={
-              hunk.staged
-                ? "Remove this part from the commit"
-                : "Include this part in the commit"
-            }
+            label={t(hunk.staged ? "diff.excludePart" : "diff.includePart")}
           />
         )}
         <span>{hunkLabel(hunk)}</span>

@@ -96,11 +96,12 @@ const desktopPlatform: Platform = {
       return toWindowsPath(await git(path, ["rev-parse", "--show-toplevel"]));
     } catch (error) {
       const message = String(error instanceof Error ? error.message : error);
+      // Codes the setup screen translates; other messages are git's own.
       throw new Error(
         message.includes("Could not start git")
-          ? "This folder doesn't exist."
+          ? "folder-missing"
           : message.includes("not a git repository")
-            ? "This folder is not a Git repository yet. Use Create new to start one here."
+            ? "not-a-repository"
             : message,
       );
     }

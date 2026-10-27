@@ -1,4 +1,5 @@
 import { ChevronRight, Command, FolderGit2, GitBranch } from "lucide-react";
+import { useI18n } from "../i18n/i18n";
 
 export function StatusBar({
   demo,
@@ -13,6 +14,7 @@ export function StatusBar({
   branch: string;
   onShortcuts: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <footer className="statusbar">
       <span>
@@ -22,10 +24,10 @@ export function StatusBar({
       </span>
       <span>
         <span className="status-dot" />
-        {demo ? "Demo data · nothing is written to disk" : path}
+        {demo ? t("statusbar.demo") : path}
         <span className="footer-divider">|</span>
         <button onClick={onShortcuts}>
-          <Command size={12} /> Shortcuts
+          <Command size={12} /> {t("statusbar.shortcuts")}
         </button>
       </span>
     </footer>
