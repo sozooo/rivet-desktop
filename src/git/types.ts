@@ -4,7 +4,24 @@ export type Hunk = { header: string; lines: DiffLine[]; staged: boolean };
 
 export type FileStatus = "added" | "modified" | "deleted" | "renamed";
 /** A changed file. `path` is repository-relative and identifies the file. */
-export type FileChange = { path: string; status: FileStatus; hunks: Hunk[] };
+export type FileChange = {
+  path: string;
+  status: FileStatus;
+  hunks: Hunk[];
+  /** Where a renamed file came from. */
+  oldPath?: string;
+  /** Git could not diff it as text; show a preview instead of hunks. */
+  binary?: boolean;
+  /** Whether a binary change is selected for the next commit (it has no hunks to tick). */
+  staged?: boolean;
+};
+
+/**
+ * Which version of a file to read: the file on disk, the version selected
+ * for the next commit, or any commit-ish git understands ("a7c92e1",
+ * "a7c92e1^", "HEAD", "stash@{0}").
+ */
+export type Revision = "worktree" | "index" | (string & {});
 
 export type Person = { name: string; email: string };
 

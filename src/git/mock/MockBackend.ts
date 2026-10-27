@@ -107,6 +107,10 @@ export class MockBackend implements GitBackend {
     return { base, ahead, behind };
   }
 
+  async readFile(): Promise<Uint8Array | null> {
+    return null;
+  }
+
   async setStaged(path: string, staged: boolean, hunk?: number) {
     const file = this.file_(path);
     file.hunks = file.hunks.map((h, i) =>

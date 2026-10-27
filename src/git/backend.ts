@@ -4,6 +4,7 @@ import type {
   Divergence,
   FileChange,
   RepoSnapshot,
+  Revision,
 } from "./types";
 
 /**
@@ -15,6 +16,8 @@ export interface GitBackend {
   commitFiles(sha: string): Promise<FileChange[]>;
   stashFiles(index: number): Promise<FileChange[]>;
   compareBranch(branch: string, base: string): Promise<Divergence>;
+  /** Raw bytes of a file at a revision, or null when it does not exist there. */
+  readFile(path: string, revision: Revision): Promise<Uint8Array | null>;
 
   setStaged(path: string, staged: boolean, hunk?: number): Promise<void>;
   setAllStaged(staged: boolean): Promise<void>;
