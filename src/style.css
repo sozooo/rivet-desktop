@@ -1,7 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=IBM+Plex+Mono:wght@400;450;500&display=swap");
 :root {
   font-family:
-    "DM Sans",
+    "DM Sans Variable",
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
@@ -155,13 +154,6 @@ textarea::placeholder {
 }
 .branch-selector > svg:first-child {
   color: var(--muted);
-}
-.upstream {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--muted);
-  font-size: 11px;
 }
 .repo-wrap {
   position: absolute;
@@ -380,13 +372,6 @@ textarea::placeholder {
   width: 100%;
   font-size: 11px;
 }
-.search > span {
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  width: 16px;
-  text-align: center;
-  font-size: 10px;
-}
 .sidebar-content {
   flex: 1;
   min-height: 0;
@@ -418,11 +403,23 @@ textarea::placeholder {
 }
 .file-row {
   margin: 2px 8px;
+  padding-left: 10px;
   display: flex;
   align-items: center;
   min-height: 45px;
   border-radius: 5px;
   transition: background 0.12s;
+}
+.file-row.deleted .file-label > span {
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+.file-row .file-select {
+  padding-right: 12px;
+}
+.changes-heading .row {
+  gap: 9px;
+  padding-left: 10px;
 }
 .file-row:hover {
   background: var(--hover);
@@ -436,7 +433,7 @@ textarea::placeholder {
   gap: 9px;
   flex: 1;
   min-width: 0;
-  padding: 7px 5px 7px 10px;
+  padding: 7px 5px 7px 11px;
   text-align: left;
 }
 .file-icon {
@@ -447,7 +444,7 @@ textarea::placeholder {
   width: 16px;
   height: 16px;
 }
-.file-icon.csharp {
+.file-icon-cs {
   color: #829880;
 }
 .file-label {
@@ -470,36 +467,80 @@ textarea::placeholder {
   color: var(--muted);
   font-weight: 400;
 }
-.status {
-  font-size: 9px;
-  font-weight: 650;
-  line-height: 16px;
-}
-.status-M {
-  color: #bb9652;
-}
-.status-A {
-  color: #679476;
-}
-.status-D {
-  color: #c67f78;
-}
-.stage-control {
-  width: 16px;
-  height: 16px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  margin-right: 12px;
-  display: flex;
+/* What happened to a file, as a glyph rather than a git letter. */
+.status-icon {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 1px;
-  color: var(--muted);
-  background: var(--surface);
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
-.stage-control:hover {
+.status-icon svg {
+  width: 10px;
+  height: 10px;
+  stroke-width: 2.4;
+}
+.status-added {
+  color: #4f8a5f;
+  background: #4f8a5f1f;
+}
+.status-modified {
+  color: #a8822f;
+  background: #c4973a24;
+}
+.status-deleted {
+  color: #b9655d;
+  background: #c67f7824;
+}
+.status-renamed {
+  color: #5b7fa8;
+  background: #5b7fa824;
+}
+.app.dark .status-added {
+  color: #8fc79c;
+}
+.app.dark .status-modified {
+  color: #e0bd72;
+}
+.app.dark .status-deleted {
+  color: #e59c94;
+}
+.app.dark .status-renamed {
+  color: #9dbbe0;
+}
+.checkbox {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #c5c8bf;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--surface);
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.app.dark .checkbox {
+  border-color: #56615a;
+}
+.checkbox:hover:not(:disabled) {
   border-color: var(--accent);
-  color: var(--accent);
+}
+.checkbox.on,
+.app.dark .checkbox.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.checkbox svg {
+  width: 11px;
+  height: 11px;
+  stroke-width: 3;
 }
 .sidebar-footer {
   height: 39px;
@@ -676,8 +717,7 @@ textarea::placeholder {
 .hunk-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 25px;
+  gap: 12px;
   position: sticky;
   left: 0;
   background: var(--hunk);
@@ -688,26 +728,6 @@ textarea::placeholder {
   font-family: "IBM Plex Mono", monospace;
   font-size: 9px;
   min-width: 100%;
-}
-.hunk-header button {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-  font-family: "DM Sans", sans-serif;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  padding: 3px 7px;
-  border-radius: 4px;
-  background: var(--surface);
-  font-size: 9px;
-}
-.hunk-header button:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.hunk-header button svg {
-  width: 11px;
-  height: 11px;
 }
 .code-line {
   display: flex;
@@ -760,17 +780,6 @@ textarea::placeholder {
 }
 .token-number {
   color: #ba8b68;
-}
-.split-code {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-width: 100%;
-}
-.split-code > div {
-  overflow: hidden;
-}
-.split-code > div + div {
-  border-left: 1px solid var(--border);
 }
 .split-label {
   display: grid;
@@ -849,10 +858,11 @@ textarea::placeholder {
   padding: 8px 12px;
   font-size: 11px;
 }
-.composer-bottom .primary > span {
-  margin-left: 16px;
-  opacity: 0.6;
-  font-size: 13px;
+.composer-bottom .primary > kbd {
+  margin-left: 14px;
+  opacity: 0.65;
+  font: inherit;
+  font-size: 10px;
 }
 .composer-hint {
   display: flex;
@@ -1015,6 +1025,12 @@ textarea::placeholder {
 .toast > svg {
   color: var(--accent);
 }
+.toast.error > svg {
+  color: #c0665e;
+}
+.toast.error {
+  border-color: #c0665e66;
+}
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1096,65 +1112,111 @@ textarea::placeholder {
   gap: 10px;
   margin: 25px 0;
 }
+.shortcut-list {
+  margin: 20px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.shortcut-list > div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  font-size: 12px;
+}
+.shortcut-list dd {
+  margin: 0;
+  color: var(--muted);
+}
+.shortcut-list kbd {
+  font: inherit;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  background: var(--bg);
+}
 .commit-row {
   display: flex;
   width: 100%;
   text-align: left;
-  min-height: 78px;
-  padding: 10px 14px 10px 19px;
-  gap: 14px;
+  height: 64px;
+  padding: 0 14px 0 12px;
+  gap: 10px;
 }
 .commit-row:hover,
-.object-row:hover,
-.stash-row:hover {
+.object-row:hover {
   background: var(--hover);
 }
 .commit-row.selected,
-.object-row.selected,
-.stash-row.selected {
+.object-row.selected {
   background: var(--accent-soft);
 }
-.commit-row > div:last-child {
+.commit-text {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
+  padding-top: 13px;
 }
 .commit-row strong {
   font-size: 11px;
   font-weight: 500;
-  line-height: 1.6;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.commit-refs {
+  display: flex;
+  gap: 4px;
+  margin-top: 1px;
+}
+.commit-graph {
+  flex-shrink: 0;
+  overflow: visible;
+}
+.commit-graph path {
+  fill: none;
+  stroke-width: 1.6;
+}
+.commit-graph circle {
+  stroke: var(--sidebar);
+  stroke-width: 2;
+}
+.commit-row:hover .commit-graph circle {
+  stroke: var(--hover);
+}
+.commit-row.selected .commit-graph circle {
+  stroke: var(--accent-soft);
+}
+.commit-graph .lane-0 {
+  stroke: var(--accent);
+}
+.commit-graph .lane-1 {
+  stroke: #b08a4a;
+}
+.commit-graph .lane-2 {
+  stroke: var(--purple);
+}
+.commit-graph .lane-3 {
+  stroke: #5b7fa8;
+}
+.commit-graph circle.lane-0 {
+  fill: var(--accent);
+}
+.commit-graph circle.lane-1 {
+  fill: #b08a4a;
+}
+.commit-graph circle.lane-2 {
+  fill: var(--purple);
+}
+.commit-graph circle.lane-3 {
+  fill: #5b7fa8;
 }
 .commit-row small {
   font-size: 9px;
   color: var(--muted);
-}
-.graph-line {
-  width: 13px;
-  position: relative;
-  flex-shrink: 0;
-}
-.graph-line:before {
-  content: "";
-  position: absolute;
-  top: -10px;
-  bottom: -10px;
-  left: 5px;
-  width: 2px;
-  background: #a9b9aa;
-}
-.graph-line i {
-  display: block;
-  position: relative;
-  border: 2px solid var(--sidebar);
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--accent);
-  top: 4px;
-}
-.graph-line.lane-1 {
-  transform: translateX(6px);
 }
 .branch-chip,
 .tag {
@@ -1196,29 +1258,6 @@ textarea::placeholder {
 .detail-actions .button {
   font-size: 10px;
   padding: 5px 9px;
-}
-.changed-tabs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 24px;
-  border-bottom: 1px solid var(--border);
-  font-size: 9px;
-  overflow: auto;
-  white-space: nowrap;
-}
-.changed-tabs > span {
-  color: var(--muted);
-  margin-right: 10px;
-}
-.changed-tabs button {
-  font-size: 10px;
-  padding: 5px 8px;
-  border-radius: 4px;
-}
-.changed-tabs button.active {
-  background: var(--accent-soft);
-  color: var(--accent);
 }
 .object-row {
   display: flex;
@@ -1327,59 +1366,6 @@ textarea::placeholder {
   background-image: radial-gradient(var(--border) 0.8px, transparent 0.8px);
   background-size: 8px 8px;
 }
-.diagram-track {
-  display: flex;
-  gap: 46px;
-  align-items: center;
-  height: 20px;
-  position: relative;
-}
-.diagram-track:before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 9px;
-  width: 118px;
-  height: 2px;
-  background: var(--muted);
-}
-.diagram-track i {
-  position: relative;
-  width: 10px;
-  height: 10px;
-  background: var(--muted);
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-}
-.diagram-track span {
-  font-size: 10px;
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.diagram-track.feature {
-  margin-left: 57px;
-  margin-top: 25px;
-  color: var(--accent);
-}
-.diagram-track.feature:before {
-  background: var(--accent);
-}
-.diagram-track.feature:after {
-  content: "";
-  position: absolute;
-  width: 26px;
-  height: 47px;
-  border-left: 2px solid var(--accent);
-  border-bottom: 2px solid var(--accent);
-  border-radius: 0 0 0 20px;
-  left: -24px;
-  top: -36px;
-}
-.diagram-track.feature i {
-  background: var(--accent);
-}
 .card-note {
   padding: 13px 20px;
   font-size: 10px;
@@ -1422,29 +1408,76 @@ textarea::placeholder {
   font-size: 10px;
   color: var(--muted);
 }
-.stash-row {
+/* Stashes live at the bottom of the Changes list. */
+.stash-section {
+  margin-top: 18px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.stash-card {
+  margin: 2px 8px;
+  border-radius: 5px;
   display: flex;
-  gap: 12px;
-  width: 100%;
-  padding: 17px;
+  align-items: center;
+  transition: background 0.12s;
+}
+.stash-card:hover {
+  background: var(--hover);
+}
+.stash-card.selected {
+  background: var(--accent-soft);
+}
+.stash-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 6px 9px 12px;
   text-align: left;
 }
-.stash-row > svg {
+.stash-open > svg {
   color: var(--muted);
-  margin-top: 3px;
 }
-.stash-row > div {
+.stash-open > span {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 3px;
+  min-width: 0;
 }
-.stash-row small {
-  font-size: 9px;
-  color: var(--muted);
-}
-.stash-row strong {
+.stash-open strong {
   font-size: 11px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stash-open small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.stash-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+}
+.stash-actions .text-button {
+  font-size: 10px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.stash-actions .text-button svg {
+  width: 12px;
+  height: 12px;
+}
+.detail-back {
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.detail-actions .button svg {
+  width: 13px;
+  height: 13px;
 }
 .accent {
   color: var(--accent);
@@ -1568,6 +1601,12 @@ textarea::placeholder {
 .code-line.del mark {
   background: #ebc0bb70;
 }
+.app.dark .code-line mark {
+  background: #5fa06f59;
+}
+.app.dark .code-line.del mark {
+  background: #c25b5266;
+}
 .commit-description {
   white-space: pre-wrap;
   font-size: 12px;
@@ -1622,44 +1661,6 @@ textarea::placeholder {
   bottom: 0;
   border-right: 1px solid var(--border);
 }
-/* Every history row uses identical columns; only the node occupies another lane. */
-.graph-line {
-  width: 28px;
-}
-.graph-line:before {
-  left: 5px;
-}
-.graph-line i {
-  left: 1px;
-  width: 10px;
-  height: 10px;
-  top: 4px;
-  z-index: 2;
-}
-.graph-line.graph-child i {
-  left: 17px;
-}
-.history-connector {
-  position: absolute;
-  left: 0;
-  top: -10px;
-  width: 28px;
-  height: calc(100% + 20px);
-  overflow: visible;
-}
-.history-connector path {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-.commit-row {
-  gap: 8px;
-}
-.graph-line:before {
-  background: var(--accent);
-  width: 1.5px;
-}
 .precise-diagram {
   padding: 12px 18px;
   height: 124px;
@@ -1708,6 +1709,33 @@ textarea::placeholder {
   max-height: 280px;
   overflow: auto;
 }
+.repository-item {
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+.repository-item:hover {
+  background: var(--hover);
+}
+.repository-item > button:first-child:hover {
+  background: none;
+}
+.dropdown .repository-remove {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-right: 4px;
+  justify-content: center;
+  opacity: 0;
+}
+.repository-item:hover .repository-remove,
+.repository-remove:focus-visible {
+  opacity: 1;
+}
+.dropdown .repository-remove svg {
+  width: 12px;
+  height: 12px;
+}
 .repository-list button > span {
   display: flex;
   flex-direction: column;
@@ -1745,7 +1773,7 @@ textarea::placeholder {
   z-index: 45;
   background: var(--bg);
   display: grid;
-  grid-template-columns: minmax(480px, 1.2fr) minmax(340px, 1fr);
+  grid-template-columns: minmax(520px, 1.5fr) minmax(320px, 1fr);
   padding: 20px;
   gap: 35px;
   overflow: auto;
@@ -2077,12 +2105,12 @@ textarea::placeholder {
   border-radius: 4px;
   font-size: 11px;
 }
-.commit-file svg {
+.commit-file .file-icon svg {
   width: 14px;
   height: 14px;
   color: var(--muted);
 }
-.commit-file > span {
+.commit-file-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -2164,23 +2192,18 @@ textarea::placeholder {
   overflow: auto;
 }
 
-/* Branch and fetch share one control; synchronization reads as a sentence. */
+/* Branch and fetch share one control, on the same line as every other control. */
 .topbar .brand {
   margin-right: 8px;
-}
-.branch-sync {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-  max-width: 390px;
 }
 .branch-fetch-group {
   display: flex;
   align-items: center;
   border: 1px solid var(--border);
   border-radius: 6px;
+  background: var(--surface);
   min-width: 0;
+  max-width: 390px;
   overflow: hidden;
 }
 .branch-fetch-group .branch-selector {
@@ -2201,26 +2224,13 @@ textarea::placeholder {
   color: var(--muted);
   white-space: nowrap;
 }
-.fetch-control:hover {
+.fetch-control:hover:not(:disabled) {
   background: var(--hover);
   color: var(--text);
 }
 .fetch-control svg {
   width: 13px;
   height: 13px;
-}
-.sync-status {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  color: var(--accent);
-  padding-left: 2px;
-  white-space: nowrap;
-}
-.sync-status svg {
-  width: 11px;
-  height: 11px;
 }
 .topbar .repo-wrap {
   position: relative;
@@ -2295,6 +2305,99 @@ textarea::placeholder {
 .setup-fields {
   height: 204px;
   flex-shrink: 0;
+}
+.setup-fields.open {
+  height: auto;
+}
+.path-field {
+  display: flex;
+  gap: 8px;
+}
+.path-field input {
+  flex: 1;
+  min-width: 0;
+}
+.path-field .button {
+  padding: 0 12px;
+  font-size: 12px;
+}
+.found-repos {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-top: 1px dashed var(--border);
+  padding-top: 12px;
+}
+.found-heading {
+  font-size: 9px;
+  letter-spacing: 1.1px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.found-repo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 6px;
+  text-align: left;
+}
+.found-repo:hover:not(:disabled) {
+  background: var(--hover);
+}
+.found-repo:disabled {
+  opacity: 0.55;
+}
+.found-repo > svg {
+  color: var(--muted);
+}
+.found-name {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.found-name strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.found-name small {
+  font-size: 10px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.found-meta {
+  display: flex;
+  gap: 5px;
+}
+.found-meta em {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 5px;
+  white-space: nowrap;
+}
+.found-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--accent);
+  min-width: 58px;
+  justify-content: flex-end;
+}
+.found-action svg {
+  width: 13px;
+  height: 13px;
+}
+.found-repo:not(:hover):not(:disabled) .found-action {
+  opacity: 0.55;
 }
 .setup-content form label {
   margin-bottom: 16px;
@@ -2471,33 +2574,15 @@ textarea::placeholder {
     translate: 0 0;
   }
 }
-.nav-item svg,
-.icon-button svg,
-.setup-tabs button svg,
-.repo-selector svg {
-  transition: transform 150ms ease;
+.draw-on :is(path, line, polyline, polygon, circle, ellipse, rect) {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation: icon-draw 460ms cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+  animation-delay: calc(var(--stroke, 0) * 90ms);
 }
-.nav-item:active svg,
-.icon-button:active svg,
-.setup-tabs button:active svg,
-.repo-selector:active svg {
-  transform: scale(0.84) rotate(-7deg);
-}
-.nav-item.active svg {
-  animation: icon-settle 230ms ease-out;
-}
-.setup-tabs .active svg {
-  animation: icon-settle 230ms ease-out;
-}
-@keyframes icon-settle {
-  0% {
-    transform: scale(0.84) rotate(-7deg);
-  }
-  65% {
-    transform: scale(1.07);
-  }
-  100% {
-    transform: scale(1);
+@keyframes icon-draw {
+  to {
+    stroke-dashoffset: 0;
   }
 }
 .commit-submit {
@@ -2714,20 +2799,17 @@ textarea::placeholder {
   .commit-submit::before {
     display: none;
   }
-  .fade-switch,
-  .nav-item svg,
-  .icon-button svg,
-  .setup-tabs button svg,
-  .repo-selector svg {
+  .fade-switch {
     transition: none !important;
   }
   .fade-switch.entering,
   .repository-menu,
   .repository-setup,
   .pr-dialog,
-  .pr-detail,
-  .nav-item.active svg,
-  .setup-tabs .active svg {
+  .pr-detail {
     animation: none !important;
+  }
+  .draw-on :is(path, line, polyline, polygon, circle, ellipse, rect) {
+    stroke-dashoffset: 0;
   }
 }

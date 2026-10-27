@@ -1,32 +1,26 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  Search,
-  FileCode2,
-  FileJson2,
-  FileText,
+  ChevronDown,
+  ChevronRight,
+  Folder,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronRight,
-  ChevronDown,
-  Folder,
+  Search,
 } from "lucide-react";
+import { dirName, fileName, lineStats } from "../git/paths";
+import type { FileChange } from "../git/types";
+import { FileIcon, StatusIcon } from "../ui/FileIcon";
 
-type FileEntry = {
-  id: number;
-  name: string;
-  path: string;
-  status: string;
-  hunks: { lines: { kind: string }[] }[];
-};
+/** A searchable, folder-grouped file list beside the diff of the selected file. */
 export function CommitFiles({
   files,
   selected,
   onSelect,
   children,
 }: {
-  files: FileEntry[];
-  selected?: number;
-  onSelect: (id: number) => void;
+  files: FileChange[];
+  selected?: string;
+  onSelect: (path: string) => void;
   children: ReactNode;
 }) {
   const [query, setQuery] = useState(""),
@@ -45,9 +39,13 @@ export function CommitFiles({
       list.scrollTop += target.bottom - bounds.bottom;
   }, [selected, collapsed, query]);
   const filtered = files.filter((f) =>
-    `${f.path}/${f.name}`.toLowerCase().includes(query.toLowerCase()),
+    f.path.toLowerCase().includes(query.toLowerCase()),
   );
-  const groups = Array.from(new Set(filtered.map((f) => f.path))).sort();
+  const groups = Array.from(
+    new Set(filtered.map((f) => dirName(f.path))),
+  ).sort();
+  const resize = (delta: number) =>
+    setWidth((w) => Math.max(200, Math.min(340, w + delta)));
   return (
     <div className="commit-explorer">
       {collapsed ? (
@@ -95,66 +93,54 @@ export function CommitFiles({
               tabIndex={0}
               aria-label="Changed file list"
             >
-              {groups.map((path) => (
-                <div key={path}>
-                  <button
-                    className="commit-folder"
-                    title={path || "Repository root"}
-                    onClick={() =>
-                      setClosed((c) =>
-                        c.includes(path)
-                          ? c.filter((x) => x !== path)
-                          : [...c, path],
-                      )
-                    }
-                  >
-                    {closed.includes(path) && !query ? (
-                      <ChevronRight />
-                    ) : (
-                      <ChevronDown />
-                    )}
-                    <Folder />
-                    <span>{path || "Repository root"}</span>
-                    <small>
-                      {filtered.filter((f) => f.path === path).length}
-                    </small>
-                  </button>
-                  {(!closed.includes(path) || query) &&
-                    filtered
-                      .filter((f) => f.path === path)
-                      .map((f) => {
-                        const Icon = f.name.endsWith(".json")
-                          ? FileJson2
-                          : f.name.endsWith(".md")
-                            ? FileText
-                            : FileCode2;
-                        const added = f.hunks
-                            .flatMap((h) => h.lines)
-                            .filter((l) => l.kind === "add").length,
-                          removed = f.hunks
-                            .flatMap((h) => h.lines)
-                            .filter((l) => l.kind === "del").length;
+              {groups.map((folder) => {
+                const open = !closed.includes(folder) || !!query;
+                const inFolder = filtered.filter(
+                  (f) => dirName(f.path) === folder,
+                );
+                return (
+                  <div key={folder}>
+                    <button
+                      className="commit-folder"
+                      title={folder || "Repository root"}
+                      onClick={() =>
+                        setClosed((c) =>
+                          c.includes(folder)
+                            ? c.filter((x) => x !== folder)
+                            : [...c, folder],
+                        )
+                      }
+                    >
+                      {open ? <ChevronDown /> : <ChevronRight />}
+                      <Folder />
+                      <span>{folder || "Repository root"}</span>
+                      <small>{inFolder.length}</small>
+                    </button>
+                    {open &&
+                      inFolder.map((f) => {
+                        const { added, removed } = lineStats(f.hunks);
                         return (
                           <button
-                            key={f.id}
-                            title={`${f.path}/${f.name} · +${added} −${removed}`}
-                            aria-label={`Inspect ${f.path}/${f.name}`}
+                            key={f.path}
+                            title={`${f.path} · +${added} −${removed}`}
+                            aria-label={`Inspect ${f.path}`}
                             aria-current={
-                              selected === f.id ? "true" : undefined
+                              selected === f.path ? "true" : undefined
                             }
-                            className={`commit-file ${selected === f.id ? "selected" : ""}`}
-                            onClick={() => onSelect(f.id)}
+                            className={`commit-file ${selected === f.path ? "selected" : ""}`}
+                            onClick={() => onSelect(f.path)}
                           >
-                            <Icon />
-                            <span>{f.name}</span>
-                            <small className={`status status-${f.status}`}>
-                              {f.status}
-                            </small>
+                            <FileIcon path={f.path} />
+                            <span className="commit-file-name">
+                              {fileName(f.path)}
+                            </span>
+                            <StatusIcon status={f.status} />
                           </button>
                         );
                       })}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
               {!filtered.length && (
                 <p className="list-empty">No matching files.</p>
               )}
@@ -174,22 +160,17 @@ export function CommitFiles({
             aria-valuemax={340}
             tabIndex={0}
             onKeyDown={(e) => {
-              if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
                 e.preventDefault();
-                setWidth((w) =>
-                  Math.max(
-                    200,
-                    Math.min(340, w + (e.key === "ArrowLeft" ? -10 : 10)),
-                  ),
-                );
+                resize(e.key === "ArrowLeft" ? -10 : 10);
               }
             }}
-            onPointerDown={(e) => {
-              e.currentTarget.setPointerCapture(e.pointerId);
-            }}
+            onPointerDown={(e) =>
+              e.currentTarget.setPointerCapture(e.pointerId)
+            }
             onPointerMove={(e) => {
               if (e.currentTarget.hasPointerCapture(e.pointerId))
-                setWidth((w) => Math.max(200, Math.min(340, w + e.movementX)));
+                resize(e.movementX);
             }}
             onPointerUp={(e) =>
               e.currentTarget.releasePointerCapture(e.pointerId)

@@ -52,6 +52,7 @@ const requests = [
     comments: 7,
   },
 ];
+export const openPullRequests = requests.length;
 export function PullRequests({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState(42);
   const pr = requests.find((p) => p.id === selected)!;
@@ -68,7 +69,7 @@ export function PullRequests({ onClose }: { onClose: () => void }) {
           <div>
             <GitPullRequest />
             <h2>Pull requests</h2>
-            <span className="count">3 open</span>
+            <span className="count">{requests.length} open</span>
           </div>
           <button
             className="icon-button"
