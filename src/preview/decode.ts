@@ -37,9 +37,13 @@ export async function decodeImage(
   });
   const url = URL.createObjectURL(blob);
   const image = new Image();
-  image.src = url;
+  // Not image.decode(): it never settles while the window is hidden or minimised.
   try {
-    await image.decode();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("the image could not be decoded"));
+      image.src = url;
+    });
   } catch (error) {
     URL.revokeObjectURL(url);
     throw error;
