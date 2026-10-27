@@ -369,6 +369,22 @@ export function workingChanges(): FileChange[] {
       ],
     },
     {
+      path: "Assets/Textures/Bark_Normal.png.meta",
+      status: "modified",
+      hunks: [
+        {
+          header: "@@ -36,6 +36,6 @@ TextureImporter:",
+          staged: false,
+          lines: lines(
+            ["  spriteTessellationDetail: -1"],
+            ["  textureType: 0"],
+            ["  textureType: 1"],
+            ["  textureShape: 1", "  singleChannelComponent: 0"],
+          ),
+        },
+      ],
+    },
+    {
       path: "Assets/Settings.meta",
       status: "added",
       hunks: [

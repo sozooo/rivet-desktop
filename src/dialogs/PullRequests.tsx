@@ -9,6 +9,9 @@ import {
   MessageSquare,
   ArrowRight,
 } from "lucide-react";
+
+const hoursAgo = (n: number) => Date.now() - n * 3_600_000;
+
 const requests = [
   {
     id: 42,
@@ -17,11 +20,11 @@ const requests = [
     from: "feature/gamepad-navigation",
     to: "main",
     files: 14,
-    checks: "All checks passed",
-    review: "Ready for review",
+    checksPassed: true,
+    review: "ready" as const,
     description:
       "Adds controller focus, input profiles and navigation hints for the inventory. Includes coverage for Xbox and PlayStation bindings.",
-    time: "2 hours ago",
+    date: hoursAgo(2),
     comments: 4,
   },
   {
@@ -31,11 +34,11 @@ const requests = [
     from: "fix/camera-transitions",
     to: "main",
     files: 6,
-    checks: "All checks passed",
-    review: "Approved",
+    checksPassed: true,
+    review: "approved" as const,
     description:
       "Preserves camera velocity between room transitions and prevents snapping when entering a new trigger volume.",
-    time: "Yesterday",
+    date: hoursAgo(26),
     comments: 2,
   },
   {
@@ -45,11 +48,11 @@ const requests = [
     from: "art/outline-pass",
     to: "develop",
     files: 11,
-    checks: "Checks in progress",
-    review: "Draft",
+    checksPassed: false,
+    review: "draft" as const,
     description:
       "An early visual pass on object outlines. Updates shader parameters and material presets for lighter and darker environments.",
-    time: "2 days ago",
+    date: hoursAgo(50),
     comments: 7,
   },
 ];
@@ -57,7 +60,7 @@ export const openPullRequests = requests.length;
 export function PullRequests({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState(42);
   const pr = requests.find((p) => p.id === selected)!;
-  const { t } = useI18n();
+  const { t, timeAgo } = useI18n();
   return (
     <div className="modal-overlay" onClick={onClose}>
       <section
@@ -95,9 +98,9 @@ export function PullRequests({ onClose }: { onClose: () => void }) {
                 <span>
                   <strong>{p.title}</strong>
                   <small>
-                    #{p.id} · {p.author} · {p.time}
+                    #{p.id} · {p.author} · {timeAgo(p.date)}
                   </small>
-                  <em>{p.review}</em>
+                  <em>{t(`prs.review.${p.review}`)}</em>
                 </span>
               </button>
             ))}
@@ -114,11 +117,11 @@ export function PullRequests({ onClose }: { onClose: () => void }) {
             </div>
             <div className="pr-check">
               <CheckCircle2 />
-              {pr.review}
+              {t(`prs.review.${pr.review}`)}
             </div>
             <div className="pr-check">
-              {pr.checks.includes("passed") ? <CheckCircle2 /> : <Clock />}
-              {pr.checks}
+              {pr.checksPassed ? <CheckCircle2 /> : <Clock />}
+              {t(pr.checksPassed ? "prs.checks.passed" : "prs.checks.running")}
             </div>
             <div className="pr-check">
               <MessageSquare />

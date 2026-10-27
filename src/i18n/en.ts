@@ -342,6 +342,7 @@ export const en = {
     other: "{shown} of {count} files · Select to review",
   },
   "files.inspect": "Inspect {path}",
+  "files.diffPane": "Selected file diff",
   "files.resize": "Resize changed files",
 
   "panes.collapse": "Collapse sidebar",
@@ -542,8 +543,13 @@ export const en = {
   "prs.open": "{count} open",
   "prs.close": "Close pull requests",
   "prs.eyebrow": "PULL REQUEST #{id}",
-  "prs.comments": "{count} comments",
-  "prs.files": "{count} changed files",
+  "prs.comments": { one: "{count} comment", other: "{count} comments" },
+  "prs.files": { one: "{count} changed file", other: "{count} changed files" },
+  "prs.review.ready": "Ready for review",
+  "prs.review.approved": "Approved",
+  "prs.review.draft": "Draft",
+  "prs.checks.passed": "All checks passed",
+  "prs.checks.running": "Checks in progress",
   "prs.explanation":
     "A pull request proposes merging one branch into another. Use Pull in the toolbar to download commits into your current branch.",
   "prs.footer": "Demo pull requests · Hosting integration is not connected.",

@@ -185,7 +185,7 @@ export function CommitFiles({
           />
         </>
       )}
-      <section className="commit-diff-pane" aria-label="Selected file diff">
+      <section className="commit-diff-pane" aria-label={t("files.diffPane")}>
         {children}
       </section>
     </div>

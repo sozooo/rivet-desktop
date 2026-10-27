@@ -393,6 +393,7 @@ export const ru: Record<keyof typeof en, Message> = {
     other: "{shown} из {count} файлов · выберите, чтобы посмотреть",
   },
   "files.inspect": "Посмотреть {path}",
+  "files.diffPane": "Изменения выбранного файла",
   "files.resize": "Изменить ширину списка файлов",
 
   "panes.collapse": "Свернуть панель",
@@ -602,8 +603,23 @@ export const ru: Record<keyof typeof en, Message> = {
   "prs.open": "открыто: {count}",
   "prs.close": "Закрыть pull requests",
   "prs.eyebrow": "PULL REQUEST #{id}",
-  "prs.comments": "комментариев: {count}",
-  "prs.files": "изменённых файлов: {count}",
+  "prs.comments": {
+    one: "{count} комментарий",
+    few: "{count} комментария",
+    many: "{count} комментариев",
+    other: "{count} комментария",
+  },
+  "prs.files": {
+    one: "{count} изменённый файл",
+    few: "{count} изменённых файла",
+    many: "{count} изменённых файлов",
+    other: "{count} изменённого файла",
+  },
+  "prs.review.ready": "Ждёт ревью",
+  "prs.review.approved": "Одобрен",
+  "prs.review.draft": "Черновик",
+  "prs.checks.passed": "Все проверки пройдены",
+  "prs.checks.running": "Проверки ещё идут",
   "prs.explanation":
     "Pull request предлагает слить одну ветку в другую. Кнопка «Получить» вверху забирает коммиты в вашу текущую ветку.",
   "prs.footer": "Демо pull requests · сервис хостинга не подключён.",
