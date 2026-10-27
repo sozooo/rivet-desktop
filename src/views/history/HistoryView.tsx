@@ -3,6 +3,7 @@ import { Copy, GitCommitHorizontal } from "lucide-react";
 import { CommitFiles } from "../../diff/CommitFiles";
 import { DiffView } from "../../diff/DiffView";
 import { layoutGraph, type GraphRow } from "../../git/graph";
+import { shortSha } from "../../git/paths";
 import { initials, timeAgo, useAsync } from "../../ui/hooks";
 import { Panes } from "../../ui/Panes";
 import { useNotify } from "../../ui/Toast";
@@ -130,7 +131,7 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
       footer={
         <>
           <span className="status-dot" /> Local repository
-          <span className="muted">Demo</span>
+          {repo.demo && <span className="muted">Demo</span>}
         </>
       }
       main={
@@ -151,7 +152,7 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
                 </span>
                 {commit.author.name}
                 <span>· {timeAgo(commit.date)}</span>
-                <code>{commit.sha}</code>
+                <code>{shortSha(commit.sha)}</code>
                 <button
                   className="icon-button"
                   title="Copy SHA"
@@ -166,7 +167,7 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
                 </button>
                 <span>
                   {commit.parents.length > 1 ? "Parents" : "Parent"}{" "}
-                  {commit.parents.join(", ") || "—"}
+                  {commit.parents.map(shortSha).join(", ") || "—"}
                 </span>
               </div>
               {commit.description && (

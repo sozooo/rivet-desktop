@@ -130,7 +130,7 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
       footer={
         <>
           <span className="status-dot" /> Working tree
-          <span className="muted">Demo</span>
+          {repo.demo && <span className="muted">Demo</span>}
         </>
       }
       main={

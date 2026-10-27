@@ -1,16 +1,18 @@
 import { X } from "lucide-react";
 
 /** The decorative panel beside the repository setup form. */
-export function SetupArt({ onClose }: { onClose: () => void }) {
+export function SetupArt({ onClose }: { onClose?: () => void }) {
   return (
     <aside className="setup-art">
-      <button
-        className="setup-close icon-button"
-        aria-label="Close repository setup"
-        onClick={onClose}
-      >
-        <X />
-      </button>
+      {onClose && (
+        <button
+          className="setup-close icon-button"
+          aria-label="Close repository setup"
+          onClick={onClose}
+        >
+          <X />
+        </button>
+      )}
       <div className="art-label">
         <span className="brand-mark">r</span> MAKE ROOM FOR WHAT’S NEXT
       </div>

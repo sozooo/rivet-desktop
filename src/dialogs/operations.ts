@@ -1,4 +1,5 @@
 import type { GitBackend } from "../git/backend";
+import { shortSha } from "../git/paths";
 import type { Commit, FileChange, StashEntry, SyncState } from "../git/types";
 
 export type OpContext = {
@@ -30,6 +31,7 @@ export type Operation = {
   done?: (c: OpContext, input: string) => string;
 };
 
+const short = (c: OpContext) => shortSha(c.commit?.sha ?? "");
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const definitions = {
@@ -122,21 +124,21 @@ const definitions = {
   checkout: {
     title: "Check out commit",
     describe: (c) =>
-      `Look at the project exactly as it was at ${c.commit?.sha}. You will not be on a branch until you switch back.`,
+      `Look at the project exactly as it was at ${short(c)}. You will not be on a branch until you switch back.`,
     command: (c) => `git switch --detach ${c.commit?.sha}`,
     confirm: "Check out",
   },
   "cherry-pick": {
     title: "Cherry-pick",
     describe: (c) =>
-      `Copy the changes of ${c.commit?.sha} onto ${c.branch} as a new commit.`,
+      `Copy the changes of ${short(c)} onto ${c.branch} as a new commit.`,
     command: (c) => `git cherry-pick ${c.commit?.sha}`,
     confirm: "Cherry-pick",
   },
   revert: {
     title: "Revert",
     describe: (c) =>
-      `Add a new commit on ${c.branch} that undoes ${c.commit?.sha}. History stays intact.`,
+      `Add a new commit on ${c.branch} that undoes ${short(c)}. History stays intact.`,
     command: (c) => `git revert ${c.commit?.sha}`,
     confirm: "Revert",
   },

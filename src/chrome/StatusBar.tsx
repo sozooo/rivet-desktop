@@ -1,10 +1,14 @@
 import { ChevronRight, Command, FolderGit2, GitBranch } from "lucide-react";
 
 export function StatusBar({
+  demo,
+  path,
   repository,
   branch,
   onShortcuts,
 }: {
+  demo: boolean;
+  path: string;
   repository: string;
   branch: string;
   onShortcuts: () => void;
@@ -17,7 +21,8 @@ export function StatusBar({
         {branch}
       </span>
       <span>
-        <span className="status-dot" /> Demo data · nothing is written to disk
+        <span className="status-dot" />
+        {demo ? "Demo data · nothing is written to disk" : path}
         <span className="footer-divider">|</span>
         <button onClick={onShortcuts}>
           <Command size={12} /> Shortcuts

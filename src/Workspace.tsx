@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { AlertTriangle } from "lucide-react";
 import { NavRail, type Mode } from "./chrome/NavRail";
 import { StatusBar } from "./chrome/StatusBar";
 import { TopBar } from "./chrome/TopBar";
@@ -15,6 +16,7 @@ import type { RepoSnapshot } from "./git/types";
 import type { Repository, SetupMode } from "./repositories";
 import { RepositorySetup } from "./setup/RepositorySetup";
 import type { ThemePreference } from "./App";
+import { platform } from "./platform";
 import { useStoredState } from "./ui/hooks";
 import { SidebarContext } from "./ui/Panes";
 import { useNotify } from "./ui/Toast";
@@ -54,7 +56,9 @@ export function Workspace({
   const [mode, setMode, phase] = useFadeSwitch<Mode>("Changes");
   const [setup, setSetup] = useState<SetupMode | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
-  const [fetching, setFetching] = useState(false);
+  const [loadError, setLoadError] = useState<string>();
+  /** What a long-running git operation is doing, shown in the top bar. */
+  const [working, setWorking] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useStoredState(
     "rivet.sidebar.open",
     true,
@@ -65,12 +69,21 @@ export function Workspace({
   );
 
   const refresh = useCallback(async () => {
-    const next = await backend.snapshot();
-    setSnapshot(next);
-    return next;
+    try {
+      const next = await backend.snapshot();
+      setSnapshot(next);
+      setLoadError(undefined);
+      return next;
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : String(error));
+      return null;
+    }
   }, [backend]);
   useEffect(() => {
     refresh();
+    // Files change in Unity or a text editor while Rivet is in the background.
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
   }, [refresh]);
 
   const act = useCallback<RepoApi["act"]>(
@@ -98,7 +111,26 @@ export function Workspace({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  if (!snapshot) return null;
+  if (!snapshot)
+    return loadError ? (
+      <div className="load-error">
+        <AlertTriangle />
+        <h2>Couldn't open {repository.name}</h2>
+        <code>{repository.path}</code>
+        <p>{loadError}</p>
+        <div className="row">
+          <button className="button primary" onClick={refresh}>
+            Try again
+          </button>
+          <button
+            className="button"
+            onClick={() => onRemoveRepository(repository.id)}
+          >
+            Remove from the list
+          </button>
+        </div>
+      </div>
+    ) : null;
 
   const openOperation = (id: OperationId, context: Partial<OpContext> = {}) =>
     setDialog({
@@ -111,12 +143,20 @@ export function Workspace({
         ...context,
       },
     });
-  const repo: RepoApi = { repository, snapshot, backend, act, openOperation };
+  const demo = !platform.desktop || repository.kind === "demo";
+  const repo: RepoApi = {
+    repository,
+    demo,
+    snapshot,
+    backend,
+    act,
+    openOperation,
+  };
 
   async function fetchRemote() {
-    setFetching(true);
+    setWorking("Checking…");
     const next = await act((b) => b.fetch());
-    setFetching(false);
+    setWorking(null);
     if (next)
       notify(
         next.sync.behind
@@ -131,8 +171,8 @@ export function Workspace({
         snapshot={snapshot}
         repository={repository}
         repositories={repositories}
-        fetching={fetching}
-        pullRequests={openPullRequests}
+        working={working}
+        pullRequests={demo ? openPullRequests : null}
         onFetch={fetchRemote}
         onBranches={() => setMode("Branches")}
         onSwitchRepository={onSwitchRepository}
@@ -178,6 +218,8 @@ export function Workspace({
         </SidebarContext.Provider>
       </div>
       <StatusBar
+        demo={demo}
+        path={repository.path}
         repository={repository.name}
         branch={snapshot.branches.current}
         onShortcuts={() => setDialog({ kind: "shortcuts" })}
@@ -198,14 +240,17 @@ export function Workspace({
           key={dialog.id}
           id={dialog.id}
           context={dialog.context}
+          demo={demo}
           onClose={() => setDialog(null)}
-          onRun={(input) => {
+          onRun={async (input) => {
             const op = operations[dialog.id];
             setDialog(null);
-            act(
+            setWorking(`${op.title}…`);
+            await act(
               (b) => op.run!(b, dialog.context, input),
               op.done?.(dialog.context, input),
             );
+            setWorking(null);
           }}
         />
       )}

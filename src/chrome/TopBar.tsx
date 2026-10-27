@@ -46,7 +46,7 @@ export function TopBar({
   snapshot,
   repository,
   repositories,
-  fetching,
+  working,
   pullRequests,
   onFetch,
   onBranches,
@@ -61,8 +61,10 @@ export function TopBar({
   snapshot: RepoSnapshot;
   repository: Repository;
   repositories: Repository[];
-  fetching: boolean;
-  pullRequests: number;
+  /** A long-running operation in progress, e.g. "Pull…". */
+  working: string | null;
+  /** Open pull requests, or null when no hosting service is connected. */
+  pullRequests: number | null;
   onFetch: () => void;
   onBranches: () => void;
   onSwitchRepository: (id: string) => void;
@@ -100,13 +102,13 @@ export function TopBar({
           className="fetch-control"
           title={syncSummary(sync)}
           aria-label="Check the remote for new commits"
-          disabled={fetching || !sync.upstream}
+          disabled={!!working || !sync.upstream}
           onClick={onFetch}
         >
-          <RefreshCw className={fetching ? "spinning" : ""} />
+          <RefreshCw className={working ? "spinning" : ""} />
           <span>
-            {fetching
-              ? "Checking…"
+            {working
+              ? working
               : !sync.upstream
                 ? "No remote"
                 : sync.lastFetched
@@ -144,16 +146,14 @@ export function TopBar({
                     </span>
                     {repository.id === r.id && <Check />}
                   </button>
-                  {repositories.length > 1 && (
-                    <button
-                      className="icon-button repository-remove"
-                      title={`Remove ${r.name} from the list (files stay on disk)`}
-                      aria-label={`Remove ${r.name} from the list`}
-                      onClick={() => onRemoveRepository(r.id)}
-                    >
-                      <X />
-                    </button>
-                  )}
+                  <button
+                    className="icon-button repository-remove"
+                    title={`Remove ${r.name} from the list (files stay on disk)`}
+                    aria-label={`Remove ${r.name} from the list`}
+                    onClick={() => onRemoveRepository(r.id)}
+                  >
+                    <X />
+                  </button>
                 </div>
               ))}
             </div>
@@ -178,18 +178,20 @@ export function TopBar({
         )}
       </div>
       <div className="top-actions">
-        <button
-          className="text-button pr-trigger"
-          onClick={onPullRequests}
-          title="Browse open pull requests"
-        >
-          <GitPullRequest />
-          <span>Pull requests</span>
-          <span className="count">{pullRequests}</span>
-        </button>
+        {pullRequests !== null && (
+          <button
+            className="text-button pr-trigger"
+            onClick={onPullRequests}
+            title="Browse open pull requests"
+          >
+            <GitPullRequest />
+            <span>Pull requests</span>
+            <span className="count">{pullRequests}</span>
+          </button>
+        )}
         <button
           className="button"
-          disabled={!sync.behind}
+          disabled={!sync.behind || !!working}
           onClick={onPull}
           title={
             sync.behind
@@ -202,7 +204,7 @@ export function TopBar({
         </button>
         <button
           className="button push"
-          disabled={!sync.ahead || !sync.upstream}
+          disabled={!sync.ahead || !sync.upstream || !!working}
           onClick={onPush}
           title={
             sync.ahead

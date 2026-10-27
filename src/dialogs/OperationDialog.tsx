@@ -5,17 +5,20 @@ import { operations, type OpContext, type OperationId } from "./operations";
 export function OperationDialog({
   id,
   context,
+  demo,
   onRun,
   onClose,
 }: {
   id: OperationId;
   context: OpContext;
+  demo: boolean;
   onRun: (input: string) => void;
   onClose: () => void;
 }) {
   const op = operations[id];
   const [input, setInput] = useState("");
-  const [details, setDetails] = useState(false);
+  // Rivet can't run every operation yet; then the command is the useful part.
+  const [details, setDetails] = useState(!op.run);
   const problem = op.input?.problem(input, context) ?? null;
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -53,14 +56,16 @@ export function OperationDialog({
               onChange={(e) => setInput(op.input!.sanitize(e.target.value))}
             />
           )}
-          <div className="preview-note">
-            <CircleDot size={17} />
-            <span>
-              {op.run
-                ? "Demo repository: nothing on disk changes."
-                : "The demo shows what this operation would do but does not perform it yet."}
-            </span>
-          </div>
+          {(demo || !op.run) && (
+            <div className="preview-note">
+              <CircleDot size={17} />
+              <span>
+                {!op.run
+                  ? "Rivet can't do this yet. The Git command below does it from a terminal."
+                  : "Demo repository: nothing on disk changes."}
+              </span>
+            </div>
+          )}
           <button
             type="button"
             className="text-button"

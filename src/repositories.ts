@@ -13,7 +13,8 @@ export const setupModes: SetupMode[] = ["clone", "open", "create"];
 
 const key = "rivet.repositories";
 
-const defaults: Repository[] = [
+/** Sample repositories the browser build starts with. */
+export const demoRepositories: Repository[] = [
   { id: "kinetic", name: "kinetic", path: "D:/Projects/kinetic", kind: "demo" },
   {
     id: "kinetic-sandbox",
@@ -23,12 +24,11 @@ const defaults: Repository[] = [
   },
 ];
 
-export function loadRepositories(): Repository[] {
+export function loadRepositories(fallback: Repository[]): Repository[] {
   try {
     const stored = JSON.parse(localStorage.getItem(key) || "null");
     if (
       Array.isArray(stored) &&
-      stored.length &&
       stored.every(
         (r) =>
           typeof r.id === "string" &&
@@ -39,7 +39,7 @@ export function loadRepositories(): Repository[] {
     )
       return stored;
   } catch {}
-  return defaults;
+  return fallback;
 }
 
 export function saveRepositories(repositories: Repository[]) {

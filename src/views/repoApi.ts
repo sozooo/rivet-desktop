@@ -6,6 +6,8 @@ import type { Repository } from "../repositories";
 /** What every view gets from the workspace for the open repository. */
 export type RepoApi = {
   repository: Repository;
+  /** Sample data rather than a repository on disk. */
+  demo: boolean;
   snapshot: RepoSnapshot;
   backend: GitBackend;
   /** Runs a change, reports failures, and returns the refreshed snapshot (null on failure). */

@@ -7,6 +7,8 @@ export const dirName = (path: string) => {
   return slash === -1 ? "" : path.slice(0, slash);
 };
 
+export const shortSha = (sha: string) => sha.slice(0, 7);
+
 export const extension = (path: string) => {
   const name = fileName(path);
   const dot = name.lastIndexOf(".");

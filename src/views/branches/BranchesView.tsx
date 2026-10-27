@@ -9,6 +9,7 @@ import {
   Globe,
   Tag,
 } from "lucide-react";
+import { shortSha } from "../../git/paths";
 import { timeAgo, useAsync } from "../../ui/hooks";
 import { Panes } from "../../ui/Panes";
 import type { RepoApi } from "../repoApi";
@@ -74,7 +75,7 @@ export function BranchesView({
       footer={
         <>
           <span className="status-dot" /> Local repository
-          <span className="muted">Demo</span>
+          {repo.demo && <span className="muted">Demo</span>}
         </>
       }
       main={
@@ -210,7 +211,7 @@ export function BranchesView({
                   {c.author.name} · {timeAgo(c.date)}
                 </small>
               </div>
-              <code>{c.sha}</code>
+              <code>{shortSha(c.sha)}</code>
             </div>
           ))}
         </div>

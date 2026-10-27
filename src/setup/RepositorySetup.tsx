@@ -61,7 +61,8 @@ export function RepositorySetup({
 }: {
   initialMode: SetupMode;
   repositories: Repository[];
-  onCancel: () => void;
+  /** Absent on first launch, when there is no workspace to go back to. */
+  onCancel?: () => void;
   onComplete: (repo: Repository) => void;
 }) {
   const [mode, setMode, phase] = useFadeSwitch(initialMode);
@@ -69,6 +70,7 @@ export function RepositorySetup({
     [path, setPath] = useState("D:\\Projects"),
     [url, setUrl] = useState(""),
     [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
     [found, setFound] = useState<FoundRepository[]>([]);
   useEffect(() => {
     platform.discoverRepositories().then(setFound);
@@ -95,8 +97,9 @@ export function RepositorySetup({
     }
   }
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
     if (!resolvedName || !path.trim())
       return setError("Enter a repository name and location.");
     if (
@@ -108,13 +111,30 @@ export function RepositorySetup({
       return setError("Use a folder name without special path characters.");
     if (isAdded(destination))
       return setError("This location is already in your repository list.");
-    onComplete({
-      id: crypto.randomUUID(),
-      name: resolvedName,
-      path: destination,
-      kind: mode,
-      url: mode === "clone" ? url.trim() : undefined,
-    });
+    setBusy(true);
+    setError("");
+    try {
+      // Adding a subfolder of a repository adds the whole repository.
+      const location =
+        mode === "open"
+          ? await platform.repositoryRoot(destination)
+          : destination;
+      if (mode === "open" && isAdded(location))
+        throw new Error("This repository is already in your list.");
+      if (mode === "clone") await platform.clone(url.trim(), location);
+      if (mode === "create") await platform.init(location);
+      onComplete({
+        id: crypto.randomUUID(),
+        name: mode === "open" ? lastSegment(location) : resolvedName,
+        path: location,
+        kind: mode,
+        url: mode === "clone" ? url.trim() : undefined,
+      });
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : String(failure));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -125,10 +145,14 @@ export function RepositorySetup({
       aria-label={setupModeMeta[mode].menu.replace("…", "")}
     >
       <div className="setup-left">
-        <button className="text-button setup-back" onClick={onCancel}>
-          <ArrowLeft />
-          Back to workspace
-        </button>
+        {onCancel ? (
+          <button className="text-button setup-back" onClick={onCancel}>
+            <ArrowLeft />
+            Back to workspace
+          </button>
+        ) : (
+          <span className="setup-back" />
+        )}
         <div className="setup-content">
           <div className="setup-tabs" role="tablist">
             {setupModes.map((m) => {
@@ -271,22 +295,39 @@ export function RepositorySetup({
                 </div>
               )}
               <p className="setup-demo">
-                UI preview · Saves an entry in this browser. No folders are
-                created, read or cloned.
+                {platform.desktop
+                  ? mode === "clone"
+                    ? "Sign-in, if the server asks for it, opens in its own window."
+                    : " "
+                  : "UI preview · Saves an entry in this browser. No folders are created, read or cloned."}
               </p>
               <p className="setup-error" role={error ? "alert" : undefined}>
                 {error || "\u00a0"}
               </p>
               <div className="setup-actions">
-                <button type="button" className="button" onClick={onCancel}>
-                  Cancel
-                </button>
-                <button className="button primary" type="submit">
-                  {mode === "clone"
-                    ? "Add clone preview"
-                    : mode === "open"
-                      ? "Add repository"
-                      : "Create preview"}
+                {onCancel && (
+                  <button type="button" className="button" onClick={onCancel}>
+                    Cancel
+                  </button>
+                )}
+                <button
+                  className="button primary"
+                  type="submit"
+                  disabled={busy}
+                >
+                  {busy
+                    ? mode === "clone"
+                      ? "Cloning…"
+                      : "Working…"
+                    : mode === "clone"
+                      ? platform.desktop
+                        ? "Clone"
+                        : "Add clone preview"
+                      : mode === "open"
+                        ? "Add repository"
+                        : platform.desktop
+                          ? "Create repository"
+                          : "Create preview"}
                   <ArrowRight />
                 </button>
               </div>

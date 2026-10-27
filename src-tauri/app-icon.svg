@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- The brand mark: a leaf-green tile with a softened bottom-left corner and a slanted "r". -->
+  <path d="M256 64H768Q960 64 960 256V768Q960 960 768 960H160Q64 960 64 864V256Q64 64 256 64Z" fill="#437460"/>
+  <g transform="translate(512 512) skewX(-9) translate(-512 -512)" fill="none" stroke="#f5f4f1" stroke-linecap="round">
+    <path d="M404 352V748" stroke-width="118"/>
+    <path d="M404 500C432 402 520 344 650 352" stroke-width="104"/>
+  </g>
+  <circle cx="742" cy="742" r="58" fill="#cfe3bf"/>
+</svg>
