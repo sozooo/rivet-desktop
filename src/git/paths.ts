@@ -27,6 +27,7 @@ export const lineStats = (hunks: Hunk[]) => {
 export type SelectionState = "none" | "partial" | "all";
 
 export function selectionOf(file: FileChange): SelectionState {
+  if (!file.hunks.length) return file.staged ? "all" : "none";
   const staged = file.hunks.filter((h) => h.staged).length;
   return staged === 0
     ? "none"

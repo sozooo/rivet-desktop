@@ -23,6 +23,7 @@ const randomSha = () =>
 const unstage = (files: FileChange[]) =>
   files.map((f) => ({
     ...f,
+    staged: false,
     hunks: f.hunks.map((h) => ({ ...h, staged: false })),
   }));
 
@@ -113,14 +114,17 @@ export class MockBackend implements GitBackend {
 
   async setStaged(path: string, staged: boolean, hunk?: number) {
     const file = this.file_(path);
+    if (!file.hunks.length) file.staged = staged;
     file.hunks = file.hunks.map((h, i) =>
       hunk === undefined || i === hunk ? { ...h, staged } : h,
     );
   }
 
   async setAllStaged(staged: boolean) {
-    for (const file of this.files)
+    for (const file of this.files) {
+      if (!file.hunks.length) file.staged = staged;
       file.hunks = file.hunks.map((h) => ({ ...h, staged }));
+    }
   }
 
   async discard(path: string) {
@@ -134,9 +138,11 @@ export class MockBackend implements GitBackend {
   ) {
     if (!message.summary.trim()) throw new Error("Add a commit summary.");
     if (scope === "all") await this.setAllStaged(true);
+    // Binary files have no hunks; their `staged` flag stands for the whole file.
+    const isStagedBinary = (f: FileChange) => !f.hunks.length && !!f.staged;
     const staged = this.files
       .map((f) => ({ ...f, hunks: f.hunks.filter((h) => h.staged) }))
-      .filter((f) => f.hunks.length);
+      .filter((f) => f.hunks.length || isStagedBinary(f));
     if (!staged.length) throw new Error("There is nothing to commit.");
     const commit: Commit = {
       sha: randomSha(),
@@ -149,8 +155,9 @@ export class MockBackend implements GitBackend {
     this.contents.set(commit.sha, staged);
     this.commits = [commit, ...this.commits];
     this.files = this.files
+      .filter((f) => !isStagedBinary(f))
       .map((f) => ({ ...f, hunks: f.hunks.filter((h) => !h.staged) }))
-      .filter((f) => f.hunks.length);
+      .filter((f) => f.hunks.length || f.binary);
     this.ahead++;
     return clone(commit);
   }

@@ -70,6 +70,26 @@ describe("MockBackend", () => {
     expect(after.commits).toHaveLength(before.commits.length + 3);
   });
 
+  it("commits a selected binary file as a whole", async () => {
+    const git = new MockBackend("sample");
+    // A binary change has no hunks; its own flag carries the selection.
+    (git as unknown as { files: unknown[] }).files.push({
+      path: "Assets/Art/Hero.png",
+      status: "added",
+      hunks: [],
+      binary: true,
+    });
+    await git.setStaged("Assets/Art/Hero.png", true);
+    const commit = await git.commit(message, "staged");
+    const after = await git.snapshot();
+    expect(
+      after.files.find((f) => f.path === "Assets/Art/Hero.png"),
+    ).toBeUndefined();
+    expect((await git.commitFiles(commit.sha)).map((f) => f.path)).toEqual([
+      "Assets/Art/Hero.png",
+    ]);
+  });
+
   it("discards a file entirely, including its selected parts", async () => {
     const git = new MockBackend("sample");
     const { files } = await git.snapshot();
