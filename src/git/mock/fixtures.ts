@@ -1,4 +1,5 @@
-import type { Commit, DiffLine, FileChange, Person } from "../types";
+import type { Commit, DiffLine, FileChange, Hunk, Person } from "../types";
+import { barkMaterial, crateModel, paintBark, treePrefab } from "./assets";
 
 const lines = (
   before: string[],
@@ -21,6 +22,82 @@ export const people = {
   jamie: { name: "Jamie Chen", email: "jamie@kinetic.dev" },
   sam: { name: "Sam Rivera", email: "sam@kinetic.dev" },
 } satisfies Record<string, Person>;
+
+/** One hunk around the lines that differ, with three lines of context. */
+function textHunk(before: string, after: string): Hunk {
+  const a = before.split("\n"),
+    b = after.split("\n");
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let endA = a.length,
+    endB = b.length;
+  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) {
+    endA--;
+    endB--;
+  }
+  const from = Math.max(0, start - 3);
+  const linesOut: DiffLine[] = [
+    ...a.slice(from, start).map((text) => ({ kind: "context" as const, text })),
+    ...a.slice(start, endA).map((text) => ({ kind: "del" as const, text })),
+    ...b.slice(start, endB).map((text) => ({ kind: "add" as const, text })),
+    ...a
+      .slice(endA, Math.min(a.length, endA + 3))
+      .map((text) => ({ kind: "context" as const, text })),
+  ];
+  return {
+    header: `@@ -${from + 1},0 +${from + 1},0 @@`,
+    lines: linesOut,
+    staged: false,
+  };
+}
+
+/** Art and scene changes, the kind an artist makes. */
+function artChanges(): FileChange[] {
+  return [
+    {
+      path: "Assets/Textures/Bark.png",
+      status: "modified",
+      hunks: [],
+      binary: true,
+    },
+    {
+      path: "Assets/Models/Crate.fbx",
+      status: "modified",
+      hunks: [],
+      binary: true,
+    },
+    {
+      path: "Assets/Materials/Bark.mat",
+      status: "modified",
+      hunks: [textHunk(barkMaterial.before, barkMaterial.after)],
+    },
+    {
+      path: "Assets/Prefabs/Tree.prefab",
+      status: "modified",
+      hunks: [textHunk(treePrefab.before, treePrefab.after)],
+    },
+  ];
+}
+
+const encode = (text: string) => new TextEncoder().encode(text);
+
+/** Contents of the sample art files: the version before a change, or after it. */
+export function sampleFile(path: string, before: boolean) {
+  switch (path) {
+    case "Assets/Textures/Bark.png":
+      return paintBark(!before);
+    case "Assets/Textures/Bark_Old.png":
+      return paintBark(false);
+    case "Assets/Textures/Bark_Normal.png":
+      return paintBark(true);
+    case "Assets/Models/Crate.fbx":
+      return encode(before ? crateModel.before : crateModel.after);
+    case "Assets/Materials/Bark.mat":
+      return encode(before ? barkMaterial.before : barkMaterial.after);
+    case "Assets/Prefabs/Tree.prefab":
+      return encode(before ? treePrefab.before : treePrefab.after);
+  }
+}
 
 export function workingChanges(): FileChange[] {
   return [
@@ -311,6 +388,7 @@ export function workingChanges(): FileChange[] {
         },
       ],
     },
+    ...artChanges(),
   ];
 }
 
@@ -425,6 +503,7 @@ export function commitContents(): Map<string, FileChange[]> {
   return new Map([
     ["a7c92e1", gamepad],
     ["d84e2a9", gamepad],
+    ["f1b03c7", artChanges()],
   ]);
 }
 

@@ -179,6 +179,7 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
             <DiffView
               file={current}
               context={t("changes.diffContext")}
+              revisions={{ before: "HEAD", after: "worktree" }}
               onToggleHunk={
                 // Picking parts of a file is a full-mode tool.
                 mode === "full"

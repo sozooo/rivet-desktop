@@ -4,6 +4,9 @@ import {
   FileImage,
   FileJson2,
   FileText,
+  Mountain,
+  Package,
+  Palette,
   Plus,
   Pencil,
   Minus,
@@ -20,15 +23,21 @@ const documents = new Set(["md", "txt", "yml", "yaml"]);
 export function FileIcon({ path }: { path: string }) {
   const ext = extension(path);
   const Icon =
-    ext === "json"
-      ? FileJson2
-      : documents.has(ext)
-        ? FileText
-        : images.has(ext)
-          ? FileImage
-          : models.has(ext)
-            ? Box
-            : FileCode2;
+    ext === "mat"
+      ? Palette
+      : ext === "prefab"
+        ? Package
+        : ext === "unity"
+          ? Mountain
+          : ext === "json"
+            ? FileJson2
+            : documents.has(ext)
+              ? FileText
+              : images.has(ext)
+                ? FileImage
+                : models.has(ext)
+                  ? Box
+                  : FileCode2;
   return (
     <span className={`file-icon file-icon-${ext || "none"}`}>
       <Icon />

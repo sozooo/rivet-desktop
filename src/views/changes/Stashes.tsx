@@ -136,7 +136,14 @@ export function StashDetail({
           selected={current?.path}
           onSelect={setSelected}
         >
-          <DiffView file={current} context={t("stash.context")} />
+          <DiffView
+            file={current}
+            context={t("stash.context")}
+            revisions={{
+              before: `stash@{${stash.index}}^1`,
+              after: `stash@{${stash.index}}`,
+            }}
+          />
         </CommitFiles>
       )}
     </>

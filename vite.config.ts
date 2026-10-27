@@ -11,5 +11,6 @@ export default defineConfig({
     watch: { ignored: ["**/src-tauri/**"] },
   },
   // The desktop app runs in WebView2 (Chromium), so modern output is fine.
-  build: { target: "es2022" },
+  // The 3D viewer is a lazy chunk of its own (three.js), so its size is expected.
+  build: { target: "es2022", chunkSizeWarningLimit: 800 },
 });

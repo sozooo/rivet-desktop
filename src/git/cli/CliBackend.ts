@@ -270,6 +270,20 @@ export class CliBackend implements GitBackend {
     }
   }
 
+  async resolveGuid(guid: string) {
+    if (!/^[0-9a-f]{32}$/i.test(guid)) return null;
+    const out = await this.tryRun([
+      "grep",
+      "-l",
+      "-F",
+      `guid: ${guid}`,
+      "--",
+      "*.meta",
+    ]);
+    const meta = out.split("\n").find(Boolean);
+    return meta ? meta.replace(/\.meta$/, "") : null;
+  }
+
   async setStaged(path: string, staged: boolean, hunk?: number) {
     const file = await this.trackedFile(path);
     const target = hunk === undefined ? undefined : file.hunks[hunk];

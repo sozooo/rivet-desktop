@@ -6,6 +6,7 @@ import type {
   Person,
   RepoSnapshot,
 } from "../types";
+import * as assets from "./assets";
 import * as fixtures from "./fixtures";
 
 type StoredStash = {
@@ -108,8 +109,15 @@ export class MockBackend implements GitBackend {
     return { base, ahead, behind };
   }
 
-  async readFile(): Promise<Uint8Array | null> {
-    return null;
+  async readFile(path: string, revision: string): Promise<Uint8Array | null> {
+    // Commits are "x" vs "x^", stashes "stash@{n}" vs "stash@{n}^1", working changes HEAD vs worktree.
+    const before = revision === "HEAD" || /\^\d*$/.test(revision);
+    const sample = fixtures.sampleFile(path, before);
+    return sample instanceof Promise ? sample : (sample ?? null);
+  }
+
+  async resolveGuid(guid: string) {
+    return assets.guidPaths[guid] ?? null;
   }
 
   async setStaged(path: string, staged: boolean, hunk?: number) {

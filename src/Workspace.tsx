@@ -19,6 +19,7 @@ import { RepositorySetup } from "./setup/RepositorySetup";
 import type { Preferences } from "./App";
 import { useI18n } from "./i18n/i18n";
 import { platform } from "./platform";
+import { BackendContext } from "./preview/data";
 import { useStoredState } from "./ui/hooks";
 import { SidebarContext } from "./ui/Panes";
 import { useNotify } from "./ui/Toast";
@@ -186,7 +187,7 @@ export function Workspace({
   const view = uiMode === "simple" && mode === "Branches" ? "Changes" : mode;
 
   return (
-    <>
+    <BackendContext.Provider value={backend}>
       <TopBar
         snapshot={snapshot}
         repository={repository}
@@ -288,6 +289,6 @@ export function Workspace({
       {dialog?.kind === "pull-requests" && (
         <PullRequests onClose={() => setDialog(null)} />
       )}
-    </>
+    </BackendContext.Provider>
   );
 }

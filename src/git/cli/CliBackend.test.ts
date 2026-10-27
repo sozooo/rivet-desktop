@@ -115,6 +115,20 @@ describe("CliBackend on a real repository", () => {
     expect(await backend.readFile(file.path, "index")).toEqual(after);
   });
 
+  it("finds the asset behind a Unity GUID", async () => {
+    const { dir, backend } = await repoWithCommit();
+    const guid = "8c0f6e2d4b1a49c7a5e3d1f0b9c8a7e6";
+    write(
+      dir,
+      "Assets/Textures/Bark.png.meta",
+      `fileFormatVersion: 2\nguid: ${guid}\n`,
+    );
+    git(dir, "add", "-A");
+    git(dir, "commit", "-q", "-m", "Texture");
+    expect(await backend.resolveGuid(guid)).toBe("Assets/Textures/Bark.png");
+    expect(await backend.resolveGuid("0".repeat(32))).toBeNull();
+  });
+
   it("detects renames and discards every kind of change", async () => {
     const { dir, backend } = await repoWithCommit();
     git(dir, "mv", "README.md", "About.md");

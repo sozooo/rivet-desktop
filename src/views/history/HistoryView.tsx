@@ -206,7 +206,11 @@ export function HistoryView({ repo, phase }: { repo: RepoApi; phase: string }) {
                 selected={current?.path}
                 onSelect={setPath}
               >
-                <DiffView file={current} context={t("history.context")} />
+                <DiffView
+                  file={current}
+                  context={t("history.context")}
+                  revisions={{ before: `${commit.sha}^`, after: commit.sha }}
+                />
               </CommitFiles>
             )}
           </>

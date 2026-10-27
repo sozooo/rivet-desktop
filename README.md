@@ -37,6 +37,9 @@ src/
   setup/          Clone / Add existing / Create screen
   chrome/         Top bar, navigation rail, status bar
   ui/             Shared pieces: checkbox, icons, toast, hooks, panes
+  preview/        Image, model, material and scene previews in the diff area
+  unity/          Unity YAML parser, scene/prefab and material diffs
+  i18n/           Russian and English dictionaries, plurals, simple-mode wording
   platform.ts     OS services: folder picker, repository discovery, clone and init
 src-tauri/        The desktop shell (Rust): runs git, reads files, finds repositories
 ```
@@ -55,4 +58,6 @@ Git operations shown in dialogs (switch, pull, push, discard, merge…) are desc
 - **Branches**: switch, create, and see how far a branch is from main.
 - **Fetch / Pull / Push** with an explanation of what happens; pulling onto unpublished commits creates a merge commit, never a rebase.
 - **Repositories**: clone, add existing (Browse, or one click on a repository found in Unity Hub or SourceGit), create, and remove from the list. Adding a subfolder of a repository adds the whole repository.
+- **Previews instead of raw text** for what artists change: images side by side, as a swipe or an overlay (PNG, JPG, TGA, PSD); FBX/OBJ/glTF models in a 3D view with synced cameras, mesh statistics and playable animation clips; Unity materials as a list of property changes with color swatches and texture thumbnails (found through their GUIDs); scenes and prefabs as a readable list of object changes (added, removed, moved, rotated, component and prefab override changes). Git LFS pointers are recognised.
+- **Simple and full modes**, Russian and English. Simple mode (the default) speaks plainly and hides Git machinery: one Sync button, "Save version", no branches. Unity `.meta` files travel with their assets in both modes.
 - Light, dark or system theme; sidebar width, diff layout and other preferences persist.

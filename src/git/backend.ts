@@ -18,6 +18,8 @@ export interface GitBackend {
   compareBranch(branch: string, base: string): Promise<Divergence>;
   /** Raw bytes of a file at a revision, or null when it does not exist there. */
   readFile(path: string, revision: Revision): Promise<Uint8Array | null>;
+  /** The asset a Unity GUID belongs to (found through its .meta file), if any. */
+  resolveGuid?(guid: string): Promise<string | null>;
 
   setStaged(path: string, staged: boolean, hunk?: number): Promise<void>;
   setAllStaged(staged: boolean): Promise<void>;

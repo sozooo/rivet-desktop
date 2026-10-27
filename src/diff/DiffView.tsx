@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlignJustify,
   ChevronRight,
@@ -6,10 +6,15 @@ import {
   Copy,
   MoreHorizontal,
   RotateCcw,
+  ScanEye,
+  TextQuote,
 } from "lucide-react";
+import { fileKind } from "../git/fileKinds";
 import { dirName, fileName, lineStats } from "../git/paths";
 import type { FileChange } from "../git/types";
 import { useI18n } from "../i18n/i18n";
+import type { Revisions } from "../preview/data";
+import { FilePreview } from "../preview/FilePreview";
 import { FileIcon, StatusIcon } from "../ui/FileIcon";
 import { useDismiss, useStoredState } from "../ui/hooks";
 import { useNotify } from "../ui/Toast";
@@ -21,10 +26,13 @@ export function DiffView({
   onToggleHunk,
   onDiscard,
   empty,
+  revisions,
 }: {
   file?: FileChange;
   /** What the diff compares, e.g. "Working tree → HEAD". */
   context: string;
+  /** The versions to compare for previews of images, models and Unity files. */
+  revisions?: Revisions;
   onToggleHunk?: (hunk: number) => void;
   onDiscard?: () => void;
   empty?: ReactNode;
@@ -41,10 +49,18 @@ export function DiffView({
   const { t, mode } = useI18n();
   // Simple mode keeps one plain view: no layout or whitespace switches.
   const advanced = mode === "full";
+  const kind = file ? fileKind(file) : "code";
+  // Unity's generic data files read best as text for developers, as a note otherwise.
+  const textFirst = kind === "unity-yaml" && advanced;
+  const [asText, setAsText] = useState(textFirst);
+  useEffect(() => setAsText(textFirst), [file?.path, textFirst]);
 
   if (!file) return <>{empty}</>;
   const { added, removed } = lineStats(file.hunks);
   const folder = dirName(file.path);
+  const preview = kind !== "code" && !!revisions && !asText;
+  const canToggle =
+    kind !== "code" && !!revisions && file.hunks.length > 0 && advanced;
   return (
     <>
       <div className="diff-title">
@@ -52,13 +68,24 @@ export function DiffView({
           <FileIcon path={file.path} />
           <strong>{fileName(file.path)}</strong>
           <StatusIcon status={file.status} />
-          <span className="diff-stats">
-            <b>+{added}</b>
-            <em>−{removed}</em>
-          </span>
+          {!preview && !file.binary && (
+            <span className="diff-stats">
+              <b>+{added}</b>
+              <em>−{removed}</em>
+            </span>
+          )}
         </div>
         <div className="row" ref={menuRef}>
-          {advanced && (
+          {canToggle && (
+            <button
+              className="text-button preview-toggle"
+              onClick={() => setAsText(!asText)}
+            >
+              {asText ? <ScanEye size={14} /> : <TextQuote size={14} />}
+              {t(asText ? "preview.showPreview" : "preview.showText")}
+            </button>
+          )}
+          {advanced && !preview && (
             <div className="segmented">
               <button
                 className={!split ? "active" : ""}
@@ -124,7 +151,7 @@ export function DiffView({
           {folder || t("common.repositoryRoot")} <ChevronRight size={12} />{" "}
           {fileName(file.path)}
         </span>
-        {advanced && (
+        {advanced && !preview && (
           <div className="row">
             <button
               className={whitespace ? "text-button accent" : "text-button"}
@@ -139,21 +166,25 @@ export function DiffView({
         )}
       </div>
       <div className="diff-scroll">
-        {split && advanced && (
+        {preview && (
+          <FilePreview file={file} kind={kind} revisions={revisions!} />
+        )}
+        {!preview && split && advanced && (
           <div className="split-label">
             <span>{t("diff.original")}</span>
             <span>{t("diff.modified")}</span>
           </div>
         )}
-        {file.hunks.map((hunk, i) => (
-          <DiffHunk
-            key={i}
-            hunk={hunk}
-            split={split && advanced}
-            whitespace={whitespace && advanced}
-            onToggle={onToggleHunk && (() => onToggleHunk(i))}
-          />
-        ))}
+        {!preview &&
+          file.hunks.map((hunk, i) => (
+            <DiffHunk
+              key={i}
+              hunk={hunk}
+              split={split && advanced}
+              whitespace={whitespace && advanced}
+              onToggle={onToggleHunk && (() => onToggleHunk(i))}
+            />
+          ))}
       </div>
     </>
   );
