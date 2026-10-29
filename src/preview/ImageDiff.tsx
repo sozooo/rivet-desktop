@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { extension } from "../git/paths";
 import { useI18n } from "../i18n/i18n";
-import { formatSize, type Pair } from "./data";
+import { formatSize, useSideLabel, type Pair } from "./data";
 import { decodeImage, type DecodedImage } from "./decode";
 
 type Side = DecodedImage | "failed" | null | undefined;
@@ -39,6 +39,7 @@ const enlarged = ({ width, height }: DecodedImage) => {
 
 export function ImageDiff({ path, pair }: { path: string; pair: Pair }) {
   const { t, language } = useI18n();
+  const label = useSideLabel();
   const before = useDecoded(path, pair.before);
   const after = useDecoded(path, pair.after);
   const [layout, setLayout] = useState<Layout>("side");
@@ -106,26 +107,26 @@ export function ImageDiff({ path, pair }: { path: string; pair: Pair }) {
         panel(
           pair.after ? after : before,
           pair.after ?? pair.before,
-          t(pair.after ? "preview.added" : "preview.deleted"),
+          label(pair.after ? "after" : "before", false),
         )
       ) : layout === "side" || !ready(before) || !ready(after) ? (
         <div className="image-pair">
-          {panel(before, pair.before, t("preview.before"))}
-          {panel(after, pair.after, t("preview.after"))}
+          {panel(before, pair.before, label("before"))}
+          {panel(after, pair.after, label("after"))}
         </div>
       ) : (
         <figure className="image-panel">
           <figcaption>
             <strong>
-              {t("preview.before")} · {t("preview.after")}
+              {label("before")} · {label("after")}
             </strong>
             <span>{caption(after, pair.after)}</span>
           </figcaption>
           <div className="checker stacked">
-            <img src={before.url} alt={t("preview.before")} />
+            <img src={before.url} alt={label("before")} />
             <img
               src={after.url}
-              alt={t("preview.after")}
+              alt={label("after")}
               style={
                 layout === "onion"
                   ? { opacity: mix / 100 }

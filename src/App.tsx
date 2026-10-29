@@ -44,7 +44,10 @@ function useSystemDark() {
 function createBackend(repository: Repository): GitBackend {
   if (platform.desktop && repository.kind !== "demo")
     return new CliBackend(tauriRunner(repository.path));
-  return new MockBackend(repository.kind === "create" ? "empty" : "sample");
+  return new MockBackend(
+    repository.kind === "create" ? "empty" : "sample",
+    repository.id,
+  );
 }
 
 export function App() {

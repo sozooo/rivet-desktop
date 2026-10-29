@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Monitor, Moon, Sun, X } from "lucide-react";
 import type { Preferences } from "../App";
 import { useI18n, type Key } from "../i18n/i18n";
+import type { RepoApi } from "../views/repoApi";
+import { ProjectSettings } from "./ProjectSettings";
 
 function Dialog({
   eyebrow,
@@ -73,9 +75,12 @@ function Choice<T extends string>({
 
 export function SettingsDialog({
   preferences,
+  repo,
   onClose,
 }: {
   preferences: Preferences;
+  /** The open repository, for its own settings. */
+  repo?: RepoApi;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -117,6 +122,7 @@ export function SettingsDialog({
           { value: "system", label: t("settings.system"), Icon: Monitor },
         ]}
       />
+      {repo && <ProjectSettings repo={repo} />}
       <p className="muted">{t("settings.version")}</p>
     </Dialog>
   );

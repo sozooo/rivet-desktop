@@ -25,5 +25,9 @@ export function tauriRunner(root: string): GitRunner {
     },
     modifiedTime: (path) =>
       invoke<number | null>("modified_time", { path: join(root, path) }),
+    fileSizes: (paths) =>
+      invoke<(number | null)[]>("file_sizes", { root, paths }),
+    writeWorktree: (path, text) =>
+      invoke("write_worktree_file", { root, path, text }),
   };
 }

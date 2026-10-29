@@ -1,6 +1,13 @@
 import type { GitBackend } from "../git/backend";
 import { shortSha } from "../git/paths";
-import type { Commit, FileChange, StashEntry, SyncState } from "../git/types";
+import type {
+  Commit,
+  FileChange,
+  OperationKind,
+  StashEntry,
+  SyncState,
+} from "../git/types";
+import { fileName } from "../git/paths";
 import type { Key, Params } from "../i18n/i18n";
 
 export type OpContext = {
@@ -16,6 +23,8 @@ export type OpContext = {
   file?: FileChange;
   /** More files that go with `file`, such as its Unity .meta file. */
   extraPaths?: string[];
+  /** A merge, rebase or cherry-pick under way. */
+  operation?: OperationKind;
 };
 
 type Translate = (key: Key, params?: Params) => string;
@@ -28,6 +37,8 @@ export type Operation = {
   params: (c: OpContext, t: Translate, input: string) => Params;
   command: (c: OpContext, input: string) => string;
   danger?: boolean;
+  /** Something to read before going ahead. */
+  warning?: (c: OpContext, t: Translate) => string | null;
   /** A text field shown in the dialog, e.g. the new branch name. */
   input?: {
     label: Key;
@@ -78,7 +89,20 @@ const definitions = {
       upstream: c.sync.upstream ?? "origin",
     }),
     command: (c) => `git push origin ${c.branch}`,
+    warning: (c, t) =>
+      c.sync.tooLarge?.length
+        ? t("op.push.tooLarge", {
+            count: c.sync.tooLarge.length,
+            files: c.sync.tooLarge.map((f) => fileName(f.path)).join(", "),
+          })
+        : null,
     run: (b) => b.push(),
+  },
+  "abort-operation": {
+    params: () => ({}),
+    command: (c) => `git ${c.operation ?? "merge"} --abort`,
+    danger: true,
+    run: (b) => b.abortOperation(),
   },
   "discard-file": {
     params: (c) => ({ path: c.file?.path ?? "" }),

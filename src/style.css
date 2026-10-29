@@ -77,6 +77,8 @@ textarea::placeholder {
   --hunk: #f4f6f8;
   --code: #444d55;
   --purple: #8465a2;
+  --warn: #a8782a;
+  --warn-soft: #f8f0df;
   background: var(--bg);
   color: var(--text);
   height: 100dvh;
@@ -105,6 +107,8 @@ textarea::placeholder {
   --hunk: #272e31;
   --code: #d0d8d2;
   --purple: #c09edf;
+  --warn: #ddb46a;
+  --warn-soft: #3a3324;
 }
 .topbar {
   height: 68px;
@@ -1071,6 +1075,8 @@ textarea::placeholder {
   border-radius: 7px;
   box-shadow: 0 4px 20px #00000018;
   font-size: 12px;
+  line-height: 1.5;
+  max-width: min(620px, calc(100vw - 80px));
   z-index: 40;
   animation: appear 0.18s ease;
 }
@@ -1082,6 +1088,12 @@ textarea::placeholder {
 }
 .toast.error {
   border-color: #c0665e66;
+}
+.toast.warning > svg {
+  color: var(--warn);
+}
+.toast.warning {
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
 .modal-overlay {
   position: fixed;
@@ -1177,6 +1189,26 @@ textarea::placeholder {
 }
 .setting .theme-options {
   margin: 0;
+}
+.project-settings {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.project-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.project-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-weight: 500;
 }
 .modal p.setting-hint {
   margin: 8px 0 0;
@@ -3265,4 +3297,196 @@ textarea::placeholder {
   color: var(--muted);
   font-size: 10px;
   margin-left: auto;
+}
+
+/* Merges that stopped on conflicts, and Git LFS hints. */
+.toast > svg {
+  flex-shrink: 0;
+}
+.merge-banner {
+  flex-shrink: 0;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--warn-soft);
+}
+.merge-banner.ready {
+  background: var(--accent-soft);
+}
+.merge-banner-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.merge-banner-main > svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--warn);
+}
+.merge-banner.ready .merge-banner-main > svg {
+  color: var(--accent);
+}
+.merge-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+.merge-banner-text strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.merge-banner-text p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 640px;
+}
+.merge-banner-text code {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.merge-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.merge-left {
+  font-size: 11px;
+  color: var(--muted);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.smart-merge-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0 30px;
+  padding-top: 11px;
+  border-top: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
+}
+.smart-merge-tip svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--purple);
+}
+.smart-merge-tip p {
+  flex: 1;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  max-width: 600px;
+}
+.conflict-card {
+  margin: 18px 24px 0;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warn-soft) 55%, var(--surface));
+  max-width: 760px;
+}
+.conflict-card.resolved {
+  border-color: var(--border);
+  background: var(--sidebar);
+}
+.conflict-card .card-title {
+  margin-bottom: 8px;
+}
+.conflict-card .card-title svg {
+  color: var(--warn);
+}
+.conflict-card.resolved .card-title svg {
+  color: var(--accent);
+}
+.conflict-card .card-hint {
+  margin: 0 0 12px;
+}
+.conflict-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.conflict-choice.chosen {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.conflict-manual {
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.conflict-manual .text-button {
+  display: inline-flex;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+.conflict-mark {
+  display: flex;
+  width: 16px;
+  flex-shrink: 0;
+  color: var(--warn);
+}
+.conflict-mark svg {
+  width: 15px;
+  height: 15px;
+}
+.conflict-mark.resolved {
+  color: var(--accent);
+}
+.file-label small.open {
+  color: var(--warn);
+}
+.hint-card {
+  margin: 10px 12px 6px;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.hint-card.warn {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
+  background: var(--warn-soft);
+}
+.hint-card strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.hint-card strong svg {
+  width: 15px;
+  height: 15px;
+  color: var(--accent);
+}
+.hint-card.warn strong svg {
+  color: var(--warn);
+}
+.hint-card p {
+  margin: 7px 0 11px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.hint-card .row {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.composer-warning {
+  align-items: center;
+  margin: 0 0 11px;
+}
+.composer-warning span {
+  flex: 1;
+}
+.composer-warning .button {
+  padding: 5px 9px;
+}
+.lfs-download {
+  margin-top: 14px;
 }

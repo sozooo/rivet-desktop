@@ -9,6 +9,10 @@ export interface GitRunner {
   readWorktree(path: string): Promise<Uint8Array | null>;
   /** Modification time of a path relative to the repository root, in ms. */
   modifiedTime(path: string): Promise<number | null>;
+  /** Sizes of working-tree files in bytes; null for ones that don't exist. */
+  fileSizes(paths: string[]): Promise<(number | null)[]>;
+  /** Writes a text file inside the working tree, e.g. .gitattributes. */
+  writeWorktree(path: string, text: string): Promise<void>;
 }
 
 export class GitError extends Error {

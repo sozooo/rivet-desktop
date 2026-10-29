@@ -472,7 +472,7 @@ export const en = {
   "preview.binary": "Binary file",
   "preview.lfs": "Stored in Git LFS — not downloaded yet",
   "preview.lfsHint":
-    "Git keeps only a pointer to this file. Sync with Git LFS installed to get the real file.",
+    "Git keeps only a pointer to this file; the file itself is on the server. Download it to see it.",
   "preview.imageFailed": "This image can't be shown.",
   "preview.psdFlat":
     "Photoshop file: shown flattened, as saved with “Maximize compatibility”.",
@@ -574,4 +574,174 @@ export const en = {
   "prs.explanation":
     "A pull request proposes merging one branch into another. Use Pull in the toolbar to download commits into your current branch.",
   "prs.footer": "Demo pull requests · Hosting integration is not connected.",
+
+  "side.mine": "My version",
+  "side.theirs.merge": "Server version",
+  "side.theirs.other": "Incoming version",
+  "side.mine.stash": "Current version",
+  "side.theirs.stash": "Put-aside version",
+
+  "merge.title.merge": "The merge stopped on conflicts",
+  "merge.title.merge@simple": "You and your teammates changed the same files",
+  "merge.title.rebase": "The rebase stopped on conflicts",
+  "merge.title.cherry-pick": "The cherry-pick stopped on conflicts",
+  "merge.title.revert": "The revert stopped on conflicts",
+  "merge.title.stash": "Some files have clashing changes",
+  "merge.title.done": "All conflicts are resolved",
+  "merge.title.done@simple": "Everything is decided",
+  "merge.explain":
+    "Keep one side of each file, or fix it by hand and mark it resolved. Then finish.",
+  "merge.explain@simple":
+    "Your files and the server's couldn't be combined automatically. For each file, choose which version to keep. Nothing is sent until you finish.",
+  "merge.explainStash":
+    "The changes you put aside clash with newer ones. Choose a version for each file.",
+  "merge.explainDone": "Finish to commit the result.",
+  "merge.explainDone@simple":
+    "Press Finish to save the result and send it to the server.",
+  "merge.left": { one: "{count} file left", other: "{count} files left" },
+  "merge.abort.merge": "Cancel merge",
+  "merge.abort.rebase": "Abort rebase",
+  "merge.abort.cherry-pick": "Abort cherry-pick",
+  "merge.abort.revert": "Abort revert",
+  "merge.finish.merge": "Finish",
+  "merge.finish.rebase": "Continue",
+  "merge.finish.cherry-pick": "Continue",
+  "merge.finish.revert": "Continue",
+  "merge.finishFirst": "Choose a version for every file first",
+  "merge.done": "Merge committed.",
+  "merge.done@simple": "Done, the files are combined.",
+  "merge.continued": "Continued.",
+  "merge.conflicts": "CONFLICTS",
+  "merge.conflicts@simple": "CHOOSE A VERSION",
+  "merge.merged": "MERGED AUTOMATICALLY",
+  "merge.merged@simple": "FROM THE SERVER, NO CONFLICTS",
+  "merge.unsaved": "NOT PART OF THE MERGE",
+  "merge.unsaved@simple": "YOUR UNSAVED CHANGES",
+  "merge.started": {
+    one: "The merge stopped: {count} file changed on both sides.",
+    other: "The merge stopped: {count} files changed on both sides.",
+  },
+  "merge.started@simple": {
+    one: "{count} file was changed both by you and on the server. Choose which version to keep.",
+    other:
+      "{count} files were changed both by you and on the server. Choose which version to keep.",
+  },
+
+  "conflict.open": "Conflict",
+  "conflict.open@simple": "Choose a version",
+  "conflict.kept": "Keeping: {side}",
+  "conflict.keptDeleted": "Will be deleted",
+  "conflict.keptManual": "Fixed by hand",
+  "conflict.title.both": "Both sides changed this file",
+  "conflict.title.both@simple": "You and a teammate both changed this file",
+  "conflict.title.deletedByMe": "Deleted on my side, changed on theirs",
+  "conflict.title.deletedByMe@simple":
+    "You deleted this file, but it was changed on the server",
+  "conflict.title.deletedByThem": "Changed on my side, deleted on theirs",
+  "conflict.title.deletedByThem@simple":
+    "This file was deleted on the server, but you changed it",
+  "conflict.title.bothDeleted": "Both sides deleted or moved this file",
+  "conflict.hint":
+    "Keep one side, or fix the file by hand and mark it resolved. The side you don't keep stays in the history.",
+  "conflict.hint@simple":
+    "Choose which version to keep. The other one isn't lost: it stays in the history.",
+  "conflict.keepMine": "Keep my version",
+  "conflict.keepMine.stash": "Keep the current version",
+  "conflict.keepDeleted": "Keep it deleted",
+  "conflict.takeTheirs.merge": "Take the server version",
+  "conflict.takeTheirs.other": "Take the incoming version",
+  "conflict.takeTheirs.stash": "Take the put-aside version",
+  "conflict.deleteTheirs.merge": "Delete it, as on the server",
+  "conflict.deleteTheirs.other": "Delete it",
+  "conflict.deleteTheirs.stash": "Delete it",
+  "conflict.markResolved": "Mark resolved",
+  "conflict.manualHint":
+    "Fixing it yourself? Edit the file, remove the <<<<<<< and >>>>>>> markers, save, then mark it resolved.",
+  "conflict.changeMind": "Changed your mind? Pick the other version.",
+  "conflict.markers":
+    "This file still has conflict markers (<<<<<<< and >>>>>>>). Remove them, save the file, and try again.",
+
+  "smartMerge.tip":
+    "Unity can merge scenes and prefabs itself when people changed different objects. Turn it on for this project, and next time such files won't stop the sync.",
+  "smartMerge.enable": "Turn on Unity Smart Merge",
+  "smartMerge.enabled":
+    "Unity Smart Merge is on. Commit .gitattributes so it works for everyone.",
+  "smartMerge.enabled@simple":
+    "Unity Smart Merge is on. Save a version with the .gitattributes file so it works for everyone.",
+  "smartMerge.noUnity":
+    "Smart Merge needs Unity installed through Unity Hub; none was found on this computer.",
+
+  "lfs.hintTitle": "Art files outside Git LFS",
+  "lfs.hintTitle@simple": "Large files need better storage",
+  "lfs.hint": {
+    one: "{count} art file would go into the repository as a regular file. Git LFS keeps such files out of the history, so the repository stays small and quick to clone.",
+    other:
+      "{count} art files would go into the repository as regular files. Git LFS keeps such files out of the history, so the repository stays small and quick to clone.",
+  },
+  "lfs.hint@simple": {
+    one: "{count} picture, model or sound would go into the project as an ordinary file. Projects like that grow fast and take long to download. Rivet can set up proper storage for large files once, for good.",
+    other:
+      "{count} pictures, models or sounds would go into the project as ordinary files. Projects like that grow fast and take long to download. Rivet can set up proper storage for large files once, for good.",
+  },
+  "lfs.setup": "Store large files properly",
+  "lfs.later": "Not now",
+  "lfs.done":
+    "Large files now go through Git LFS. Commit .gitattributes so it works for everyone.",
+  "lfs.done@simple":
+    "Done. Save a version with the .gitattributes file so it works for everyone.",
+  "lfs.missingTitle": "Git LFS isn't installed",
+  "lfs.missingTitle@simple": "Storage for large files isn't installed",
+  "lfs.missing":
+    'Git LFS keeps art out of the repository\'s history. It comes with Git for Windows: run the Git installer again, keep "Git LFS" ticked (it is by default), then restart Rivet.',
+  "lfs.download": "Download LFS files",
+  "lfs.download@simple": "Download the files",
+  "lfs.downloading": "Downloading…",
+  "lfs.downloaded": "LFS files downloaded.",
+  "lfs.downloaded@simple": "Files downloaded.",
+
+  "composer.tooLarge": {
+    one: "GitHub won't accept {files}: it's over 100 MB. Store large files in Git LFS, or leave it out of this commit.",
+    other:
+      "GitHub won't accept {files}: they're over 100 MB. Store large files in Git LFS, or leave them out of this commit.",
+  },
+  "composer.tooLarge@simple": {
+    one: "{files} is too large (over 100 MB): GitHub won't take it, so syncing would fail. Store large files properly, or leave it out of this version.",
+    other:
+      "{files} are too large (over 100 MB): GitHub won't take them, so syncing would fail. Store large files properly, or leave them out of this version.",
+  },
+  "composer.commitAnyway": "Commit anyway",
+  "composer.tooLargeTitle": "Too large for GitHub",
+
+  "op.abort-operation.title": "Cancel the merge",
+  "op.abort-operation.describe":
+    "Go back to how things were before it started. The versions chosen for conflicted files are forgotten.",
+  "op.abort-operation.describe@simple":
+    "Everything goes back to how it was before you pressed Sync. Your saved versions stay, and the server's changes will come again next time. The versions you chose are forgotten.",
+  "op.abort-operation.confirm": "Abort",
+  "op.abort-operation.confirm@simple": "Cancel merge",
+  "op.abort-operation.done": "Cancelled. Everything is as it was.",
+  "op.push.tooLarge": {
+    one: "{files} is larger than 100 MB. GitHub refuses such files, so the push will most likely fail. Large files have to go into Git LFS before they are committed.",
+    other:
+      "{files} are larger than 100 MB. GitHub refuses such files, so the push will most likely fail. Large files have to go into Git LFS before they are committed.",
+  },
+  "op.push.tooLarge@simple": {
+    one: "{files} is too large (over 100 MB), and GitHub won't accept it. Sending will most likely fail. Ask whoever set up the project for help.",
+    other:
+      "{files} are too large (over 100 MB), and GitHub won't accept them. Sending will most likely fail. Ask whoever set up the project for help.",
+  },
+  "top.syncMerging": "Finish or cancel the merge first",
+  "top.syncMerging@simple": "Choose versions for the conflicting files first",
+  "error.localChanges":
+    "Commit or stash your changes first: the merge would overwrite {files}.",
+  "error.localChanges@simple":
+    "Save a version first, then sync again. Rivet will then combine your changes with the server's ({files}).",
+
+  "settings.project": "This project",
+  "settings.lfs": "Large files (Git LFS)",
+  "settings.on": "On",
+  "settings.smartMerge": "Unity Smart Merge",
+  "settings.smartMergeHint":
+    "Unity merges scenes, prefabs and materials itself when people changed different objects. Uses UnityYAMLMerge from Unity {version}.",
+  "settings.turnOn": "Turn on",
 } satisfies Record<string, Message>;

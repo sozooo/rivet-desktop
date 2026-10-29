@@ -7,10 +7,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AlertCircle, CheckCircle2, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { useI18n } from "../i18n/i18n";
 
-type Tone = "success" | "error";
+type Tone = "success" | "warning" | "error";
 type Notify = (message: string, tone?: Tone) => void;
 
 const ToastContext = createContext<Notify>(() => {});
@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToast({ message, tone });
     timer.current = setTimeout(
       () => setToast(undefined),
-      tone === "error" ? 6000 : 3500,
+      tone === "success" ? 3500 : 7000,
     );
   }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -39,6 +39,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         >
           {toast.tone === "error" ? (
             <AlertCircle size={16} />
+          ) : toast.tone === "warning" ? (
+            <AlertTriangle size={16} />
           ) : (
             <CheckCircle2 size={16} />
           )}

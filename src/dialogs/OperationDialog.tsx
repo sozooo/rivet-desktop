@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, CircleDot, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  CircleDot,
+  X,
+} from "lucide-react";
 import { useI18n } from "../i18n/i18n";
 import {
   opKey,
@@ -28,6 +34,7 @@ export function OperationDialog({
   const [details, setDetails] = useState(!op.run);
   const problem = op.input?.problem(input, context) ?? null;
   const params = op.params(context, t, input);
+  const warning = op.warning?.(context, t);
   return (
     <div className="modal-overlay" onClick={onClose}>
       <section
@@ -49,6 +56,12 @@ export function OperationDialog({
         </div>
         <h2>{t(opKey(id, "title"))}</h2>
         <p>{t(opKey(id, "describe"), params)}</p>
+        {warning && (
+          <p className="card-warning">
+            <AlertTriangle />
+            {warning}
+          </p>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();

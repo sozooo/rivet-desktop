@@ -11,6 +11,8 @@ export type StatusEntry = {
   worktree: string;
   untracked: boolean;
   conflicted: boolean;
+  /** For conflicts: whether "ours" (stage 2) and "theirs" (stage 3) have the file. */
+  stages?: { ours: boolean; theirs: boolean };
 };
 
 export type Status = {
@@ -69,6 +71,12 @@ export function parseStatus(output: string): Status {
         untracked: false,
         conflicted: kind === "u",
       };
+      // "u XY sub m1 m2 m3 mW …": a stage's mode is 000000 when that side has no file.
+      if (kind === "u")
+        entry.stages = {
+          ours: parts[4] !== "000000",
+          theirs: parts[5] !== "000000",
+        };
       // A rename's original path follows as its own NUL-separated record.
       if (kind === "2") entry.oldPath = records[++i];
       status.entries.push(entry);
@@ -154,6 +162,12 @@ export function parseDiff(output: string): FileDiff[] {
 
   for (const raw of lines) {
     const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
+    // Combined diffs of conflicted files ("diff --cc") can't be applied; skip them.
+    if (line.startsWith("diff ") && !line.startsWith("diff --git ")) {
+      file = null;
+      hunk = null;
+      continue;
+    }
     if (line.startsWith("diff --git ")) {
       file = {
         path: samePathFromHeader(line),
@@ -306,4 +320,62 @@ export function parseStashList(
         message: match?.[2] ?? subject,
       };
     });
+}
+
+// ---------------------------------------------------------------------------
+// conflicts
+
+/**
+ * `git ls-files -s -z` and `--resolve-undo -z`: "<mode> <object> <stage>\t<path>".
+ * Returns each path's objects by stage (0 for a resolved file, 1–3 for a conflict).
+ */
+export function parseStages(output: string) {
+  const paths = new Map<string, Map<number, string>>();
+  for (const record of output.split("\0")) {
+    const match = record.match(/^\d+ ([0-9a-f]+) (\d)\t(.*)$/s);
+    if (!match) continue;
+    const [, object, stage, path] = match;
+    if (!paths.has(path)) paths.set(path, new Map());
+    paths.get(path)!.set(Number(stage), object);
+  }
+  return paths;
+}
+
+/** The files git listed under "# Conflicts:" when it wrote MERGE_MSG. */
+export function conflictPaths(mergeMessage: string): string[] {
+  const lines = mergeMessage.split(/\r?\n/);
+  const start = lines.findIndex((l) => /^# Conflicts:$/.test(l));
+  if (start === -1) return [];
+  const paths: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const match = line.match(/^#\t(.+)$/);
+    if (!match) break;
+    paths.push(match[1]);
+  }
+  return paths;
+}
+
+/** `git check-attr -z`: "<path>\0<attribute>\0<value>\0" triples. */
+export function parseCheckAttr(output: string) {
+  const parts = output.split("\0");
+  const values = new Map<string, Record<string, string>>();
+  for (let i = 0; i + 2 < parts.length; i += 3) {
+    const [path, attribute, value] = parts.slice(i, i + 3);
+    values.set(path, { ...values.get(path), [attribute]: value });
+  }
+  return values;
+}
+
+/**
+ * `git cat-file --batch-check="%(objecttype) %(objectsize) %(rest)"` fed
+ * "<object> <path>" lines: blobs larger than `limit`, with their paths.
+ */
+export function largeBlobs(output: string, limit: number) {
+  const found = new Map<string, number>();
+  for (const line of output.split("\n")) {
+    const match = line.match(/^blob (\d+) (.+)$/);
+    if (match && Number(match[1]) > limit)
+      found.set(match[2], Math.max(Number(match[1]), found.get(match[2]) ?? 0));
+  }
+  return [...found].map(([path, size]) => ({ path, size }));
 }

@@ -1,13 +1,17 @@
-import type { KeyboardEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 import {
+  AlertTriangle,
   ChevronDown,
   ChevronUp,
   GitBranch,
   GitCommitHorizontal,
 } from "lucide-react";
+import { tooLarge } from "../../git/lfs";
+import { fileName, selectionOf } from "../../git/paths";
 import { useI18n } from "../../i18n/i18n";
 import { initials, useStoredState } from "../../ui/hooks";
 import type { RepoApi } from "../repoApi";
+import { useLfsSetup } from "./LfsHint";
 
 /**
  * Commit message and button. With nothing selected, the commit takes every
@@ -35,7 +39,15 @@ export function Composer({
     false,
   );
   const count = selectedCount || total;
-  const ready = !!draft.summary.trim() && total > 0;
+  // GitHub refuses files over 100 MB; committing one would make every sync fail.
+  const included = selectedCount
+    ? snapshot.files.filter((f) => selectionOf(f) !== "none")
+    : snapshot.files;
+  const large = included.filter(tooLarge);
+  const [anyway, setAnyway] = useState(false);
+  const blocked = large.length > 0 && !anyway;
+  const lfs = useLfsSetup(repo);
+  const ready = !!draft.summary.trim() && total > 0 && !blocked;
   // Simple mode asks for one line; details are a developer habit.
   const withDescription = mode === "full";
 
@@ -117,6 +129,27 @@ export function Composer({
           )}
         </div>
       )}
+      {large.length > 0 && (
+        <div className="card-warning composer-warning">
+          <AlertTriangle />
+          <span>
+            {t("composer.tooLarge", {
+              count: large.length,
+              files: large.map((f) => fileName(f.path)).join(", "),
+            })}
+          </span>
+          {snapshot.lfs.installed && (
+            <button className="button" disabled={lfs.busy} onClick={lfs.setup}>
+              {t("lfs.setup")}
+            </button>
+          )}
+          {mode === "full" && !anyway && (
+            <button className="text-button" onClick={() => setAnyway(true)}>
+              {t("composer.commitAnyway")}
+            </button>
+          )}
+        </div>
+      )}
       <div className="composer-bottom">
         {collapsed ? (
           summaryInput("compact-title")
@@ -133,9 +166,11 @@ export function Composer({
           title={t(
             !total
               ? "composer.noChanges"
-              : !draft.summary.trim()
-                ? "composer.needSummary"
-                : "composer.shortcut",
+              : blocked
+                ? "composer.tooLargeTitle"
+                : !draft.summary.trim()
+                  ? "composer.needSummary"
+                  : "composer.shortcut",
           )}
           onClick={submit}
         >

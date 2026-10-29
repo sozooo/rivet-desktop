@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { useI18n } from "../i18n/i18n";
 import type { MaterialLook } from "../unity/material";
+import { useSideLabel } from "./data";
 
 export type SphereLook = MaterialLook & { mapUrl?: string; normalUrl?: string };
 
@@ -77,6 +78,7 @@ export default function MaterialSpheres({
   after: SphereLook | null;
 }) {
   const { t } = useI18n();
+  const label = useSideLabel();
   const [pictures, setPictures] = useState<(string | null)[]>([]);
   const key = JSON.stringify([before, after]);
   useEffect(() => {
@@ -92,9 +94,9 @@ export default function MaterialSpheres({
   const [a, b] = pictures;
   return (
     <figure className="material-spheres" title={t("material.approximate")}>
-      {a && <img src={a} alt={t("preview.before")} />}
+      {a && <img src={a} alt={label("before")} />}
       {a && b && <ArrowRight className="change-arrow" />}
-      {b && <img src={b} alt={t("preview.after")} />}
+      {b && <img src={b} alt={label("after")} />}
       {(a || b) && <figcaption>{t("material.approximate")}</figcaption>}
     </figure>
   );

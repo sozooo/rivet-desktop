@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { unresolved } from "../conflicts";
+import { lfsPatterns, needsLfs, tooLarge } from "../lfs";
 import { MockBackend } from "./MockBackend";
 
 const message = { summary: "Change things", description: "" };
@@ -58,16 +60,61 @@ describe("MockBackend", () => {
     expect(snapshot.stashes).toHaveLength(stashes.length);
   });
 
-  it("merges incoming commits when the branch has unpublished work", async () => {
+  it("stops a pull onto unpublished work on conflicts, then merges", async () => {
     const git = new MockBackend("sample");
     const before = await git.snapshot();
     await git.pull();
-    const after = await git.snapshot();
-    expect(after.sync.behind).toBe(0);
-    const merge = after.commits[0];
+    let snapshot = await git.snapshot();
+    expect(snapshot.operation?.kind).toBe("merge");
+    const open = unresolved(snapshot.files);
+    expect(open.map((f) => f.path)).toContain("Assets/Scenes/Forest.unity");
+    // A file can't be both in conflict and an unsaved change.
+    expect(
+      snapshot.files.filter((f) => f.path === "Assets/Textures/Bark.png"),
+    ).toHaveLength(1);
+    await expect(git.finishOperation()).rejects.toThrow();
+    await expect(git.commit(message, "all")).rejects.toThrow("merge");
+    expect(
+      await git.readFile("Assets/Scripts/Player/PlayerController.cs", ":3"),
+    ).not.toEqual(
+      await git.readFile("Assets/Scripts/Player/PlayerController.cs", ":2"),
+    );
+
+    for (const f of open) await git.resolveConflict(f.path, "theirs");
+    await git.finishOperation();
+    snapshot = await git.snapshot();
+    expect(snapshot.operation).toBeNull();
+    expect(snapshot.sync.behind).toBe(0);
+    const merge = snapshot.commits[0];
     expect(merge.parents).toHaveLength(2);
     expect(merge.parents[0]).toBe(before.commits[0].sha);
-    expect(after.commits).toHaveLength(before.commits.length + 3);
+    expect(snapshot.commits).toHaveLength(before.commits.length + 3);
+    expect(snapshot.files.some((f) => f.conflict)).toBe(false);
+  });
+
+  it("cancels a merge and gets the unsaved changes back", async () => {
+    const git = new MockBackend("sample");
+    const before = await git.snapshot();
+    await git.pull();
+    await git.abortOperation();
+    const after = await git.snapshot();
+    expect(after.operation).toBeNull();
+    expect(after.files).toEqual(before.files);
+    expect(after.sync.behind).toBe(before.sync.behind);
+  });
+
+  it("sets up Git LFS for the art and shows .gitattributes as a change", async () => {
+    const git = new MockBackend("sample", "kinetic-sandbox");
+    let { files } = await git.snapshot();
+    expect(files.filter(tooLarge).map((f) => f.path)).toEqual([
+      "Assets/Video/Intro.mov",
+    ]);
+    expect(files.filter(needsLfs).length).toBeGreaterThan(1);
+    await git.setupLfs(lfsPatterns(files));
+    ({ files } = await git.snapshot());
+    expect(files.filter(needsLfs)).toEqual([]);
+    expect(files.filter(tooLarge)).toEqual([]);
+    expect(files.at(-1)?.path).toBe(".gitattributes");
   });
 
   it("commits a selected binary file as a whole", async () => {

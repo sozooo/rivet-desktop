@@ -1,26 +1,42 @@
 import type { GitBackend } from "../backend";
+import { conflictStatus } from "../conflicts";
 import { lfsPointer, type LfsPointer } from "../fileKinds";
+import {
+  GITHUB_LIMIT,
+  SMART_MERGE_DRIVER,
+  readAttributes,
+  withSmartMerge,
+} from "../lfs";
 import type {
   Commit,
   CommitScope,
+  Conflict,
   FileChange,
   Hunk,
+  Operation,
+  OperationKind,
   RepoSnapshot,
   Revision,
+  Side,
 } from "../types";
 import {
   LOG_FORMAT,
   STASH_FORMAT,
+  conflictPaths,
   fileStatus,
+  largeBlobs,
   looksBinary,
+  parseCheckAttr,
   parseDiff,
   parseLog,
   parseRefs,
+  parseStages,
   parseStashList,
   parseStatus,
   untrackedDiff,
   type FileDiff,
   type RawHunk,
+  type Status,
   type StatusEntry,
 } from "./parse";
 import { GitError, type GitRunner } from "./runner";
@@ -30,6 +46,49 @@ const MAX_UNTRACKED_TEXT = 512 * 1024;
 /** Reading every new file can be slow in big Unity projects. */
 const MAX_UNTRACKED_READS = 200;
 const LOG_LIMIT = 400;
+
+/**
+ * Operations git leaves unfinished, by the file in .git that marks them, and
+ * the commits holding my version and the incoming one. A rebase replays my
+ * commits onto theirs, so there HEAD is theirs.
+ */
+const OPERATIONS: {
+  kind: OperationKind;
+  marker: string;
+  mine: string;
+  theirs: string;
+}[] = [
+  {
+    kind: "rebase",
+    marker: "rebase-merge",
+    mine: "REBASE_HEAD",
+    theirs: "HEAD",
+  },
+  {
+    kind: "rebase",
+    marker: "rebase-apply",
+    mine: "REBASE_HEAD",
+    theirs: "HEAD",
+  },
+  { kind: "merge", marker: "MERGE_HEAD", mine: "HEAD", theirs: "MERGE_HEAD" },
+  {
+    kind: "cherry-pick",
+    marker: "CHERRY_PICK_HEAD",
+    mine: "HEAD",
+    theirs: "CHERRY_PICK_HEAD",
+  },
+  {
+    kind: "revert",
+    marker: "REVERT_HEAD",
+    mine: "HEAD",
+    theirs: "REVERT_HEAD^",
+  },
+];
+
+const CONFLICT_MARKER = /^(<{7}|>{7})( |$)/m;
+
+/** The operation under way, and the files git said conflict when it stopped. */
+type OperationState = { operation: Operation | null; conflicts: string[] };
 
 type Tracked = {
   entry: StatusEntry;
@@ -54,6 +113,16 @@ export class CliBackend implements GitBackend {
   /** Unity GUID lookups; cleared with every snapshot, since files move. */
   private guids = new Map<string, Promise<string | null>>();
   private commonDir?: Promise<string>;
+  private operation: Operation | null = null;
+  /** Paths of the markers in OPERATIONS, then MERGE_MSG, as git reports them. */
+  private gitPaths?: Promise<string[]>;
+  private lfsInstalled?: Promise<boolean>;
+  private unityProject?: Promise<boolean>;
+  /** Oversized files in unpushed commits, kept while HEAD and the upstream stay put. */
+  private tooLarge?: {
+    key: string;
+    files: Promise<{ path: string; size: number }[]>;
+  };
 
   constructor(private git: GitRunner) {}
 
@@ -81,13 +150,36 @@ export class CliBackend implements GitBackend {
   }
 
   /** Like run, but an error just means "nothing". */
-  private async tryRun(args: string[]) {
-    const result = await this.git.text(args);
+  private async tryRun(args: string[], stdin?: string) {
+    const result = await this.git.text(args, stdin);
     return result.code === 0 ? result.stdout : "";
+  }
+
+  /** Runs a command that may stop on conflicts; stopping there is not a failure. */
+  private async runUntilConflict(args: string[]) {
+    const result = await this.git.text(args);
+    if (result.code === 0) return;
+    if (await this.tryRun(["ls-files", "--unmerged", "-z"])) return;
+    throw new GitError(
+      result.stderr.trim() || result.stdout.trim() || `git ${args[0]} failed`,
+      args,
+      result.code,
+    );
   }
 
   async snapshot(): Promise<RepoSnapshot> {
     this.guids.clear();
+    this.gitPaths ??= this.run([
+      "rev-parse",
+      ...[...OPERATIONS.map((o) => o.marker), "MERGE_MSG"].flatMap((p) => [
+        "--git-path",
+        p,
+      ]),
+    ]).then((out) => out.split("\n").map((l) => l.trim()));
+    this.lfsInstalled ??= this.git
+      .text(["lfs", "version"])
+      .then((r) => r.code === 0);
+    this.unityProject ??= this.isUnityProject();
     const [
       statusOut,
       unstagedOut,
@@ -97,6 +189,10 @@ export class CliBackend implements GitBackend {
       name,
       email,
       fetchHead,
+      attributes,
+      lfsInstalled,
+      unityProject,
+      state,
     ] = await Promise.all([
       this.run([
         "status",
@@ -118,49 +214,60 @@ export class CliBackend implements GitBackend {
       this.tryRun(["config", "user.name"]),
       this.tryRun(["config", "user.email"]),
       this.tryRun(["rev-parse", "--git-path", "FETCH_HEAD"]),
+      this.git.readWorktree(".gitattributes").then(text),
+      this.lfsInstalled,
+      this.unityProject,
+      this.readOperation(),
     ]);
     const status = parseStatus(statusOut);
     this.hasHead = status.oid !== null;
     this.branch = status.head;
     this.upstream = status.upstream;
+    this.operation = state.operation;
     this.loaded = true;
+    const lfsTracking = readAttributes(attributes ?? "").lfs;
 
-    const [commits, files, stashes, lastFetched] = await Promise.all([
-      this.hasHead
-        ? this.run([
-            "log",
-            `-n${LOG_LIMIT}`,
-            "--date-order",
-            `--format=${LOG_FORMAT}`,
-            "HEAD",
-          ]).then((out) => parseLog(out, status.head))
-        : Promise.resolve([] as Commit[]),
-      this.buildFiles(
-        status.entries,
-        parseDiff(stagedOut),
-        parseDiff(unstagedOut),
-      ),
-      Promise.all(
-        parseStashList(stashOut).map(async (stash) => ({
-          ...stash,
-          fileCount: (
-            await this.tryRun([
-              "stash",
-              "show",
-              "--name-only",
-              "-z",
-              "--include-untracked",
-              `stash@{${stash.index}}`,
-            ])
-          )
-            .split("\0")
-            .filter(Boolean).length,
-        })),
-      ),
-      fetchHead.trim()
-        ? this.git.modifiedTime(fetchHead.trim())
-        : Promise.resolve(null),
-    ]);
+    const [commits, files, stashes, lastFetched, smartMerge, tooLarge] =
+      await Promise.all([
+        this.hasHead
+          ? this.run([
+              "log",
+              `-n${LOG_LIMIT}`,
+              "--date-order",
+              `--format=${LOG_FORMAT}`,
+              "HEAD",
+            ]).then((out) => parseLog(out, status.head))
+          : Promise.resolve([] as Commit[]),
+        this.buildFiles(
+          status.entries,
+          parseDiff(stagedOut),
+          parseDiff(unstagedOut),
+          state,
+          lfsTracking,
+        ),
+        Promise.all(
+          parseStashList(stashOut).map(async (stash) => ({
+            ...stash,
+            fileCount: (
+              await this.tryRun([
+                "stash",
+                "show",
+                "--name-only",
+                "-z",
+                "--include-untracked",
+                `stash@{${stash.index}}`,
+              ])
+            )
+              .split("\0")
+              .filter(Boolean).length,
+          })),
+        ),
+        fetchHead.trim()
+          ? this.git.modifiedTime(fetchHead.trim())
+          : Promise.resolve(null),
+        unityProject ? this.smartMergeReady(attributes ?? "") : undefined,
+        this.unpushedTooLarge(status),
+      ]);
     const refs = parseRefs(refsOut);
 
     return {
@@ -174,14 +281,89 @@ export class CliBackend implements GitBackend {
         ahead: status.ahead,
         behind: status.behind,
         lastFetched,
+        tooLarge: tooLarge.length ? tooLarge : undefined,
       },
+      operation: state.operation,
+      lfs: { installed: lfsInstalled, tracking: lfsTracking },
+      smartMerge,
     };
+  }
+
+  /** Which operation is under way, from the files git keeps in .git while it is. */
+  private async readOperation(): Promise<OperationState> {
+    const paths = await this.gitPaths!;
+    const present = await Promise.all(
+      OPERATIONS.map(
+        async (_, i) => (await this.git.modifiedTime(paths[i])) !== null,
+      ),
+    );
+    const found = OPERATIONS.find((_, i) => present[i]);
+    if (!found) return { operation: null, conflicts: [] };
+    const message =
+      text(await this.git.readWorktree(paths[OPERATIONS.length])) ?? "";
+    return {
+      operation: {
+        kind: found.kind,
+        message: message.split(/\r?\n/)[0] ?? "",
+        mine: found.mine,
+        theirs: found.theirs,
+      },
+      conflicts: conflictPaths(message),
+    };
+  }
+
+  private async isUnityProject() {
+    const version = "ProjectSettings/ProjectVersion.txt";
+    if ((await this.git.modifiedTime(version)) !== null) return true;
+    // A Unity project can live in a subfolder of the repository.
+    return !!(await this.tryRun(["ls-files", "-z", "--", `*/${version}`]));
+  }
+
+  /** Whether scenes merge through a driver whose program is still installed. */
+  private async smartMergeReady(attributes: string) {
+    const driver = readAttributes(attributes).sceneDriver;
+    if (!driver) return false;
+    const command = (
+      await this.tryRun(["config", "--get", `merge.${driver}.driver`])
+    ).trim();
+    const program = command.match(/^"([^"]+)"|^'([^']+)'|^(\S+)/);
+    const path = program?.[1] ?? program?.[2] ?? program?.[3];
+    if (!path) return false;
+    // A bare program name is found through PATH; an editor that was uninstalled breaks merges.
+    return !/[\\/]/.test(path) || (await this.git.modifiedTime(path)) !== null;
+  }
+
+  private unpushedTooLarge(status: Status) {
+    if (!status.oid || (status.upstream && !status.ahead))
+      return Promise.resolve([]);
+    const key = `${status.oid} ${status.upstream} ${status.ahead}`;
+    if (this.tooLarge?.key !== key)
+      this.tooLarge = { key, files: this.findTooLarge(status.upstream) };
+    return this.tooLarge.files;
+  }
+
+  /** Files GitHub would refuse in commits it hasn't seen yet; LFS files are only pointers here. */
+  private async findTooLarge(upstream: string | null) {
+    const objects = await this.tryRun([
+      "rev-list",
+      "--objects",
+      "HEAD",
+      ...(upstream ? [`^${upstream}`] : ["--not", "--remotes"]),
+    ]);
+    if (!objects.trim()) return [];
+    const sizes = await this.tryRun(
+      ["cat-file", "--batch-check=%(objecttype) %(objectsize) %(rest)"],
+      objects,
+    );
+    return largeBlobs(sizes, GITHUB_LIMIT);
   }
 
   private async buildFiles(
     entries: StatusEntry[],
     stagedDiffs: FileDiff[],
     unstagedDiffs: FileDiff[],
+    state: OperationState,
+    lfsTracking: boolean,
   ): Promise<FileChange[]> {
     const staged = new Map(stagedDiffs.map((d) => [d.path, d]));
     const unstaged = new Map(unstagedDiffs.map((d) => [d.path, d]));
@@ -189,6 +371,10 @@ export class CliBackend implements GitBackend {
     let reads = 0;
     const files = await Promise.all(
       entries.map(async (entry): Promise<FileChange> => {
+        if (entry.conflicted) {
+          this.tracked.set(entry.path, { entry, hunks: [] });
+          return this.conflictFile(entry);
+        }
         const fromIndex = staged.get(entry.path);
         let fromWorktree = unstaged.get(entry.path);
         if (entry.untracked && reads++ < MAX_UNTRACKED_READS) {
@@ -226,7 +412,108 @@ export class CliBackend implements GitBackend {
         };
       }),
     );
+    await this.addResolved(files, state.conflicts);
+    await this.addSizes(files, lfsTracking);
     return files;
+  }
+
+  /** A file both sides changed: its hunks show how their version differs from mine. */
+  private async conflictFile(entry: StatusEntry): Promise<FileChange> {
+    const rebase = this.operation?.kind === "rebase";
+    const { ours, theirs } = entry.stages!;
+    const conflict: Conflict = rebase
+      ? { mine: theirs, theirs: ours }
+      : { mine: ours, theirs };
+    const [mine, incoming] = rebase ? [":3", ":2"] : [":2", ":3"];
+    const diff =
+      ours && theirs
+        ? parseDiff(
+            await this.tryRun([
+              "diff",
+              "--no-color",
+              "--no-ext-diff",
+              `${mine}:${entry.path}`,
+              `${incoming}:${entry.path}`,
+            ]),
+          )[0]
+        : undefined;
+    return {
+      path: entry.path,
+      status: conflictStatus(conflict.mine, conflict.theirs),
+      hunks: (diff?.hunks ?? []).map((h) => toHunk(h, false)),
+      binary: diff?.binary || undefined,
+      conflict,
+    };
+  }
+
+  /**
+   * Conflicts already settled look like ordinary changes, or like no change at
+   * all when my version was kept. Git remembers each one's sides ("resolve
+   * undo"); comparing them with the index tells which version was kept.
+   */
+  private async addResolved(files: FileChange[], conflicts: string[]) {
+    const settled = conflicts.filter(
+      (path) => !files.some((f) => f.path === path && f.conflict),
+    );
+    if (!settled.length) return;
+    const [undoOut, indexOut] = await Promise.all([
+      this.tryRun(["ls-files", "--resolve-undo", "-z", "--", ...settled]),
+      this.tryRun(["ls-files", "--stage", "-z", "--", ...settled]),
+    ]);
+    const undo = parseStages(undoOut);
+    const index = parseStages(indexOut);
+    const rebase = this.operation?.kind === "rebase";
+    for (const path of settled) {
+      const stages = undo.get(path);
+      const [mineObject, theirsObject] = rebase
+        ? [stages?.get(3), stages?.get(2)]
+        : [stages?.get(2), stages?.get(3)];
+      const mine = !stages || !!mineObject;
+      const theirs = !stages || !!theirsObject;
+      const kept = index.get(path)?.get(0);
+      const resolution: Side | "manual" = kept
+        ? kept === mineObject
+          ? "mine"
+          : kept === theirsObject
+            ? "theirs"
+            : "manual"
+        : // Deleted: the side that had no file won.
+          !mine
+          ? "mine"
+          : !theirs
+            ? "theirs"
+            : "manual";
+      const conflict = { mine, theirs, resolution };
+      const listed = files.find((f) => f.path === path);
+      if (listed) listed.conflict = conflict;
+      else
+        files.push({
+          path,
+          status: conflictStatus(mine, theirs),
+          hunks: [],
+          conflict,
+        });
+    }
+  }
+
+  /** Sizes for large-file warnings, and which files go through Git LFS. */
+  private async addSizes(files: FileChange[], lfsTracking: boolean) {
+    const present = files.filter((f) => f.status !== "deleted");
+    if (!present.length) return;
+    const paths = present.map((f) => f.path);
+    const [sizes, attributes] = await Promise.all([
+      this.git.fileSizes(paths),
+      lfsTracking
+        ? this.tryRun(
+            ["check-attr", "-z", "--stdin", "filter"],
+            paths.join("\0"),
+          ).then(parseCheckAttr)
+        : null,
+    ]);
+    present.forEach((file, i) => {
+      if (sizes[i] !== null) file.size = sizes[i];
+      if (attributes?.get(file.path)?.filter === "lfs") file.lfs = true;
+    });
   }
 
   async commitFiles(sha: string) {
@@ -393,6 +680,13 @@ export class CliBackend implements GitBackend {
     const summary = message.summary.trim();
     if (!summary) throw new Error("Add a commit summary.");
     await this.ensureLoaded();
+    // `add --all` would mark conflicts resolved with their markers still in,
+    // and a merge commit has to take the whole merge.
+    if (
+      this.operation ||
+      [...this.tracked.values()].some((f) => f.entry.conflicted)
+    )
+      throw new Error("Finish or cancel the merge first.");
     if (scope === "all") await this.run(["add", "--all"]);
     const nothingStaged =
       (await this.git.text(["diff", "--cached", "--quiet"])).code === 0;
@@ -421,7 +715,8 @@ export class CliBackend implements GitBackend {
   }
 
   async stashPop(index: number) {
-    await this.run(["stash", "pop", `stash@{${index}}`]);
+    // Restoring onto changed files can stop on conflicts; git then keeps the stash.
+    await this.runUntilConflict(["stash", "pop", `stash@{${index}}`]);
   }
 
   async stashDrop(index: number) {
@@ -441,7 +736,7 @@ export class CliBackend implements GitBackend {
   }
 
   async pull() {
-    await this.run(["pull", "--no-rebase", "--no-edit"]);
+    await this.runUntilConflict(["pull", "--no-rebase", "--no-edit"]);
   }
 
   async push() {
@@ -450,7 +745,116 @@ export class CliBackend implements GitBackend {
       this.upstream ? ["push"] : ["push", "--set-upstream", "origin", "HEAD"],
     );
   }
+
+  /** The operation under way right now, not as of the last snapshot. */
+  private async currentOperation() {
+    await this.ensureLoaded();
+    this.operation = (await this.readOperation()).operation;
+    return this.operation;
+  }
+
+  private async unmergedStages(path: string) {
+    const out = await this.tryRun(["ls-files", "--unmerged", "-z", "--", path]);
+    return parseStages(out).get(path);
+  }
+
+  async resolveConflict(path: string, side: Side) {
+    const operation = await this.currentOperation();
+    let stages = await this.unmergedStages(path);
+    if (!stages) {
+      // A change of mind: git still knows both sides and can reopen the conflict.
+      await this.run(["update-index", "--unresolve", "--", path]);
+      stages = await this.unmergedStages(path);
+      if (!stages) throw new Error(`${path} has no conflict.`);
+    }
+    const ours = (side === "mine") !== (operation?.kind === "rebase");
+    if (stages.has(ours ? 2 : 3)) {
+      await this.run(["checkout", ours ? "--ours" : "--theirs", "--", path]);
+      await this.add([path]);
+    } else {
+      // That side deleted the file.
+      await this.run(["rm", "-q", "--", path]);
+    }
+  }
+
+  async markResolved(path: string) {
+    const bytes = await this.git.readWorktree(path);
+    if (bytes && !looksBinary(bytes) && CONFLICT_MARKER.test(text(bytes)!))
+      throw new Error(
+        `${path} still has conflict markers (<<<<<<< or >>>>>>>).`,
+      );
+    await this.add([path]);
+  }
+
+  async abortOperation() {
+    const operation = await this.currentOperation();
+    if (!operation) throw new Error("There is nothing to cancel.");
+    await this.run([operation.kind, "--abort"]);
+  }
+
+  async finishOperation() {
+    const operation = await this.currentOperation();
+    if (!operation) throw new Error("There is nothing to finish.");
+    if (operation.kind === "merge")
+      await this.run(["commit", "-q", "--no-edit", "--cleanup=strip"]);
+    // A rebase goes on to the next commit, which may stop on conflicts of its own.
+    else
+      await this.runUntilConflict([
+        "-c",
+        "core.editor=true",
+        operation.kind,
+        "--continue",
+      ]);
+  }
+
+  async setupLfs(patterns: string[]) {
+    await this.ensureLoaded();
+    await this.run(["lfs", "install", "--local"]);
+    await this.run(["lfs", "track", ...patterns]);
+    // Files selected before hold their whole contents in the index; store them through LFS too.
+    const selected = [...this.tracked.values()]
+      .map(({ entry }) => entry)
+      .filter(
+        (e) =>
+          !e.untracked && !e.conflicted && e.index !== "." && e.index !== "D",
+      )
+      .map((e) => e.path);
+    if (!selected.length) return;
+    const attributes = parseCheckAttr(
+      await this.tryRun(
+        ["check-attr", "-z", "--stdin", "filter"],
+        selected.join("\0"),
+      ),
+    );
+    const moved = selected.filter((p) => attributes.get(p)?.filter === "lfs");
+    if (moved.length) await this.run(["add", "--renormalize", "--", ...moved]);
+  }
+
+  async lfsPull() {
+    await this.run(["lfs", "pull"]);
+  }
+
+  async setupSmartMerge(tool: string) {
+    const current = text(await this.git.readWorktree(".gitattributes")) ?? "";
+    // Keep the driver name a project already uses for its scenes.
+    const driver = readAttributes(current).sceneDriver ?? SMART_MERGE_DRIVER;
+    const set = (key: string, value: string) =>
+      this.run(["config", "--local", `merge.${driver}.${key}`, value]);
+    await set("name", "Unity Smart Merge (UnityYAMLMerge)");
+    // -h: no dialogs. --fallback none: no other merge tool pops up; what
+    // Unity can't merge stays a conflict for Rivet to show.
+    await set(
+      "driver",
+      `"${tool.replace(/\\/g, "/")}" merge -h -p --force --fallback none %O %B %A %A`,
+    );
+    await set("recursive", "binary");
+    const next = withSmartMerge(current, driver);
+    if (next !== current) await this.git.writeWorktree(".gitattributes", next);
+  }
 }
+
+const text = (bytes: Uint8Array | null) =>
+  bytes ? new TextDecoder().decode(bytes) : null;
 
 function diffToChange(diff: FileDiff): FileChange {
   return {

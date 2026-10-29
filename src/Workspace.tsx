@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
@@ -19,10 +20,12 @@ import {
 } from "./dialogs/operations";
 import { PullRequests, openPullRequests } from "./dialogs/PullRequests";
 import type { GitBackend } from "./git/backend";
+import { unresolved } from "./git/conflicts";
 import type { RepoSnapshot } from "./git/types";
 import type { Repository, SetupMode } from "./repositories";
 import { RepositorySetup } from "./setup/RepositorySetup";
 import type { Preferences } from "./App";
+import { explainError } from "./i18n/errors";
 import { useI18n } from "./i18n/i18n";
 import { platform } from "./platform";
 import { PreviewContext } from "./preview/data";
@@ -76,9 +79,12 @@ export function Workspace({
     310,
   );
 
+  /** The latest snapshot, for comparing before and after an action. */
+  const latest = useRef<RepoSnapshot>(undefined);
   const refresh = useCallback(async () => {
     try {
       const next = await backend.snapshot();
+      latest.current = next;
       setSnapshot(next);
       setLoadError(undefined);
       return next;
@@ -96,17 +102,26 @@ export function Workspace({
 
   const act = useCallback<RepoApi["act"]>(
     async (action, success) => {
+      const conflictsBefore = unresolved(latest.current?.files ?? []).length;
       try {
         await action(backend);
-        if (success) notify(success);
-        return await refresh();
+        const next = await refresh();
+        const conflicts = unresolved(next?.files ?? []).length;
+        // A pull or a restore that stops on conflicts lands on the files to decide.
+        if (conflicts && !conflictsBefore) {
+          notify(t("merge.started", { count: conflicts }), "warning");
+          setMode("Changes");
+        } else if (success) notify(success);
+        return next;
       } catch (error) {
-        notify(error instanceof Error ? error.message : String(error), "error");
+        const message = error instanceof Error ? error.message : String(error);
+        const known = explainError(message);
+        notify(known ? t(known.key, known.params) : message, "error");
         await refresh();
         return null;
       }
     },
-    [backend, notify, refresh],
+    [backend, notify, refresh, t, setMode],
   );
 
   useEffect(() => {
@@ -118,8 +133,15 @@ export function Workspace({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  const downloadLfs = useCallback(
+    () => act((b) => b.lfsPull(), t("lfs.downloaded")),
+    [act, t],
+  );
   // Previews read files through the backend and draw 3D views to match the theme.
-  const preview = useMemo(() => ({ backend, dark }), [backend, dark]);
+  const preview = useMemo(
+    () => ({ backend, dark, downloadLfs }),
+    [backend, dark, downloadLfs],
+  );
 
   if (!snapshot)
     return loadError ? (
@@ -161,6 +183,7 @@ export function Workspace({
     backend,
     act,
     openOperation,
+    sync,
   };
 
   async function fetchRemote() {
@@ -178,17 +201,29 @@ export function Workspace({
       );
   }
 
-  /** Simple mode's one button: get others' work, then send ours. */
+  /**
+   * Simple mode's one button: get others' work, then send ours. Conflicts
+   * stop it before sending, and so do files GitHub would refuse.
+   */
   async function sync() {
     setWorking(t("top.working.sync"));
-    await act(async (b) => {
+    let outcome = "sent" as "sent" | "stopped" | "too-large";
+    const next = await act(async (b) => {
       await b.fetch();
-      let state = (await b.snapshot()).sync;
-      if (state.behind) await b.pull();
-      state = (await b.snapshot()).sync;
-      if (state.ahead || !state.upstream) await b.push();
-    }, t("sync.done"));
+      let state = await b.snapshot();
+      if (state.sync.behind) {
+        await b.pull();
+        state = await b.snapshot();
+        if (state.operation || unresolved(state.files).length)
+          return (outcome = "stopped");
+      }
+      if (state.sync.tooLarge?.length) return (outcome = "too-large");
+      if (state.sync.ahead || !state.sync.upstream) await b.push();
+    });
     setWorking(null);
+    if (next && outcome === "sent") notify(t("sync.done"));
+    if (next && outcome === "too-large")
+      openOperation("push", { sync: next.sync });
   }
 
   // Branches are a full-mode tool.
@@ -288,6 +323,7 @@ export function Workspace({
       {dialog?.kind === "settings" && (
         <SettingsDialog
           preferences={preferences}
+          repo={repo}
           onClose={() => setDialog(null)}
         />
       )}

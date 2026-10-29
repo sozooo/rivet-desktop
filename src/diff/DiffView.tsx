@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlignJustify,
   ChevronRight,
@@ -13,7 +13,7 @@ import { fileKind } from "../git/fileKinds";
 import { dirName, fileName, lineStats } from "../git/paths";
 import type { FileChange } from "../git/types";
 import { useI18n } from "../i18n/i18n";
-import type { Revisions } from "../preview/data";
+import { SideLabels, type Revisions } from "../preview/data";
 import { FilePreview } from "../preview/FilePreview";
 import { FileIcon, StatusIcon } from "../ui/FileIcon";
 import { useDismiss, useStoredState } from "../ui/hooks";
@@ -27,6 +27,7 @@ export function DiffView({
   onDiscard,
   empty,
   revisions,
+  banner,
 }: {
   file?: FileChange;
   /** What the diff compares, e.g. "Working tree → HEAD". */
@@ -36,6 +37,8 @@ export function DiffView({
   onToggleHunk?: (hunk: number) => void;
   onDiscard?: () => void;
   empty?: ReactNode;
+  /** Shown above the preview or the hunks, e.g. the choices for a conflict. */
+  banner?: ReactNode;
 }) {
   const [split, setSplit] = useStoredState("rivet.diff.split", false);
   const [whitespace, setWhitespace] = useStoredState(
@@ -47,6 +50,7 @@ export function DiffView({
   useDismiss(menuRef, menu, () => setMenu(false));
   const notify = useNotify();
   const { t, mode } = useI18n();
+  const sides = useContext(SideLabels);
   // Simple mode keeps one plain view: no layout or whitespace switches.
   const advanced = mode === "full";
   const kind = file ? fileKind(file) : "code";
@@ -166,13 +170,14 @@ export function DiffView({
         )}
       </div>
       <div className="diff-scroll">
+        {banner}
         {preview && (
           <FilePreview file={file} kind={kind} revisions={revisions!} />
         )}
         {!preview && split && advanced && (
           <div className="split-label">
-            <span>{t("diff.original")}</span>
-            <span>{t("diff.modified")}</span>
+            <span>{sides?.before ?? t("diff.original")}</span>
+            <span>{sides?.after ?? t("diff.modified")}</span>
           </div>
         )}
         {!preview &&

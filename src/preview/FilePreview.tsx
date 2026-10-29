@@ -1,10 +1,10 @@
-import { lazy, Suspense } from "react";
-import { CloudOff, FileQuestion, Settings2 } from "lucide-react";
+import { lazy, Suspense, useContext, useState, type ReactNode } from "react";
+import { CloudDownload, CloudOff, FileQuestion, Settings2 } from "lucide-react";
 import { looksBinary } from "../git/cli/parse";
 import { lfsPointer, type FileKind } from "../git/fileKinds";
 import type { FileChange } from "../git/types";
 import { useI18n } from "../i18n/i18n";
-import { formatSize, usePair, type Revisions } from "./data";
+import { formatSize, PreviewContext, usePair, type Revisions } from "./data";
 import { ImageDiff } from "./ImageDiff";
 import { MaterialCard } from "./MaterialCard";
 import { MetaCard } from "./MetaCard";
@@ -17,10 +17,12 @@ function Notice({
   icon,
   title,
   hint,
+  action,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   hint?: string;
+  action?: ReactNode;
 }) {
   return (
     <div className="preview card-preview notice">
@@ -29,6 +31,7 @@ function Notice({
         <strong>{title}</strong>
       </div>
       {hint && <p className="muted">{hint}</p>}
+      {action}
     </div>
   );
 }
@@ -51,7 +54,10 @@ export function FilePreview({
   revisions: Revisions;
 }) {
   const { t, language } = useI18n();
-  const pair = usePair(file, revisions);
+  const { downloadLfs } = useContext(PreviewContext);
+  const [downloads, setDownloads] = useState(0);
+  const [downloading, setDownloading] = useState(false);
+  const pair = usePair(file, revisions, downloads);
   const loading = (
     <div className="preview muted preview-loading">{t("preview.loading")}</div>
   );
@@ -64,6 +70,23 @@ export function FilePreview({
         icon={<CloudOff />}
         title={`${t("preview.lfs")} · ${formatSize(pointer.size, language)}`}
         hint={t("preview.lfsHint")}
+        action={
+          downloadLfs && (
+            <button
+              className="button lfs-download"
+              disabled={downloading}
+              onClick={async () => {
+                setDownloading(true);
+                await downloadLfs();
+                setDownloading(false);
+                setDownloads((n) => n + 1);
+              }}
+            >
+              <CloudDownload size={15} />
+              {t(downloading ? "lfs.downloading" : "lfs.download")}
+            </button>
+          )
+        }
       />
     );
   if (

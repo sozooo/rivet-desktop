@@ -16,4 +16,6 @@ export type RepoApi = {
     success?: string,
   ) => Promise<RepoSnapshot | null>;
   openOperation: (id: OperationId, context?: Partial<OpContext>) => void;
+  /** Gets others' work and sends ours: simple mode's one button. */
+  sync: () => Promise<void>;
 };

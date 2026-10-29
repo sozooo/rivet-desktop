@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { useI18n } from "../i18n/i18n";
 import type { GitBackend } from "../git/backend";
 import { fileName } from "../git/paths";
 import type { FileChange, Revision } from "../git/types";
@@ -7,18 +8,46 @@ import { decodeImage } from "./decode";
 /** Which two versions a preview compares. */
 export type Revisions = { before: Revision; after: Revision };
 
-/** What previews need from the workspace: where files come from, and the theme to draw on. */
+/**
+ * What previews need from the workspace: where files come from, the theme to
+ * draw on, and a way to download Git LFS files that are only pointers so far.
+ */
 export const PreviewContext = createContext<{
   backend: GitBackend | null;
   dark: boolean;
+  downloadLfs?: () => Promise<unknown>;
 }>({ backend: null, dark: false });
 export const useBackend = () => useContext(PreviewContext).backend;
 export const useDark = () => useContext(PreviewContext).dark;
 
+/** Captions for the two versions; a conflict calls them "My version" and "Server version". */
+export const SideLabels = createContext<{
+  before: string;
+  after: string;
+} | null>(null);
+
+/** A caption for one side; with only one version, it reads as added or deleted. */
+export function useSideLabel() {
+  const { t } = useI18n();
+  const labels = useContext(SideLabels);
+  return (side: "before" | "after", both = true) =>
+    labels
+      ? labels[side]
+      : t(
+          both
+            ? side === "before"
+              ? "preview.before"
+              : "preview.after"
+            : side === "after"
+              ? "preview.added"
+              : "preview.deleted",
+        );
+}
+
 export type Pair = { before: Uint8Array | null; after: Uint8Array | null };
 
-/** Loads both versions of a file; undefined while loading. */
-export function usePair(file: FileChange, revisions: Revisions) {
+/** Loads both versions of a file; undefined while loading. A new `version` reads them again. */
+export function usePair(file: FileChange, revisions: Revisions, version = 0) {
   const backend = useBackend();
   const [pair, setPair] = useState<Pair>();
   useEffect(() => {
@@ -43,6 +72,7 @@ export function usePair(file: FileChange, revisions: Revisions) {
     file.status,
     revisions.before,
     revisions.after,
+    version,
   ]);
   return pair;
 }

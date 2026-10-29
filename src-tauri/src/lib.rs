@@ -1,3 +1,4 @@
+mod art;
 mod discover;
 mod git;
 
@@ -72,7 +73,8 @@ pub fn run() {
             git_bytes,
             read_worktree_file,
             modified_time,
-            discover_repositories
+            discover_repositories,
+            art::file_sizes, art::write_worktree_file, art::unity_merge_tools
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rivet");

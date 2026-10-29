@@ -100,8 +100,11 @@ RenderSettings:
   m_FogDensity: 0.01
 `;
 
-/** The forest level: trees placed from a prefab, a light, the player. */
-function forest(after: boolean) {
+/**
+ * The forest level: trees placed from a prefab, a light, the player. The
+ * server variant is a teammate's edit of the original, for the conflict demo.
+ */
+function forest(after: boolean, server = false) {
   return (
     header +
     renderSettings(after) +
@@ -117,7 +120,7 @@ function forest(after: boolean) {
       "{x: 0, y: 3, z: 0}",
       "{x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}",
     ) +
-    light(112, 110, 1, after ? 1.3 : 1) +
+    light(112, 110, 1, after ? 1.3 : server ? 0.85 : 1) +
     gameObject(120, "Environment", [121]) +
     transform(121, 120, 0, [131], "{x: 0, y: 0, z: 0}") +
     gameObject(130, "Forest", [131]) +
@@ -127,7 +130,7 @@ function forest(after: boolean) {
       210,
       guids.treePrefab,
       131,
-      after ? [-2.5, 0, 3.5] : [-2, 0, 3],
+      after ? [-2.5, 0, 3.5] : server ? [-1, 0, 2] : [-2, 0, 3],
       {
         name: "Tree_02",
       },
@@ -158,6 +161,7 @@ function forest(after: boolean) {
 }
 
 export const forestScene = { before: forest(false), after: forest(true) };
+export const forestServer = forest(false, true);
 
 const textureMeta = (android: number, compression: number, filter: number) =>
   `fileFormatVersion: 2

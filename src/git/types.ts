@@ -14,6 +14,37 @@ export type FileChange = {
   binary?: boolean;
   /** Whether a binary change is selected for the next commit (it has no hunks to tick). */
   staged?: boolean;
+  /**
+   * Both sides of a merge changed the file. Its status then compares my
+   * version with theirs, and its hunks show what theirs does differently.
+   */
+  conflict?: Conflict;
+  /** Size in the working tree, in bytes. */
+  size?: number;
+  /** Git stores the file through Git LFS. */
+  lfs?: boolean;
+};
+
+export type Side = "mine" | "theirs";
+
+export type Conflict = {
+  /** Whether each side has the file; a side without it deleted it. */
+  mine: boolean;
+  theirs: boolean;
+  /** Which version was kept, once one was ("manual" for a hand-made mix). */
+  resolution?: Side | "manual";
+};
+
+export type OperationKind = "merge" | "rebase" | "cherry-pick" | "revert";
+
+/** A merge, rebase, cherry-pick or revert that stopped halfway, usually on conflicts. */
+export type Operation = {
+  kind: OperationKind;
+  /** The first line of the commit message git prepared, e.g. "Merge branch 'main' of …". */
+  message: string;
+  /** Commits that hold my version and the incoming one, for files already resolved. */
+  mine: string;
+  theirs: string;
 };
 
 /**
@@ -58,6 +89,15 @@ export type SyncState = {
   ahead: number;
   behind: number;
   lastFetched: number | null;
+  /** Files in commits not pushed yet that are too large for GitHub. */
+  tooLarge?: { path: string; size: number }[];
+};
+
+export type LfsState = {
+  /** git-lfs is installed on this computer. */
+  installed: boolean;
+  /** .gitattributes sends some files through Git LFS. */
+  tracking: boolean;
 };
 
 export type RepoSnapshot = {
@@ -67,6 +107,10 @@ export type RepoSnapshot = {
   branches: Branches;
   stashes: StashEntry[];
   sync: SyncState;
+  operation: Operation | null;
+  lfs: LfsState;
+  /** Unity projects only: whether git merges scenes and prefabs with Unity's Smart Merge. */
+  smartMerge?: boolean;
 };
 
 /** What a commit includes: only selected changes, or everything when nothing is selected. */

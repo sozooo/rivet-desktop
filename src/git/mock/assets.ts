@@ -335,8 +335,11 @@ export const crateModel = {
   ),
 };
 
-/** Paints a bark-like texture; the newer version is mossier. */
-export async function paintBark(mossy: boolean): Promise<Uint8Array | null> {
+/** Paints a bark-like texture; the newer version is mossier, a teammate's snowy. */
+export async function paintBark(
+  mossy: boolean,
+  snowy = false,
+): Promise<Uint8Array | null> {
   if (typeof OffscreenCanvas === "undefined") return null;
   const size = 128;
   const canvas = new OffscreenCanvas(size, size);
@@ -366,6 +369,19 @@ export async function paintBark(mossy: boolean): Promise<Uint8Array | null> {
       g.fillStyle = `rgba(${110 + random() * 40}, ${150 + random() * 50}, 70, 0.55)`;
       g.beginPath();
       g.arc(random() * size, random() * size, 3 + random() * 9, 0, Math.PI * 2);
+      g.fill();
+    }
+  if (snowy)
+    for (let i = 0; i < 70; i++) {
+      g.fillStyle = `rgba(236, 242, 248, ${0.55 + random() * 0.4})`;
+      g.beginPath();
+      g.arc(
+        random() * size,
+        random() * size * 0.6,
+        2 + random() * 6,
+        0,
+        Math.PI * 2,
+      );
       g.fill();
     }
   const blob = await canvas.convertToBlob({ type: "image/png" });

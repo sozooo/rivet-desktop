@@ -11,6 +11,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
+import { unresolved } from "../git/conflicts";
 import type { RepoSnapshot } from "../git/types";
 import { useI18n } from "../i18n/i18n";
 import { setupModes, type Repository, type SetupMode } from "../repositories";
@@ -70,6 +71,8 @@ export function TopBar({
   const { sync, branches } = snapshot;
   const simple = mode === "simple";
   const hasRemote = !!sync.upstream || branches.remote.length > 0;
+  // Nothing goes in or out until a stopped merge is finished or cancelled.
+  const merging = !!snapshot.operation || unresolved(snapshot.files).length > 0;
 
   function syncSummary() {
     if (!sync.upstream) return t("top.sync.unpublished");
@@ -209,8 +212,8 @@ export function TopBar({
             </span>
             <button
               className="button primary sync-button"
-              disabled={!!working || !hasRemote}
-              title={t("top.syncTitle")}
+              disabled={!!working || !hasRemote || merging}
+              title={t(merging ? "top.syncMerging" : "top.syncTitle")}
               onClick={onSync}
             >
               <RefreshCw className={working ? "spinning" : ""} />
@@ -232,16 +235,18 @@ export function TopBar({
             )}
             <button
               className="button"
-              disabled={!sync.behind || !!working}
+              disabled={!sync.behind || !!working || merging}
               onClick={onPull}
               title={
-                sync.behind
-                  ? t("top.pullTitle", {
-                      count: sync.behind,
-                      upstream: sync.upstream ?? "",
-                      branch: branches.current,
-                    })
-                  : t("top.nothingToPull")
+                merging
+                  ? t("top.syncMerging")
+                  : sync.behind
+                    ? t("top.pullTitle", {
+                        count: sync.behind,
+                        upstream: sync.upstream ?? "",
+                        branch: branches.current,
+                      })
+                    : t("top.nothingToPull")
               }
             >
               <ArrowDown />
@@ -250,15 +255,17 @@ export function TopBar({
             </button>
             <button
               className="button push"
-              disabled={!sync.ahead || !sync.upstream || !!working}
+              disabled={!sync.ahead || !sync.upstream || !!working || merging}
               onClick={onPush}
               title={
-                sync.ahead
-                  ? t("top.pushTitle", {
-                      count: sync.ahead,
-                      upstream: sync.upstream ?? "",
-                    })
-                  : t("top.nothingToPush")
+                merging
+                  ? t("top.syncMerging")
+                  : sync.ahead
+                    ? t("top.pushTitle", {
+                        count: sync.ahead,
+                        upstream: sync.upstream ?? "",
+                      })
+                    : t("top.nothingToPush")
               }
             >
               <ArrowUp />

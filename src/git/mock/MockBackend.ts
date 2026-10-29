@@ -1,10 +1,15 @@
 import type { GitBackend } from "../backend";
+import { isConflicted } from "../conflicts";
+import { SMART_MERGE_EXTENSIONS, tooLarge } from "../lfs";
+import { extension } from "../paths";
 import type {
   Commit,
   CommitScope,
   FileChange,
+  Operation,
   Person,
   RepoSnapshot,
+  Side,
 } from "../types";
 import * as assets from "./assets";
 import * as fixtures from "./fixtures";
@@ -27,10 +32,13 @@ const unstage = (files: FileChange[]) =>
     staged: false,
     hunks: f.hunks.map((h) => ({ ...h, staged: false })),
   }));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * An in-memory repository that follows git semantics closely enough to drive
- * the UI: staging, commits, stashes, branches and a simulated remote.
+ * the UI: staging, commits, stashes, branches and a simulated remote. Pulling
+ * onto unpublished work stops on conflicts, so the conflict screens can be
+ * tried out.
  */
 export class MockBackend implements GitBackend {
   private user: Person = fixtures.people.alex;
@@ -46,10 +54,21 @@ export class MockBackend implements GitBackend {
   private ahead: number;
   private incoming: Omit<Commit, "parents">[];
   private lastFetched: number | null;
+  private operation: Operation | null = null;
+  /** Working changes from before a merge, for when it is cancelled. */
+  private beforeMerge: FileChange[] = [];
+  private lfsPatterns: string[];
+  private lfsDownloaded = false;
+  private smartMerge: boolean | undefined;
+  /** Oversized files committed but not pushed yet. */
+  private unpushedLarge: { path: string; size: number }[] = [];
 
-  constructor(kind: "sample" | "empty") {
+  /** `variant` "kinetic-sandbox" adds a video too large for GitHub. */
+  constructor(kind: "sample" | "empty", variant?: string) {
     const sample = kind === "sample";
     this.files = sample ? fixtures.workingChanges() : [];
+    if (sample && variant === "kinetic-sandbox")
+      this.files.push(fixtures.largeVideo());
     this.commits = sample ? fixtures.history() : [];
     this.contents = sample ? fixtures.commitContents() : new Map();
     this.stashList = sample ? fixtures.stashes() : [];
@@ -63,12 +82,20 @@ export class MockBackend implements GitBackend {
     this.ahead = sample ? 3 : 0;
     this.incoming = sample ? fixtures.incoming() : [];
     this.lastFetched = sample ? Date.now() - 4 * 60_000 : null;
+    // The sample keeps Photoshop files in LFS, but not the rest of its art.
+    this.lfsPatterns = sample ? ["*.psd"] : [];
+    this.smartMerge = sample ? false : undefined;
   }
 
   async snapshot(): Promise<RepoSnapshot> {
+    const files = this.files.map((f) => ({
+      ...f,
+      size: f.status === "deleted" ? undefined : fixtures.sizes[f.path],
+      lfs: this.inLfs(f.path) || undefined,
+    }));
     return clone({
       user: this.user,
-      files: this.files,
+      files,
       commits: this.commits,
       branches: {
         current: this.current,
@@ -88,8 +115,16 @@ export class MockBackend implements GitBackend {
         ahead: this.ahead,
         behind: this.incoming.length,
         lastFetched: this.lastFetched,
+        tooLarge: this.unpushedLarge.length ? this.unpushedLarge : undefined,
       },
+      operation: this.operation,
+      lfs: { installed: true, tracking: this.lfsPatterns.length > 0 },
+      smartMerge: this.smartMerge,
     });
+  }
+
+  private inLfs(path: string) {
+    return this.lfsPatterns.includes(`*.${extension(path)}`);
   }
 
   async commitFiles(sha: string) {
@@ -110,6 +145,22 @@ export class MockBackend implements GitBackend {
   }
 
   async readFile(path: string, revision: string): Promise<Uint8Array | null> {
+    const conflicted = this.files.find((f) => f.path === path && f.conflict);
+    if (conflicted) {
+      // Stage 3 and MERGE_HEAD are the server's; the rest is mine, or what was kept.
+      const kept = conflicted.conflict!.resolution;
+      const side: Side =
+        revision === ":3" || revision === "MERGE_HEAD"
+          ? "theirs"
+          : (revision === "worktree" || revision === "index") &&
+              kept === "theirs"
+            ? "theirs"
+            : "mine";
+      const bytes = fixtures.conflictSide(path, side);
+      if (bytes !== undefined) return bytes;
+    }
+    if (path === "Assets/Art/Cliffs.psd" && this.lfsDownloaded)
+      return fixtures.sampleFile("Assets/Art/Poster.psd", false) ?? null;
     // Commits are "x" vs "x^", stashes "stash@{n}" vs "stash@{n}^1", working changes HEAD vs worktree.
     const before = revision === "HEAD" || /\^\d*$/.test(revision);
     const sample = fixtures.sampleFile(path, before);
@@ -145,6 +196,8 @@ export class MockBackend implements GitBackend {
     scope: CommitScope,
   ) {
     if (!message.summary.trim()) throw new Error("Add a commit summary.");
+    if (this.operation || this.files.some(isConflicted))
+      throw new Error("Finish or cancel the merge first.");
     if (scope === "all") await this.setAllStaged(true);
     // Binary files have no hunks; their `staged` flag stands for the whole file.
     const isStagedBinary = (f: FileChange) => !f.hunks.length && !!f.staged;
@@ -160,6 +213,9 @@ export class MockBackend implements GitBackend {
       date: Date.now(),
       parents: this.commits[0] ? [this.commits[0].sha] : [],
     };
+    for (const f of (await this.snapshot()).files)
+      if (tooLarge(f) && staged.some((s) => s.path === f.path))
+        this.unpushedLarge.push({ path: f.path, size: f.size! });
     this.contents.set(commit.sha, staged);
     this.commits = [commit, ...this.commits];
     this.files = this.files
@@ -211,12 +267,28 @@ export class MockBackend implements GitBackend {
   }
 
   async fetch() {
-    await new Promise((resolve) => setTimeout(resolve, 900));
+    await wait(900);
     this.lastFetched = Date.now();
   }
 
   async pull() {
     if (!this.incoming.length) return;
+    if (!this.ahead) return this.mergeIncoming([]);
+    // Both sides changed the same files: the merge stops for a decision.
+    const merge = fixtures.mergeConflict();
+    const taken = new Set(merge.flatMap((f) => [f.path, `${f.path}.meta`]));
+    this.beforeMerge = this.files;
+    this.files = [...merge, ...this.files.filter((f) => !taken.has(f.path))];
+    this.operation = {
+      kind: "merge",
+      message: `Merge branch '${this.current}' of origin`,
+      mine: "HEAD",
+      theirs: "MERGE_HEAD",
+    };
+  }
+
+  /** Adds the remote's commits, with a merge commit when this branch has its own. */
+  private mergeIncoming(merged: FileChange[]) {
     // Remote commits continue from the last commit both sides share.
     const base = this.commits[this.ahead]?.sha;
     const chain = this.incoming.map((c, i, all) => ({
@@ -235,6 +307,7 @@ export class MockBackend implements GitBackend {
           },
         ]
       : [];
+    if (merge.length) this.contents.set(merge[0].sha, unstage(merged));
     this.commits = [...merge, ...chain, ...this.commits];
     if (merge.length) this.ahead++;
     this.incoming = [];
@@ -242,7 +315,83 @@ export class MockBackend implements GitBackend {
 
   async push() {
     if (!this.hasRemote) throw new Error("This repository has no remote yet.");
+    if (this.operation) throw new Error("Finish or cancel the merge first.");
     this.ahead = 0;
+    this.unpushedLarge = [];
+  }
+
+  private conflict_(path: string) {
+    const file = this.file_(path);
+    if (!file.conflict) throw new Error(`${path} has no conflict.`);
+    return file;
+  }
+
+  async resolveConflict(path: string, side: Side) {
+    const file = this.conflict_(path);
+    file.conflict = { ...file.conflict!, resolution: side };
+  }
+
+  async markResolved(path: string) {
+    const file = this.conflict_(path);
+    file.conflict = { ...file.conflict!, resolution: "manual" };
+  }
+
+  async abortOperation() {
+    if (!this.operation) throw new Error("There is nothing to cancel.");
+    this.files = this.beforeMerge;
+    this.operation = null;
+  }
+
+  async finishOperation() {
+    if (!this.operation) throw new Error("There is nothing to finish.");
+    if (this.files.some(isConflicted))
+      throw new Error("Choose a version for every conflicted file first.");
+    const merged = this.files.filter(
+      (f) => f.conflict || f.staged || f.hunks.some((h) => h.staged),
+    );
+    this.files = this.files.filter((f) => !merged.includes(f));
+    this.operation = null;
+    this.mergeIncoming(merged);
+  }
+
+  /** Adds lines to .gitattributes, which then shows up as a change to save. */
+  private addAttributes(lines: string[]) {
+    const path = ".gitattributes";
+    const existing = this.files.find((f) => f.path === path);
+    const hunk = {
+      header: "@@ -1,0 +1,0 @@",
+      lines: lines.map((text) => ({ kind: "add" as const, text })),
+      staged: false,
+    };
+    if (existing) existing.hunks = [...existing.hunks, hunk];
+    else
+      this.files = [
+        ...this.files,
+        { path, status: "modified", hunks: [hunk], size: 120 },
+      ];
+  }
+
+  async setupLfs(patterns: string[]) {
+    await wait(600);
+    const added = patterns.filter((p) => !this.lfsPatterns.includes(p));
+    this.lfsPatterns = [...this.lfsPatterns, ...added];
+    this.addAttributes(
+      added.map((p) => `${p} filter=lfs diff=lfs merge=lfs -text`),
+    );
+  }
+
+  async lfsPull() {
+    await wait(1200);
+    this.lfsDownloaded = true;
+  }
+
+  async setupSmartMerge() {
+    if (this.smartMerge === undefined)
+      throw new Error("This is not a Unity project.");
+    this.smartMerge = true;
+    this.addAttributes(
+      SMART_MERGE_EXTENSIONS.map((e) => `*.${e} merge=unityyamlmerge`),
+    );
   }
 
   private file_(path: string) {

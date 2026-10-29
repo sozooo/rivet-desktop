@@ -1,9 +1,17 @@
-import type { Commit, DiffLine, FileChange, Hunk, Person } from "../types";
+import type {
+  Commit,
+  DiffLine,
+  FileChange,
+  Hunk,
+  Person,
+  Side,
+} from "../types";
 import { barkMaterial, crateModel, paintBark, treePrefab } from "./assets";
 import {
   binaryScene,
   cliffPointers,
   forestScene,
+  forestServer,
   grassMeta,
   heroWave,
   paintBarkNormal,
@@ -667,3 +675,99 @@ export const divergence: Record<string, [ahead: number, behind: number]> = {
   "feature/player-movement": [3, 1],
   "fix/camera-jitter": [1, 2],
 };
+
+const playerScript = (side: Side) =>
+  [
+    "using UnityEngine;",
+    "",
+    "public class PlayerController : MonoBehaviour",
+    "{",
+    '    [Header("Movement")]',
+    side === "mine"
+      ? "    [SerializeField] private float moveSpeed = 6f;"
+      : "    [SerializeField] private float moveSpeed = 5.5f;",
+    side === "mine"
+      ? "    [SerializeField] private float jumpHeight = 2.5f;"
+      : "    [SerializeField] private float sprintSpeed = 9f;",
+    "    [SerializeField] private float gravity = -9.81f;",
+    "}",
+    "",
+  ].join("\n");
+
+const hintsBefore = '{\n  "jump": "A",\n  "interact": "X"\n}';
+const hintsAfter = '{\n  "jump": "A",\n  "interact": "X",\n  "sprint": "LB"\n}';
+
+/**
+ * What Pull brings in when the server changed the same files as I did: a
+ * merge stopped on conflicts (an image, a scene, a script, and a model the
+ * server deleted), next to files that merged on their own.
+ */
+export function mergeConflict(): FileChange[] {
+  const both = { mine: true, theirs: true };
+  const staged = (hunk: Hunk) => ({ ...hunk, staged: true });
+  return [
+    {
+      path: "Assets/Textures/Bark.png",
+      status: "modified",
+      hunks: [],
+      binary: true,
+      conflict: both,
+    },
+    {
+      path: "Assets/Scenes/Forest.unity",
+      status: "modified",
+      hunks: [textHunk(forestScene.after, forestServer)],
+      conflict: both,
+    },
+    {
+      path: "Assets/Scripts/Player/PlayerController.cs",
+      status: "modified",
+      hunks: [textHunk(playerScript("mine"), playerScript("theirs"))],
+      conflict: both,
+    },
+    {
+      path: "Assets/Models/Crate.fbx",
+      status: "deleted",
+      hunks: [],
+      binary: true,
+      conflict: { mine: true, theirs: false },
+    },
+    {
+      path: "Assets/UI/Localization/GamepadHints.json",
+      status: "modified",
+      hunks: [staged(textHunk(hintsBefore, hintsAfter))],
+    },
+  ];
+}
+
+/** My version or the server's of a file from mergeConflict(). */
+export function conflictSide(path: string, side: Side) {
+  switch (path) {
+    case "Assets/Textures/Bark.png":
+      return side === "mine" ? paintBark(true) : paintBark(false, true);
+    case "Assets/Scenes/Forest.unity":
+      return encode(side === "mine" ? forestScene.after : forestServer);
+    case "Assets/Scripts/Player/PlayerController.cs":
+      return encode(playerScript(side));
+    case "Assets/Models/Crate.fbx":
+      return side === "mine" ? encode(crateModel.after) : null;
+    case "Assets/UI/Localization/GamepadHints.json":
+      return encode(side === "mine" ? hintsBefore : hintsAfter);
+  }
+  return undefined;
+}
+
+/** Sizes of the sample art, for large-file hints. */
+export const sizes: Record<string, number> = {
+  "Assets/Textures/Bark.png": 2_310_144,
+  "Assets/Models/Crate.fbx": 884_736,
+  "Assets/Video/Intro.mov": 148_897_792,
+};
+
+/** A cutscene too large for GitHub, in the sandbox sample's working changes. */
+export const largeVideo = (): FileChange => ({
+  path: "Assets/Video/Intro.mov",
+  status: "added",
+  hunks: [],
+  binary: true,
+});

@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { GitRunner } from "./runner";
 
 const root = mkdtempSync(join(tmpdir(), "rivet-test-"));
@@ -86,10 +86,22 @@ export function nodeRunner(cwd: string): GitRunner {
     },
     async modifiedTime(path) {
       try {
-        return statSync(join(cwd, path)).mtimeMs;
+        return statSync(resolve(cwd, path)).mtimeMs;
       } catch {
         return null;
       }
+    },
+    async fileSizes(paths) {
+      return paths.map((path) => {
+        try {
+          return statSync(join(cwd, path)).size;
+        } catch {
+          return null;
+        }
+      });
+    },
+    async writeWorktree(path, text) {
+      writeFileSync(join(cwd, path), text);
     },
   };
 }

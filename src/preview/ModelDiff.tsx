@@ -8,7 +8,7 @@ import { TGALoader } from "three/examples/jsm/loaders/TGALoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { extension } from "../git/paths";
 import { useI18n } from "../i18n/i18n";
-import { useDark, type Pair } from "./data";
+import { useDark, useSideLabel, type Pair } from "./data";
 
 type Stats = {
   vertices: number;
@@ -258,6 +258,7 @@ export default function ModelDiff({
   pair: Pair;
 }) {
   const { t } = useI18n();
+  const label = useSideLabel();
   const dark = useDark();
   const [models, setModels] = useState<{
     before?: Loaded | null;
@@ -417,11 +418,7 @@ export default function ModelDiff({
           pair[side] ? (
             <figure className="model-panel" key={side}>
               <figcaption>
-                <strong>
-                  {pair.before && pair.after
-                    ? t(side === "before" ? "preview.before" : "preview.after")
-                    : t(side === "after" ? "preview.added" : "preview.deleted")}
-                </strong>
+                <strong>{label(side, !!pair.before && !!pair.after)}</strong>
                 <span className="muted">{t("model.drag")}</span>
               </figcaption>
               <div className="model-stage" ref={stages[side]}>
