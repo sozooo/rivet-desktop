@@ -14,6 +14,7 @@ import {
 import { RepositorySetup } from "./setup/RepositorySetup";
 import { useStoredState } from "./ui/hooks";
 import { ToastProvider } from "./ui/Toast";
+import { UpdatesProvider } from "./updates/updates";
 import { Workspace } from "./Workspace";
 
 export type ThemePreference = "light" | "dark" | "system";
@@ -102,32 +103,34 @@ export function App() {
   return (
     <div className={`app ${dark ? "dark" : ""}`} lang={language}>
       <I18nProvider language={language} mode={mode}>
-        <ToastProvider>
-          {repository && backend ? (
-            <Workspace
-              key={repository.id}
-              repository={repository}
-              repositories={repositories}
-              backend={backend}
-              dark={dark}
-              preferences={preferences}
-              onSwitchRepository={setActiveId}
-              onAddRepository={add}
-              onRemoveRepository={(id) => {
-                const next = repositories.filter((r) => r.id !== id);
-                backends.current.delete(id);
-                update(next);
-                if (id === repository.id) setActiveId(next[0]?.id ?? null);
-              }}
-            />
-          ) : (
-            <RepositorySetup
-              initialMode="open"
-              repositories={repositories}
-              onComplete={add}
-            />
-          )}
-        </ToastProvider>
+        <UpdatesProvider>
+          <ToastProvider>
+            {repository && backend ? (
+              <Workspace
+                key={repository.id}
+                repository={repository}
+                repositories={repositories}
+                backend={backend}
+                dark={dark}
+                preferences={preferences}
+                onSwitchRepository={setActiveId}
+                onAddRepository={add}
+                onRemoveRepository={(id) => {
+                  const next = repositories.filter((r) => r.id !== id);
+                  backends.current.delete(id);
+                  update(next);
+                  if (id === repository.id) setActiveId(next[0]?.id ?? null);
+                }}
+              />
+            ) : (
+              <RepositorySetup
+                initialMode="open"
+                repositories={repositories}
+                onComplete={add}
+              />
+            )}
+          </ToastProvider>
+        </UpdatesProvider>
       </I18nProvider>
     </div>
   );

@@ -4,6 +4,7 @@ import type { Preferences } from "../App";
 import { useI18n, type Key } from "../i18n/i18n";
 import type { RepoApi } from "../views/repoApi";
 import { ProjectSettings } from "./ProjectSettings";
+import { useUpdates } from "../updates/updates";
 
 function Dialog({
   eyebrow,
@@ -123,8 +124,41 @@ export function SettingsDialog({
         ]}
       />
       {repo && <ProjectSettings repo={repo} />}
-      <p className="muted">{t("settings.version")}</p>
+      <VersionLine />
     </Dialog>
+  );
+}
+
+/** The installed version and, in the desktop app, a way to look for a newer one. */
+function VersionLine() {
+  const { t } = useI18n();
+  const { state, version, check } = useUpdates();
+  const status =
+    state.status === "checking"
+      ? t("settings.checking")
+      : state.status === "latest"
+        ? t("settings.upToDate")
+        : state.status === "available"
+          ? t("settings.updateAvailable", { version: state.update.version })
+          : state.status === "error"
+            ? t("settings.updateError")
+            : "";
+  return (
+    <div className="version-line">
+      <span className="muted">{t("settings.version", { version })}</span>
+      {state.status !== "unavailable" && (
+        <>
+          <button
+            className="text-button"
+            disabled={state.status === "checking"}
+            onClick={check}
+          >
+            {t("settings.checkUpdates")}
+          </button>
+          {status && <span className="muted">{status}</span>}
+        </>
+      )}
+    </div>
   );
 }
 

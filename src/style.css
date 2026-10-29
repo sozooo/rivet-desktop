@@ -3501,3 +3501,49 @@ textarea::placeholder {
   height: 15px;
   color: var(--warn);
 }
+/* Updates: a quiet pill in the status bar and the release-notes dialog. */
+.statusbar .update-pill {
+  color: var(--accent);
+  font-weight: 600;
+}
+.version-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 22px;
+  font-size: 11px;
+}
+.update-dialog h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.update-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+.update-dialog h3 {
+  font-size: 12px;
+  margin: 18px 0 6px;
+}
+.modal p.update-notes {
+  white-space: pre-wrap;
+  color: var(--text);
+  max-height: 220px;
+  overflow: auto;
+  margin: 0 0 14px;
+}
+.update-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--hover);
+  overflow: hidden;
+  margin-top: 14px;
+}
+.update-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s;
+}
