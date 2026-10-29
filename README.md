@@ -68,8 +68,10 @@ src/
   unity/          Unity YAML parser, scene/prefab and material diffs
   i18n/           Russian and English dictionaries, plurals, simple-mode wording
   github/         GitHub sign-in (Device Flow), the repository list, the client ID (config.ts)
-  platform.ts     OS services: folder picker, repository discovery, clone and init
-src-tauri/        The desktop shell (Rust): runs git, reads files, finds repositories, keeps the GitHub token
+  errors/         Plain-language errors (explain.ts + real stderr samples), the error log, the crash screen
+  onboarding/     First-run check for Git, the name-and-email dialog
+  platform.ts     OS services: folder picker, repository discovery, clone and init, git versions and identity
+src-tauri/        The desktop shell (Rust): runs git, reads files, finds repositories, keeps the GitHub token, keeps the error log
 ```
 
 The UI never touches Git directly. It reads a `RepoSnapshot` from a `GitBackend` and calls its methods; the workspace refreshes the snapshot after every change and whenever the window regains focus. In the desktop app, repositories you add use `CliBackend`; the browser build and the sample repositories use `MockBackend`.
@@ -96,6 +98,29 @@ Git operations shown in dialogs (switch, pull, push, discard, merge…) are desc
 - **Previews instead of raw text** for what artists change: images side by side, as a swipe or an overlay (PNG, JPG, TGA, PSD); FBX/OBJ/glTF models in a 3D view with synced cameras, mesh statistics and playable animation clips (animation files without a mesh show their skeleton); Unity materials as property changes with color swatches, texture thumbnails (found through their GUIDs) and an approximate sphere; scenes and prefabs as a readable list of object changes (added, removed, moved, component values, prefab overrides, scene settings); `.meta` files as the import settings that changed, under the Inspector names. Files in Git LFS are read from the local LFS store; ones not downloaded yet say so. Full mode can switch any of these back to the text diff.
 - **Simple and full modes**, Russian and English. Simple mode (the default) speaks plainly and hides Git machinery: one Sync button, "Save version", no branches. Unity `.meta` files travel with their assets in both modes.
 - Light, dark or system theme; sidebar width, diff layout and other preferences persist.
+
+## First run, errors and the error log
+
+**First run.** On start the desktop app checks that Git for Windows is installed and is 2.32 or newer (Rivet relies on `git stash show --include-untracked`). If not, the whole window explains what to install, with a link to git-scm.com and «Проверить снова»; Rivet also looks in Git's usual install folders, so a Git installed while Rivet is open is found without a restart. A missing Git LFS only gets a note.
+
+Commits need a name and an email. When the global `user.name` / `user.email` are missing, Rivet asks once, as soon as a project is open: «Как подписывать ваши версии?». Signed in to GitHub, it fills in the account name and GitHub's private address `<id>+<login>@users.noreply.github.com`, so a real email isn't published. Saving writes them with `git config --global`. A commit that fails for a missing identity opens the same dialog and then commits. Settings shows the current name and email with «Изменить».
+
+**Errors in plain words.** `src/errors/explain.ts` maps git, Git LFS and Windows failures to dictionary keys and a suggested action: no network or timeouts (try again), expired sign-in (sign in to GitHub), a push the server refused because it has newer work (Sync), `index.lock` or a file Unity holds open (try again), a full disk, files over GitHub's 100 MB limit, local changes in the way, a moved or deleted project folder, a folder owned by another Windows user (trust it), and more. `src/errors/samples.ts` holds the real messages the tests check. Every place an error reaches the user goes through it: actions in the workspace (a toast), the screen for a project that won't open, and the clone/create/open screen. Simple mode shows only the plain message and the action; full mode adds «Подробнее» with git's own output, and shows git's text as is when Rivet has no explanation.
+
+**Error log.** The desktop app logs every git command it runs (arguments, folder, exit code, time, and the error output when it fails) and the app's own errors to `%LOCALAPPDATA%\app.rivet.desktop\logs\rivet.log`. At 512 KB the file moves to `rivet.1.log`, so the log stays near 1 MB. Passwords, tokens, `Authorization` headers and credentials in URLs (`https://user:token@…`) are replaced with `***` before anything is written; stdin, where the credential helper gets its input, is never logged. Settings → «Скопировать отчёт об ошибке» copies the Rivet, Windows, Git and Git LFS versions and the last 200 log lines, ready to paste into a message to the developer. If the window itself crashes, a crash screen offers to reload and to copy the same report.
+
+**Seeing these screens in the browser demo.** Add switches to the address of `npm run dev`:
+
+| Address | Shows |
+| --- | --- |
+| `?git=missing` | the "Rivet needs Git" screen |
+| `?git=old` | the "Git needs an update" screen (Git 2.25.1) |
+| `?lfs=missing` | the Git LFS note |
+| `?identity=empty` | the name-and-email dialog; saving a version fails until they're given |
+| `?crash` | the screen shown when the window itself crashes |
+| `?fail=<sample>` | the failure with that id from `src/errors/samples.ts`, every time Rivet reaches it: `?fail=offline` (fetch), `?fail=push-rejected` (push), `?fail=index-lock` (commit), `?fail=file-busy` (switching branches), `?fail=folder-missing` or `?fail=dubious-ownership` (opening the project), `?fail=auth-prompt` (cloning), and so on |
+
+Switches combine (`?identity=empty&lfs=missing`). In the demo the log lives in memory, and the report holds the browser's details instead of Windows and Git versions.
 
 ## Вход через GitHub
 

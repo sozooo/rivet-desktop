@@ -1,10 +1,12 @@
 mod art;
 mod account;
+mod applog;
 mod discover;
 mod git;
 
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
+use tauri::Manager;
 use tauri::ipc::Response;
 
 /// Runs git and returns its exit code with text output. Failures are data, not errors,
@@ -75,6 +77,11 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            let logs = app.path().app_local_data_dir()?.join("logs");
+            applog::init(logs, &app.package_info().version.to_string());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             git_text,
             git_bytes,
@@ -86,7 +93,9 @@ pub fn run() {
             art::unity_merge_tools,
             account::github_account_save,
             account::github_account_load,
-            account::github_account_forget
+            account::github_account_forget,
+            applog::log_write,
+            applog::diagnostics_report
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rivet");

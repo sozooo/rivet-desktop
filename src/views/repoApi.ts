@@ -14,6 +14,8 @@ export type RepoApi = {
   act: (
     action: (backend: GitBackend) => Promise<unknown>,
     success?: string,
+    /** What "Try again" runs instead of the action, when there are steps around it. */
+    again?: () => unknown,
   ) => Promise<RepoSnapshot | null>;
   openOperation: (id: OperationId, context?: Partial<OpContext>) => void;
   /** Gets others' work and sends ours: simple mode's one button. */

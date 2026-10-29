@@ -19,19 +19,35 @@ import { useI18n } from "../i18n/i18n";
 type Tone = "success" | "info" | "warning" | "error";
 export type ToastAction = { label: string; run: () => void };
 type Options = {
-  /** A button on the toast, e.g. Undo. */
+  /** A button on the toast, e.g. Undo or Try again. */
   action?: ToastAction;
+  /** Raw text behind "Details", for full mode. */
+  details?: string;
   /** Wait for the toast on screen to go away instead of replacing it. */
   queue?: boolean;
 };
 type Notify = (message: string, tone?: Tone, options?: Options) => void;
-type Toast = { message: string; tone: Tone; action?: ToastAction };
+type Toast = {
+  message: string;
+  tone: Tone;
+  action?: ToastAction;
+  details?: string;
+};
 
 const ToastContext = createContext<Notify>(() => {});
 export const useNotify = () => useContext(ToastContext);
 
+/** Toasts with a button or details stay long enough to reach them. */
+const lifetime = (toast: Toast) =>
+  toast.action || toast.details
+    ? 12000
+    : toast.tone === "success"
+      ? 3500
+      : 7000;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast>();
+  const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const showing = useRef(false);
   /** The latest queued toast; older ones are out of date by then. */
@@ -44,21 +60,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     queued.current = undefined;
     showing.current = !!next;
     setToast(next);
-    if (next) timer.current = setTimeout(hide, duration(next));
+    setOpen(false);
+    if (next) timer.current = setTimeout(hide, lifetime(next));
   }, []);
+  const hideLater = useCallback(
+    (shown: Toast) => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(hide, lifetime(shown));
+    },
+    [hide],
+  );
   const notify = useCallback<Notify>(
-    (message, tone = "success", options = {}) => {
-      const next = { message, tone, action: options.action };
-      if (options.queue && showing.current) {
+    (message, tone = "success", { queue, ...extras } = {}) => {
+      const next = { message, tone, ...extras };
+      if (queue && showing.current) {
         queued.current = next;
         return;
       }
-      clearTimeout(timer.current);
       showing.current = true;
       setToast(next);
-      timer.current = setTimeout(hide, duration(next));
+      setOpen(false);
+      hideLater(next);
     },
-    [hide],
+    [hideLater],
   );
   useEffect(() => () => clearTimeout(timer.current), []);
   return (
@@ -66,8 +90,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {toast && (
         <div
-          className={`toast ${toast.tone}`}
+          className={`toast ${toast.tone} ${open ? "open" : ""}`}
           role={toast.tone === "error" ? "alert" : "status"}
+          // Reading or opening the details keeps it on screen.
+          onMouseEnter={() => clearTimeout(timer.current)}
+          onMouseLeave={() => !open && hideLater(toast)}
         >
           {toast.tone === "error" ? (
             <AlertCircle size={16} />
@@ -78,7 +105,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           ) : (
             <CheckCircle2 size={16} />
           )}
-          {toast.message}
+          <div className="toast-body">
+            <span>{toast.message}</span>
+            {open && <pre className="error-details">{toast.details}</pre>}
+          </div>
+          {toast.details && (
+            <button
+              className="text-button"
+              aria-expanded={open}
+              onClick={() => {
+                clearTimeout(timer.current);
+                setOpen(!open);
+              }}
+            >
+              {t(open ? "error.hideDetails" : "error.details")}
+            </button>
+          )}
           {toast.action && (
             <button
               className="button toast-action"
@@ -103,7 +145,3 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     </ToastContext.Provider>
   );
 }
-
-/** Toasts with a button stay long enough to reach it. */
-const duration = (toast: Toast) =>
-  toast.action ? 10_000 : toast.tone === "success" ? 3500 : 7000;

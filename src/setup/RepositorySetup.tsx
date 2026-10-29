@@ -7,6 +7,9 @@ import {
   FolderSearch,
   Plus,
 } from "lucide-react";
+import { explainError } from "../errors/explain";
+import { appLog } from "../errors/log";
+import { ErrorMessage, useErrorAction } from "../errors/notice";
 import { useAccount } from "../github/account";
 import { platform, type FoundRepository } from "../platform";
 import {
@@ -57,11 +60,14 @@ export function RepositorySetup({
     [path, setPath] = useState("D:\\Projects"),
     [url, setUrl] = useState(""),
     [error, setError] = useState(""),
+    /** What git or Windows said when cloning, creating or opening failed. */
+    [failure, setFailure] = useState(""),
     [busy, setBusy] = useState(false),
     [found, setFound] = useState<FoundRepository[]>([]),
     [pasteLink, setPasteLink] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const { available: withGitHub, user } = useAccount();
+  const errorAction = useErrorAction();
   // Cloning with GitHub available: a sign-in card or the account's repositories,
   // and the destination folder in the folder hint instead of its own block.
   const gitHubClone = mode === "clone" && withGitHub;
@@ -88,6 +94,7 @@ export function RepositorySetup({
     if (folder) {
       setPath(folder);
       setError("");
+      setFailure("");
     }
   }
 
@@ -107,6 +114,7 @@ export function RepositorySetup({
     if (isAdded(destination)) return setError(t("setup.error.duplicate"));
     setBusy(true);
     setError("");
+    setFailure("");
     try {
       // Adding a subfolder of a repository adds the whole repository.
       const location =
@@ -127,9 +135,11 @@ export function RepositorySetup({
     } catch (failure) {
       const message =
         failure instanceof Error ? failure.message : String(failure);
-      setError(
-        message in platformErrors ? t(platformErrors[message]) : message,
-      );
+      if (message in platformErrors) setError(t(platformErrors[message]));
+      else {
+        appLog.error(`Setting up ${destination} (${mode})`, message);
+        setFailure(message);
+      }
     } finally {
       setBusy(false);
     }
@@ -164,6 +174,7 @@ export function RepositorySetup({
                   onClick={() => {
                     setMode(m);
                     setError("");
+                    setFailure("");
                   }}
                 >
                   <DrawIcon icon={Icon} active={m === mode} />
@@ -337,9 +348,18 @@ export function RepositorySetup({
                     : t("setup.note.browser")}
                 </p>
               )}
-              <p className="setup-error" role={error ? "alert" : undefined}>
-                {error || "\u00a0"}
-              </p>
+              {failure ? (
+                <SetupFailure
+                  failure={failure}
+                  fix={errorAction(explainError(failure), {
+                    retry: () => form.current?.requestSubmit(),
+                  })}
+                />
+              ) : (
+                <p className="setup-error" role={error ? "alert" : undefined}>
+                  {error || "\u00a0"}
+                </p>
+              )}
               <div className="setup-actions">
                 {onCancel && (
                   <button type="button" className="button" onClick={onCancel}>
@@ -376,5 +396,28 @@ export function RepositorySetup({
       </div>
       <SetupArt onClose={onCancel} />
     </section>
+  );
+}
+
+/** Plain words for a failed clone, create or open, and a fix when there is one (e.g. sign in). */
+function SetupFailure({
+  failure,
+  fix,
+}: {
+  failure: string;
+  fix?: { label: string; run: () => void };
+}) {
+  // The submit button already tries again; this is a fix such as signing in.
+  const action = explainError(failure)?.action;
+  const extra = fix && action && action !== "retry";
+  return (
+    <div className="setup-failure">
+      <ErrorMessage error={failure} className="setup-error" />
+      {extra && (
+        <button type="button" className="button" onClick={fix.run}>
+          {fix.label}
+        </button>
+      )}
+    </div>
   );
 }

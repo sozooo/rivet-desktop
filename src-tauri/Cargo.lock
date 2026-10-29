@@ -3448,6 +3448,7 @@ name = "rivet"
 version = "0.1.0"
 dependencies = [
  "keyring",
+ "regex",
  "serde",
  "serde_json",
  "tauri",
