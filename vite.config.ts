@@ -1,6 +1,8 @@
 import { configDefaults, defineConfig } from "vitest/config";
+import pkg from "./package.json" with { type: "json" };
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   clearScreen: false,
   server: {
     host: "127.0.0.1",

@@ -501,7 +501,7 @@ export const ru: Record<keyof typeof en, Message> = {
     "Простые слова и только то, что нужно, чтобы сохранять работу и делиться ею.",
   "settings.fullHint":
     "Все инструменты Git: ветки, фрагменты файлов, операции с историей.",
-  "settings.version": "Rivet 0.1",
+  "settings.version": "Rivet {version}",
 
   "shortcuts.eyebrow": "ШПАРГАЛКА",
   "shortcuts.title": "Горячие клавиши",
@@ -620,6 +620,24 @@ export const ru: Record<keyof typeof en, Message> = {
   "scene.axis.position": "Позиция {axis}",
   "scene.axis.rotation": "Поворот {axis}",
   "scene.axis.scale": "Масштаб {axis}",
+  "updates.available": "Доступна версия {version}",
+  "updates.eyebrow": "ОБНОВЛЕНИЕ",
+  "updates.title": "Новая версия Rivet {version}",
+  "updates.notes": "Что нового",
+  "updates.noNotes": "Описания к этой версии нет.",
+  "updates.hint":
+    "После обновления Rivet перезапустится. Ваши файлы и неотправленные версии никуда не денутся.",
+  "updates.later": "Позже",
+  "updates.install": "Обновить и перезапустить",
+  "updates.installing": "Скачиваю… {percent}%",
+  "updates.installingNoSize": "Скачиваю…",
+  "updates.failed": "Не получилось обновиться: {error}",
+  "settings.checkUpdates": "Проверить обновления",
+  "settings.checking": "Проверяю…",
+  "settings.upToDate": "Установлена последняя версия.",
+  "settings.updateAvailable": "Доступна версия {version}.",
+  "settings.updateError":
+    "Не получилось проверить обновления. Есть ли интернет?",
   "prs.title": "Pull requests",
   "prs.open": "открыто: {count}",
   "prs.close": "Закрыть pull requests",

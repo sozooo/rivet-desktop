@@ -30,6 +30,8 @@ import { useStoredState } from "./ui/hooks";
 import { SidebarContext } from "./ui/Panes";
 import { useNotify } from "./ui/Toast";
 import { useFadeSwitch } from "./ui/useFadeSwitch";
+import { UpdateDialog } from "./updates/UpdateDialog";
+import { useUpdates } from "./updates/updates";
 import { BranchesView } from "./views/branches/BranchesView";
 import { ChangesView } from "./views/changes/ChangesView";
 import { HistoryView } from "./views/history/HistoryView";
@@ -37,7 +39,7 @@ import type { RepoApi } from "./views/repoApi";
 
 type Dialog =
   | { kind: "operation"; id: OperationId; context: OpContext }
-  | { kind: "settings" | "shortcuts" | "pull-requests" };
+  | { kind: "settings" | "shortcuts" | "pull-requests" | "update" };
 
 export function Workspace({
   repository,
@@ -60,6 +62,7 @@ export function Workspace({
 }) {
   const notify = useNotify();
   const { t, mode: uiMode } = useI18n();
+  const updates = useUpdates();
   const [snapshot, setSnapshot] = useState<RepoSnapshot>();
   const [mode, setMode, phase] = useFadeSwitch<Mode>("Changes");
   const [setup, setSetup] = useState<SetupMode | null>(null);
@@ -253,6 +256,7 @@ export function Workspace({
         repository={repository.name}
         branch={snapshot.branches.current}
         onShortcuts={() => setDialog({ kind: "shortcuts" })}
+        onUpdate={() => setDialog({ kind: "update" })}
       />
       {setup && (
         <RepositorySetup
@@ -288,6 +292,12 @@ export function Workspace({
       {dialog?.kind === "settings" && (
         <SettingsDialog
           preferences={preferences}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === "update" && updates.state.status === "available" && (
+        <UpdateDialog
+          update={updates.state.update}
           onClose={() => setDialog(null)}
         />
       )}
