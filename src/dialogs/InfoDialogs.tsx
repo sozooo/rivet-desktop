@@ -1,43 +1,9 @@
-import type { ReactNode } from "react";
-import { Monitor, Moon, Sun, X } from "lucide-react";
+import { Github, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import type { Preferences } from "../App";
+import { useAccount } from "../github/account";
 import { useI18n, type Key } from "../i18n/i18n";
-
-function Dialog({
-  eyebrow,
-  title,
-  onClose,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <section
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          className="modal-close icon-button"
-          aria-label={t("dialog.close")}
-          onClick={onClose}
-        >
-          <X />
-        </button>
-        <div className="eyebrow">{eyebrow}</div>
-        <h2>{title}</h2>
-        {children}
-      </section>
-    </div>
-  );
-}
+import { Dialog } from "../ui/Dialog";
+import { Avatar } from "../ui/Avatar";
 
 function Choice<T extends string>({
   label,
@@ -71,6 +37,60 @@ function Choice<T extends string>({
   );
 }
 
+/** The GitHub account: who is signed in, with sign-in and sign-out. */
+function AccountSetting() {
+  const { t, mode } = useI18n();
+  const { available, user, signIn, signOut } = useAccount();
+  if (!available)
+    return mode === "full" ? (
+      <div className="setting">
+        <span className="setting-label">{t("settings.account")}</span>
+        <p className="setting-hint">{t("github.notConfigured")}</p>
+      </div>
+    ) : null;
+  return (
+    <div className="setting">
+      <span className="setting-label">{t("settings.account")}</span>
+      <div className="account">
+        {user ? (
+          <Avatar name={user.name ?? user.login} url={user.avatarUrl} />
+        ) : (
+          <span className="avatar">
+            <Github />
+          </span>
+        )}
+        <span className="account-name">
+          <strong>
+            {user === undefined
+              ? t("github.checking")
+              : user
+                ? (user.name ?? user.login)
+                : t("github.notSignedIn")}
+          </strong>
+          <small>{user ? `@${user.login}` : t("github.signInHint")}</small>
+        </span>
+        {user ? (
+          <button
+            className="button"
+            title={t("github.signOutHint")}
+            onClick={signOut}
+          >
+            <LogOut />
+            {t("github.signOut")}
+          </button>
+        ) : (
+          user === null && (
+            <button className="button primary" onClick={signIn}>
+              <Github />
+              {t("github.signIn")}
+            </button>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SettingsDialog({
   preferences,
   onClose,
@@ -86,6 +106,7 @@ export function SettingsDialog({
       title={t("settings.title")}
       onClose={onClose}
     >
+      <AccountSetting />
       <Choice
         label={t("settings.mode")}
         value={mode}

@@ -4,7 +4,7 @@ A Git client for two kinds of people: someone who has never used Git and just wa
 
 Rivet runs two ways:
 
-- **Desktop app** (Tauri): works with real repositories through the `git` command-line tool. Needs [Git for Windows](https://git-scm.com/download/win); sign-in to GitHub and other hosts goes through Git Credential Manager, which ships with it.
+- **Desktop app** (Tauri): works with real repositories through the `git` command-line tool. Needs [Git for Windows](https://git-scm.com/download/win); Git Credential Manager, which ships with it, handles sign-in to other hosts. GitHub has its own sign-in in Rivet (see «Вход через GitHub» below).
 - **Browser** (`npm run dev`): the same UI against an in-memory demo repository. Nothing is read from or written to disk. Handy for working on the UI.
 
 ## Run
@@ -40,13 +40,14 @@ src/
   preview/        Image, model, material and scene previews in the diff area
   unity/          Unity YAML parser, scene/prefab and material diffs
   i18n/           Russian and English dictionaries, plurals, simple-mode wording
+  github/         GitHub sign-in (Device Flow), the repository list, the client ID (config.ts)
   platform.ts     OS services: folder picker, repository discovery, clone and init
-src-tauri/        The desktop shell (Rust): runs git, reads files, finds repositories
+src-tauri/        The desktop shell (Rust): runs git, reads files, finds repositories, keeps the GitHub token
 ```
 
 The UI never touches Git directly. It reads a `RepoSnapshot` from a `GitBackend` and calls its methods; the workspace refreshes the snapshot after every change and whenever the window regains focus. In the desktop app, repositories you add use `CliBackend`; the browser build and the sample repositories use `MockBackend`.
 
-`CliBackend` builds the whole snapshot from a handful of git commands (`status --porcelain=v2`, `diff`, `diff --cached`, `log`, `for-each-ref`, `stash list`). Selecting a single hunk applies that hunk as a patch to the index (`git apply --cached`), so the checkboxes always match what git itself would commit. The Rust side only runs `git` (without console windows and without terminal prompts), reads working-tree files and finds repositories listed by Unity Hub and SourceGit; all Git logic lives in TypeScript, where `src/git/cli/CliBackend.test.ts` exercises it against real temporary repositories.
+`CliBackend` builds the whole snapshot from a handful of git commands (`status --porcelain=v2`, `diff`, `diff --cached`, `log`, `for-each-ref`, `stash list`). Selecting a single hunk applies that hunk as a patch to the index (`git apply --cached`), so the checkboxes always match what git itself would commit. The Rust side only runs `git` (without console windows and without terminal prompts), reads working-tree files, finds repositories listed by Unity Hub and SourceGit, and keeps the GitHub token in the OS keychain (`account.rs`); GitHub's API is reached through Tauri's HTTP plugin, allowed only for `github.com/login/*` and `api.github.com`; all Git logic lives in TypeScript, where `src/git/cli/CliBackend.test.ts` exercises it against real temporary repositories.
 
 Git operations shown in dialogs (switch, pull, push, discard, merge…) are described once in `dialogs/operations.ts`: title, explanation, the equivalent Git command, and what to run. Merge, rebase, checkout, cherry-pick and revert only show their Git command for now.
 
@@ -57,7 +58,32 @@ Git operations shown in dialogs (switch, pull, push, discard, merge…) are desc
 - **History** with a computed commit graph, commit details and a searchable file browser.
 - **Branches**: switch, create, and see how far a branch is from main.
 - **Fetch / Pull / Push** with an explanation of what happens; pulling onto unpublished commits creates a merge commit, never a rebase.
+- **GitHub sign-in**: «Войти через GitHub» on the Clone tab or in Settings. Once signed in, Clone shows your repositories (yours, shared with you and your organisations') with search, so there are no links to copy. The token stays in Windows Credential Manager and is handed to Git Credential Manager, so pull and push work without extra prompts.
 - **Repositories**: clone, add existing (Browse, or one click on a repository found in Unity Hub or SourceGit), create, and remove from the list. Adding a subfolder of a repository adds the whole repository.
 - **Previews instead of raw text** for what artists change: images side by side, as a swipe or an overlay (PNG, JPG, TGA, PSD); FBX/OBJ/glTF models in a 3D view with synced cameras, mesh statistics and playable animation clips (animation files without a mesh show their skeleton); Unity materials as property changes with color swatches, texture thumbnails (found through their GUIDs) and an approximate sphere; scenes and prefabs as a readable list of object changes (added, removed, moved, component values, prefab overrides, scene settings); `.meta` files as the import settings that changed, under the Inspector names. Files in Git LFS are read from the local LFS store; ones not downloaded yet say so. Full mode can switch any of these back to the text diff.
 - **Simple and full modes**, Russian and English. Simple mode (the default) speaks plainly and hides Git machinery: one Sync button, "Save version", no branches. Unity `.meta` files travel with their assets in both modes.
 - Light, dark or system theme; sidebar width, diff layout and other preferences persist.
+
+## Вход через GitHub
+
+Rivet входит в GitHub через OAuth Device Flow: приложение показывает короткий код, вы вводите его на github.com, и всё. Секретный ключ приложения (client secret) не нужен. Токен хранится только в Диспетчере учётных данных Windows и передаётся Git Credential Manager, поэтому clone, pull и push по HTTPS проходят без лишних окон. «Выйти» в настройках удаляет его из обоих мест.
+
+Чтобы вход заработал, один раз зарегистрируйте своё OAuth-приложение на GitHub:
+
+1. Откройте https://github.com/settings/applications/new (для организации: настройки организации → Developer settings → OAuth Apps → New OAuth App).
+2. Заполните поля:
+   - **Application name**: `Rivet`;
+   - **Homepage URL**: любой адрес, например `https://github.com/<ваш-логин>`;
+   - **Authorization callback URL**: тот же адрес. Device Flow его не использует, но поле обязательное.
+3. Нажмите **Register application**.
+4. На странице приложения отметьте **Enable Device Flow** и нажмите **Update application**.
+5. Скопируйте **Client ID** (вида `Ov23li…`). Client secret создавать не нужно.
+6. Вставьте Client ID в `src/github/config.ts` вместо `YOUR_CLIENT_ID` и пересоберите приложение (`npm run desktop` или `npm run desktop:build`).
+
+Client ID не секрет: он всё равно виден внутри собранного приложения, его можно коммитить. А client secret в репозиторий попадать не должен, и Rivet он не нужен.
+
+Пока Client ID не указан, настольная версия не показывает кнопку входа; в полном режиме в настройках есть подсказка.
+
+Если репозиториев организации нет в списке, значит организация ограничила доступ сторонним OAuth-приложениям. Владелец организации может одобрить Rivet в настройках организации: Third-party Access → OAuth application policy. Отозвать доступ Rivet к своему аккаунту можно на https://github.com/settings/applications.
+
+В браузерной демо-версии (`npm run dev`) вход ненастоящий: демо-аккаунт и примерный список репозиториев.

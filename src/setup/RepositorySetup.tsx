@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -7,6 +7,7 @@ import {
   FolderSearch,
   Plus,
 } from "lucide-react";
+import { useAccount } from "../github/account";
 import { platform, type FoundRepository } from "../platform";
 import {
   samePath,
@@ -17,6 +18,11 @@ import {
 import { useI18n, type Key } from "../i18n/i18n";
 import { DrawIcon } from "../ui/DrawIcon";
 import { useFadeSwitch } from "../ui/useFadeSwitch";
+import {
+  GitHubHeading,
+  GitHubRepositoryList,
+  GitHubSignInCard,
+} from "./GitHubRepositories";
 import { setupModeMeta } from "./modes";
 import { SetupArt } from "./SetupArt";
 
@@ -52,7 +58,14 @@ export function RepositorySetup({
     [url, setUrl] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [found, setFound] = useState<FoundRepository[]>([]);
+    [found, setFound] = useState<FoundRepository[]>([]),
+    [pasteLink, setPasteLink] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+  const { available: withGitHub, user } = useAccount();
+  // Cloning with GitHub available: a sign-in card or the account's repositories,
+  // and the destination folder in the folder hint instead of its own block.
+  const gitHubClone = mode === "clone" && withGitHub;
+  const listing = gitHubClone && !!user && !pasteLink;
   useEffect(() => {
     platform.discoverRepositories().then(setFound);
   }, []);
@@ -81,6 +94,7 @@ export function RepositorySetup({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
+    if (listing && !url.trim()) return setError(t("setup.github.pick"));
     if (!resolvedName || !path.trim())
       return setError(t("setup.error.nameLocation"));
     if (
@@ -158,7 +172,9 @@ export function RepositorySetup({
               );
             })}
           </div>
-          <div className={`setup-page fade-switch ${phase}`}>
+          <div
+            className={`setup-page fade-switch ${phase} ${listing ? "listing" : ""}`}
+          >
             <div className="setup-intro">
               <div className="eyebrow">{t("setup.eyebrow")}</div>
               <h1>
@@ -169,9 +185,36 @@ export function RepositorySetup({
                 {t(`setup.${mode}.text` as Key)}
               </p>
             </div>
-            <form onSubmit={submit}>
-              <div className={`setup-fields ${mode}`}>
-                {mode === "clone" && (
+            <form ref={form} onSubmit={submit}>
+              <div
+                className={`setup-fields ${mode} ${gitHubClone ? "github" : ""} ${listing ? "listing" : ""}`}
+              >
+                {gitHubClone && user === null && <GitHubSignInCard />}
+                {gitHubClone && user && pasteLink && (
+                  <GitHubHeading user={user}>
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => setPasteLink(false)}
+                    >
+                      {t("setup.github.backToList")}
+                    </button>
+                  </GitHubHeading>
+                )}
+                {listing && user && (
+                  <GitHubRepositoryList
+                    key={user.login}
+                    user={user}
+                    url={url}
+                    onPick={(picked) => {
+                      setUrl(picked);
+                      setError("");
+                    }}
+                    onSubmit={() => form.current?.requestSubmit()}
+                    onManual={() => setPasteLink(true)}
+                  />
+                )}
+                {mode === "clone" && !listing && (
                   <label>
                     {t("setup.url")}
                     <input
@@ -210,10 +253,14 @@ export function RepositorySetup({
                       {t("setup.browse")}
                     </button>
                   </span>
-                  <small>
-                    {t(
-                      mode === "open" ? "setup.hint.open" : "setup.hint.other",
-                    )}
+                  <small className={gitHubClone ? "setup-destination" : ""}>
+                    {gitHubClone && resolvedName
+                      ? t("setup.destination", { path: destination })
+                      : t(
+                          mode === "open"
+                            ? "setup.hint.open"
+                            : "setup.hint.other",
+                        )}
                   </small>
                 </label>
                 {mode === "create" && (
@@ -273,18 +320,23 @@ export function RepositorySetup({
                   })}
                 </div>
               ) : (
-                <div className="setup-preview">
-                  <span>{t("setup.localWorkspace")}</span>
-                  <code>{destination}</code>
-                </div>
+                !gitHubClone && (
+                  <div className="setup-preview">
+                    <span>{t("setup.localWorkspace")}</span>
+                    <code>{destination}</code>
+                  </div>
+                )
               )}
-              <p className="setup-demo">
-                {platform.desktop
-                  ? mode === "clone"
-                    ? t("setup.note.signIn")
-                    : "\u00a0"
-                  : t("setup.note.browser")}
-              </p>
+              {/* On the desktop the GitHub card or list takes this room instead of the note. */}
+              {!(platform.desktop && gitHubClone) && (
+                <p className="setup-demo">
+                  {platform.desktop
+                    ? mode === "clone"
+                      ? t("setup.note.signIn")
+                      : "\u00a0"
+                    : t("setup.note.browser")}
+                </p>
+              )}
               <p className="setup-error" role={error ? "alert" : undefined}>
                 {error || "\u00a0"}
               </p>

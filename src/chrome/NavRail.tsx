@@ -6,9 +6,10 @@ import {
   Settings,
   Sun,
 } from "lucide-react";
+import { useAccount } from "../github/account";
 import { useI18n, type Key } from "../i18n/i18n";
+import { Avatar } from "../ui/Avatar";
 import { DrawIcon } from "../ui/DrawIcon";
-import { initials } from "../ui/hooks";
 
 export type Mode = "Changes" | "History" | "Branches";
 
@@ -41,6 +42,7 @@ export function NavRail({
   user: string;
 }) {
   const { t, mode: uiMode } = useI18n();
+  const account = useAccount().user;
   return (
     <nav className="nav-rail">
       <div>
@@ -77,9 +79,12 @@ export function NavRail({
         >
           <Settings size={21} />
         </button>
-        <span className="avatar" title={user}>
-          {initials(user)}
-        </span>
+        {/* Signed in to GitHub: its picture stands in for the initials. */}
+        <Avatar
+          name={user}
+          url={account?.avatarUrl}
+          title={account ? `${user} · @${account.login}` : user}
+        />
       </div>
     </nav>
   );

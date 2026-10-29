@@ -145,6 +145,31 @@ export const en = {
     "This folder is not a Git repository yet. Use Create new to start one here.",
   "setup.footer": "Your repositories. Your workflow.",
   "setup.closeLabel": "Close repository setup",
+  "setup.destination": "Clones into {path}",
+  "setup.destination@simple": "Downloads to {path}",
+  "setup.github.title": "Your repositories on GitHub",
+  "setup.github.title@simple": "Your projects on GitHub",
+  "setup.github.text": "Sign in and pick from a list instead of copying links.",
+  "setup.github.text@simple":
+    "Sign in and your projects show up as a list. No links to hunt for.",
+  "setup.github.heading": "YOUR GITHUB · @{login}",
+  "setup.github.manual": "Paste a link",
+  "setup.github.backToList": "Back to my list",
+  "setup.github.refresh": "Refresh the list",
+  "setup.github.search": "Find a repository",
+  "setup.github.search@simple": "Find a project",
+  "setup.github.loading": "Loading your repositories…",
+  "setup.github.loading@simple": "Loading your projects…",
+  "setup.github.empty": "This account has no repositories yet.",
+  "setup.github.empty@simple": "This account has no projects yet.",
+  "setup.github.noMatches": "Nothing matches “{query}”.",
+  "setup.github.error": "Couldn't load the list: {message}",
+  "setup.github.retry": "Try again",
+  "setup.github.private": "Private",
+  "setup.github.private@simple": "Private",
+  "setup.github.updated": "Updated {time}",
+  "setup.github.pick": "Pick a repository from the list.",
+  "setup.github.pick@simple": "Pick a project from the list.",
   "art.label": "MAKE ROOM FOR WHAT’S NEXT",
   "art.title1": "A clearer view.",
   "art.title2": "A little more flow.",
@@ -445,6 +470,49 @@ export const en = {
   "settings.fullHint":
     "Every Git tool: branches, parts of files, history operations.",
   "settings.version": "Rivet 0.1",
+  "settings.account": "GitHub account",
+
+  "github.signIn": "Sign in with GitHub",
+  "github.signOut": "Sign out",
+  "github.signOutHint":
+    "Rivet and Git on this computer forget this sign-in. Your repositories stay as they are.",
+  "github.signOutHint@simple":
+    "Rivet forgets this sign-in on this computer. Your projects stay as they are.",
+  "github.checking": "Checking…",
+  "github.notSignedIn": "Not signed in",
+  "github.signInHint": "Sign in to clone your repositories from a list.",
+  "github.signInHint@simple": "Sign in to download your projects from a list.",
+  "github.notConfigured":
+    "GitHub sign-in needs an OAuth client ID in src/github/config.ts. README.md explains how to get one.",
+  "github.signedIn": "Signed in as @{login}",
+  "github.signedOut": "Signed out of GitHub",
+
+  "signin.eyebrow": "GITHUB",
+  "signin.title": "Sign in with GitHub",
+  "signin.text":
+    "Open GitHub in your browser and enter this code there. Rivet waits here and carries on by itself.",
+  "signin.codeLabel": "Code to enter on GitHub",
+  "signin.copy": "Copy code",
+  "signin.copied": "Copied",
+  "signin.open": "Copy code and open GitHub",
+  "signin.requesting": "Getting a code from GitHub…",
+  "signin.waiting": "Waiting for you to confirm on GitHub…",
+  "signin.manual": "If the browser didn't open, go to {url} yourself.",
+  "signin.demo": "Demo: sign-in completes a moment after you open GitHub.",
+  "signin.retry": "Try again",
+  "signin.error.expired": "The code has expired. Try again to get a new one.",
+  "signin.error.denied": "Sign-in was cancelled on GitHub.",
+  "signin.error.notConfigured":
+    "GitHub doesn't recognise Rivet's client ID. Check src/github/config.ts.",
+  "signin.error.notConfigured@simple":
+    "GitHub sign-in isn't set up in this copy of Rivet yet. Ask whoever installed it to check.",
+  "signin.error.disabled":
+    "Device Flow is off for Rivet's OAuth App. Turn it on in the app's settings on GitHub.",
+  "signin.error.disabled@simple":
+    "GitHub sign-in isn't set up in this copy of Rivet yet. Ask whoever installed it to check.",
+  "signin.error.network":
+    "Couldn't reach GitHub. Check your internet connection and try again.",
+  "signin.error.unexpected": "Couldn't sign in: {message}",
 
   "shortcuts.eyebrow": "QUICK REFERENCE",
   "shortcuts.title": "Shortcuts",

@@ -2486,6 +2486,236 @@ textarea::placeholder {
 .found-repo:not(:hover):not(:disabled) .found-action {
   opacity: 0.55;
 }
+
+/* GitHub: sign-in card and repository list on the clone tab, sign-in dialog, account. */
+.setup-fields.github {
+  height: auto;
+}
+.setup-fields.listing {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* The list needs the room; the title stays where it is. */
+.setup-page.listing .setup-intro {
+  height: auto;
+  margin-bottom: 20px;
+}
+.setup-content label small.setup-destination {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.github-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 14px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.github-card > svg {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+}
+.github-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.github-card-text strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.github-card-text small {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.github-repos {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+.github-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  margin-bottom: 8px;
+  font-size: 9px;
+  letter-spacing: 1.1px;
+  color: var(--muted);
+}
+.github-heading > span:nth-child(2) {
+  flex: 1;
+}
+.github-heading .avatar {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  font-size: 7px;
+}
+.github-heading .text-button {
+  letter-spacing: 0;
+  color: var(--accent);
+}
+.github-heading .icon-button svg {
+  width: 13px;
+  height: 13px;
+}
+.github-search {
+  position: relative;
+  flex-shrink: 0;
+}
+.github-search svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.setup-content .github-search input {
+  padding-left: 32px;
+}
+.github-repo-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin-top: 6px;
+}
+.github-repo {
+  padding: 6px 10px;
+}
+.github-repo.picked,
+.github-repo.picked:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.github-repo.picked > svg {
+  color: var(--accent);
+}
+.github-owner {
+  color: var(--muted);
+  font-weight: 400;
+}
+.found-meta em svg {
+  width: 9px;
+  height: 9px;
+  margin-right: 3px;
+  vertical-align: -1px;
+}
+.github-updated {
+  min-width: 78px;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+.github-note {
+  padding: 12px 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.device-code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0 16px;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.device-code code {
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 5px;
+  user-select: all;
+}
+.device-code.pending code {
+  color: var(--muted);
+}
+.modal p.signin-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: var(--text);
+}
+.signin-pulse {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: signin-pulse 1.6s ease-in-out infinite;
+}
+@keyframes signin-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.modal p.signin-error {
+  margin: 0;
+  color: #bb726b;
+}
+img.avatar {
+  object-fit: cover;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.account .avatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  font-size: 12px;
+}
+.account .avatar svg {
+  width: 17px;
+  height: 17px;
+}
+.account-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.account-name strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.account-name small {
+  font-size: 11px;
+  color: var(--muted);
+}
 .setup-content form label {
   margin-bottom: 16px;
   gap: 7px;
