@@ -29,7 +29,8 @@ export const ru: Record<keyof typeof en, Message> = {
   "nav.toggleTheme": "Переключить тему",
   "nav.settings": "Настройки",
 
-  "top.currentBranch": "Текущая ветка: {branch}",
+  "top.currentBranch":
+    "Текущая ветка: {branch}. Нажмите, чтобы перейти на другую.",
   "top.checkRemote": "Проверить, нет ли новых коммитов на сервере",
   "top.noRemote": "Нет сервера",
   "top.neverChecked": "Не проверялось",
@@ -66,11 +67,41 @@ export const ru: Record<keyof typeof en, Message> = {
   "top.sync": "Синхронизировать",
   "top.syncTitle":
     "Получить свежую работу остальных и отправить ваши сохранённые версии",
-  "top.state.upToDate": "Всё актуально",
-  "top.state.updates": "Есть обновления: {count}",
-  "top.state.unsent": "Не отправлено: {count}",
-  "top.state.both": "Обновления: {behind} · не отправлено: {ahead}",
-  "top.state.local": "Только на этом компьютере",
+  "top.status.local": "Только на этом компьютере",
+  "top.status.unpublished": "Этой ветки ещё нет на сервере",
+  "top.status.upToDate": "Всё актуально",
+  "top.status.incoming": {
+    one: "{count} входящий коммит",
+    few: "{count} входящих коммита",
+    many: "{count} входящих коммитов",
+    other: "{count} входящего коммита",
+  },
+  "top.status.incoming@simple": {
+    one: "{count} новая версия от коллег",
+    few: "{count} новые версии от коллег",
+    many: "{count} новых версий от коллег",
+    other: "{count} новой версии от коллег",
+  },
+  "top.status.toPublish": "{count} к отправке",
+  "top.status.toPublish@simple": {
+    one: "{count} версия ждёт отправки",
+    few: "{count} версии ждут отправки",
+    many: "{count} версий ждут отправки",
+    other: "{count} версии ждут отправки",
+  },
+  "top.busy": "Подождите, пока Rivet закончит",
+
+  "branchMenu.search": "Найти ветку",
+  "branchMenu.local": "ЛОКАЛЬНЫЕ ВЕТКИ",
+  "branchMenu.local@simple": "ВАШИ ВЕТКИ",
+  "branchMenu.remote": "ТОЛЬКО НА СЕРВЕРЕ",
+  "branchMenu.remoteHint":
+    "Есть только на сервере. При переходе Rivet скачает её в локальную ветку, которая следит за серверной.",
+  "branchMenu.remoteHint@simple":
+    "Есть только на сервере. Rivet скачает её, когда вы перейдёте.",
+  "branchMenu.nothing": "Таких веток нет",
+  "branchMenu.new": "Новая ветка…",
+  "branchMenu.all": "Все ветки…",
   "top.working.check": "Проверяю…",
   "top.working.sync": "Синхронизирую…",
 
@@ -80,6 +111,13 @@ export const ru: Record<keyof typeof en, Message> = {
     many: "На {upstream} появилось {count} новых коммитов. Нажмите «Получить», чтобы забрать их.",
     other:
       "На {upstream} появилось {count} новых коммита. Нажмите «Получить», чтобы забрать их.",
+  },
+  "fetch.newCommits@simple": {
+    one: "От коллег пришла {count} новая версия. Нажмите «Синхронизировать», чтобы забрать её.",
+    few: "От коллег пришли {count} новые версии. Нажмите «Синхронизировать», чтобы забрать их.",
+    many: "От коллег пришло {count} новых версий. Нажмите «Синхронизировать», чтобы забрать их.",
+    other:
+      "От коллег пришло {count} новой версии. Нажмите «Синхронизировать», чтобы забрать их.",
   },
   "fetch.nothing": "Сервер проверен. Ничего нового.",
   "sync.done": "Всё синхронизировано.",
@@ -363,7 +401,7 @@ export const ru: Record<keyof typeof en, Message> = {
   "branches.remoteOrTag": "Ветка на сервере или тег",
   "branches.newFromHere": "Новая ветка отсюда…",
   "branches.switch": "Перейти на эту ветку",
-  "branches.onlyLocal": "Перейти можно только на локальную ветку",
+  "branches.notTag": "Перейти можно только на ветку, не на тег",
   "branches.merge": "Слить в {branch}…",
   "branches.rebase": "Перебазировать {branch} на неё…",
   "branches.compared": "По сравнению с main",
@@ -438,7 +476,23 @@ export const ru: Record<keyof typeof en, Message> = {
 
   "op.switch-branch.title": "Перейти на ветку",
   "op.switch-branch.describe":
-    "Перейти с {branch} на {target}. Незакоммиченные изменения переедут вместе с вами.",
+    "Перейти с {branch} на {target}. Файлы рабочей копии станут такими, как в {target}.",
+  "op.switch-branch.describe@simple":
+    "Перейти с ветки {branch} на {target}. Файлы в папке проекта станут такими, как в {target}.",
+  "op.switch-branch.changes": {
+    one: "{count} незакоммиченный файл переедет с вами на {target}. Чтобы оставить его здесь, сначала закоммитьте его или уберите в stash.",
+    few: "{count} незакоммиченных файла переедут с вами на {target}. Чтобы оставить их здесь, сначала закоммитьте их или уберите в stash.",
+    many: "{count} незакоммиченных файлов переедут с вами на {target}. Чтобы оставить их здесь, сначала закоммитьте их или уберите в stash.",
+    other:
+      "{count} незакоммиченного файла переедут с вами на {target}. Чтобы оставить их здесь, сначала закоммитьте их или уберите в stash.",
+  },
+  "op.switch-branch.changes@simple": {
+    one: "{count} несохранённый файл переедет с вами на {target}. Если он нужен только здесь, сначала сохраните или отложите его.",
+    few: "{count} несохранённых файла переедут с вами на {target}. Если они нужны только здесь, сначала сохраните или отложите их.",
+    many: "{count} несохранённых файлов переедут с вами на {target}. Если они нужны только здесь, сначала сохраните или отложите их.",
+    other:
+      "{count} несохранённого файла переедут с вами на {target}. Если они нужны только здесь, сначала сохраните или отложите их.",
+  },
   "op.switch-branch.confirm": "Перейти",
   "op.switch-branch.done": "Вы на ветке {target}.",
   "op.new-branch.title": "Новая ветка",
@@ -927,6 +981,10 @@ export const ru: Record<keyof typeof en, Message> = {
     "Сначала закоммитьте или отложите изменения: слияние перезаписало бы {files}.",
   "error.localChanges@simple":
     "Сначала сохраните версию, потом синхронизируйте ещё раз. Тогда Rivet объединит ваши изменения с изменениями с сервера ({files}).",
+  "error.switchChanges":
+    "Сначала закоммитьте изменения или уберите их в stash: переход на ветку перезаписал бы {files}.",
+  "error.switchChanges@simple":
+    "Сначала сохраните версию или отложите изменения, иначе при переходе пропадёт ваша работа в {files}.",
 
   "settings.project": "Этот проект",
   "settings.lfs": "Большие файлы (Git LFS)",

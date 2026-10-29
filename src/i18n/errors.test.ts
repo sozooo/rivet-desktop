@@ -16,6 +16,14 @@ describe("explainError", () => {
     ).toEqual({ files: "A.png, B.png, C.png, …" });
   });
 
+  it("tells a branch switch apart from a pull", () => {
+    expect(
+      explainError(
+        "error: Your local changes to the following files would be overwritten by checkout:\n\tForest.txt\nPlease commit your changes or stash them before you switch branches.\nAborting",
+      ),
+    ).toEqual({ key: "error.switchChanges", params: { files: "Forest.txt" } });
+  });
+
   it("explains a missing git-lfs and leftover conflict markers", () => {
     expect(
       explainError("git: 'lfs' is not a git command. See 'git --help'.")?.key,

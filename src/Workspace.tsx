@@ -22,6 +22,7 @@ import { PullRequests, openPullRequests } from "./dialogs/PullRequests";
 import type { GitBackend } from "./git/backend";
 import { unresolved } from "./git/conflicts";
 import type { RepoSnapshot } from "./git/types";
+import { groupWithMeta } from "./git/unity";
 import type { Repository, SetupMode } from "./repositories";
 import { RepositorySetup } from "./setup/RepositorySetup";
 import type { Preferences } from "./App";
@@ -167,17 +168,31 @@ export function Workspace({
       </div>
     ) : null;
 
+  const opContext = (context: Partial<OpContext> = {}): OpContext => ({
+    branch: snapshot.branches.current,
+    branches: snapshot.branches.local,
+    sync: snapshot.sync,
+    changes: groupWithMeta(snapshot.files).length,
+    ...context,
+  });
   const openOperation = (id: OperationId, context: Partial<OpContext> = {}) =>
-    setDialog({
-      kind: "operation",
-      id,
-      context: {
-        branch: snapshot.branches.current,
-        branches: snapshot.branches.local,
-        sync: snapshot.sync,
-        ...context,
-      },
-    });
+    setDialog({ kind: "operation", id, context: opContext(context) });
+
+  async function runOperation(id: OperationId, context: OpContext, input = "") {
+    const op = operations[id];
+    setWorking(`${t(opKey(id, "title"))}…`);
+    await act(
+      (b) => op.run!(b, context, input),
+      t(opKey(id, "done"), op.params(context, t, input)),
+    );
+    setWorking(null);
+  }
+
+  /** Nothing unsaved means nothing to lose or carry along, so no questions. */
+  const switchBranch = (target: string) =>
+    snapshot.files.length
+      ? openOperation("switch-branch", { target })
+      : runOperation("switch-branch", opContext({ target }));
   const demo = !platform.desktop || repository.kind === "demo";
   const repo: RepoApi = {
     repository,
@@ -243,6 +258,7 @@ export function Workspace({
         onFetch={fetchRemote}
         onSync={sync}
         onBranches={() => setMode("Branches")}
+        onSwitchBranch={switchBranch}
         onSwitchRepository={onSwitchRepository}
         onRemoveRepository={onRemoveRepository}
         onSetup={setSetup}
@@ -311,16 +327,9 @@ export function Workspace({
           context={dialog.context}
           demo={demo}
           onClose={() => setDialog(null)}
-          onRun={async (input) => {
-            const { id, context } = dialog;
-            const op = operations[id];
+          onRun={(input) => {
             setDialog(null);
-            setWorking(`${t(opKey(id, "title"))}…`);
-            await act(
-              (b) => op.run!(b, context, input),
-              t(opKey(id, "done"), op.params(context, t, input)),
-            );
-            setWorking(null);
+            runOperation(dialog.id, dialog.context, input);
           }}
         />
       )}

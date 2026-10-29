@@ -1,4 +1,5 @@
 import type { GitBackend } from "../backend";
+import { localName } from "../branches";
 import { conflictStatus } from "../conflicts";
 import { lfsPointer, type LfsPointer } from "../fileKinds";
 import {
@@ -728,7 +729,21 @@ export class CliBackend implements GitBackend {
   }
 
   async switchBranch(name: string) {
-    await this.run(["switch", name]);
+    const { local, remote } = parseRefs(
+      await this.run([
+        "for-each-ref",
+        "--format=%(refname)",
+        "refs/heads",
+        "refs/remotes",
+      ]),
+    );
+    if (local.includes(name) || !remote.includes(name))
+      await this.run(["switch", name]);
+    // The server's copy of a branch this computer has: go to the local one.
+    else if (local.includes(localName(name)))
+      await this.run(["switch", localName(name)]);
+    // Only on the server: make a local copy that follows it.
+    else await this.run(["switch", "--track", name]);
   }
 
   async fetch() {

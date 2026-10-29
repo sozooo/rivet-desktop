@@ -1,4 +1,5 @@
 import type { GitBackend } from "../backend";
+import { localName } from "../branches";
 import { isConflicted } from "../conflicts";
 import { SMART_MERGE_EXTENSIONS, tooLarge } from "../lfs";
 import { extension } from "../paths";
@@ -76,7 +77,9 @@ export class MockBackend implements GitBackend {
     this.local = sample
       ? ["main", "develop", "feature/player-movement", "fix/camera-jitter"]
       : ["main"];
-    this.remote = sample ? ["origin/main", "origin/develop"] : [];
+    this.remote = sample
+      ? ["origin/main", "origin/develop", "origin/art/forest-textures"]
+      : [];
     this.tags = sample ? ["v0.3.0", "v0.2.0"] : [];
     this.hasRemote = sample;
     this.ahead = sample ? 3 : 0;
@@ -262,7 +265,12 @@ export class MockBackend implements GitBackend {
   }
 
   async switchBranch(name: string) {
-    if (!this.local.includes(name)) throw new Error(`No branch named ${name}.`);
+    if (!this.local.includes(name)) {
+      if (!this.remote.includes(name))
+        throw new Error(`No branch named ${name}.`);
+      name = localName(name);
+      if (!this.local.includes(name)) this.local = [...this.local, name];
+    }
     this.current = name;
   }
 

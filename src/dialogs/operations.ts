@@ -1,4 +1,5 @@
 import type { GitBackend } from "../git/backend";
+import { branchLabel } from "../git/branches";
 import { shortSha } from "../git/paths";
 import type {
   Commit,
@@ -16,6 +17,8 @@ export type OpContext = {
   sync: SyncState;
   /** The branch picked in the Branches view. */
   target?: string;
+  /** How many files have unsaved changes. */
+  changes?: number;
   commit?: Commit;
   stash?: StashEntry;
   /** Display name for the stash (its message, or a friendlier default). */
@@ -52,8 +55,21 @@ export type Operation = {
 
 const definitions = {
   "switch-branch": {
-    params: (c) => ({ branch: c.branch, target: c.target ?? "" }),
-    command: (c) => `git switch ${c.target}`,
+    params: (c) => ({
+      branch: c.branch,
+      target: branchLabel(c.target ?? "", c.branches),
+    }),
+    command: (c) =>
+      c.branches.includes(c.target!)
+        ? `git switch ${c.target}`
+        : `git switch --track ${c.target}`,
+    warning: (c, t) =>
+      c.changes
+        ? t("op.switch-branch.changes", {
+            count: c.changes,
+            target: branchLabel(c.target ?? "", c.branches),
+          })
+        : null,
     run: (b, c) => b.switchBranch(c.target!),
   },
   "new-branch": {

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { remoteOnly } from "../branches";
 import { lfsPatterns, needsLfs, tooLarge } from "../lfs";
 import type { FileChange } from "../types";
 import { CliBackend } from "./CliBackend";
@@ -217,6 +218,42 @@ describe("CliBackend on a real repository", () => {
       ahead: 1,
       behind: 0,
     });
+  });
+
+  it("switches to a branch that so far exists only on the server", async () => {
+    const remote = makeRepo("remote");
+    git(remote, "config", "receive.denyCurrentBranch", "ignore");
+    const { dir, backend } = await repoWithCommit();
+    git(dir, "remote", "add", "origin", remote);
+    await backend.push();
+
+    // A teammate publishes a branch of their own.
+    const teammate = makeRepo("teammate");
+    git(teammate, "pull", "-q", remote, "main");
+    git(teammate, "switch", "-q", "-c", "art/forest");
+    write(teammate, "Forest.txt", "trees\n");
+    git(teammate, "add", "-A");
+    git(teammate, "commit", "-q", "-m", "Forest");
+    git(teammate, "push", "-q", remote, "art/forest");
+
+    await backend.fetch();
+    let snapshot = await backend.snapshot();
+    expect(remoteOnly(snapshot.branches)).toEqual(["origin/art/forest"]);
+
+    await backend.switchBranch("origin/art/forest");
+    snapshot = await backend.snapshot();
+    expect(snapshot.branches.current).toBe("art/forest");
+    expect(snapshot.sync).toMatchObject({
+      upstream: "origin/art/forest",
+      ahead: 0,
+      behind: 0,
+    });
+    expect(remoteOnly(snapshot.branches)).toEqual([]);
+    expect(readFileSync(join(dir, "Forest.txt"), "utf8")).toBe("trees\n");
+
+    // The server's copy of a branch this computer has means the local one.
+    await backend.switchBranch("origin/main");
+    expect((await backend.snapshot()).branches.current).toBe("main");
   });
 
   it("publishes, fetches and pulls with a merge commit when both sides moved", async () => {

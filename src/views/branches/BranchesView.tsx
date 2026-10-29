@@ -31,6 +31,8 @@ export function BranchesView({
   const [target, setTarget] = useState(branches.current);
   const isCurrent = target === branches.current;
   const isLocal = branches.local.includes(target);
+  // A server branch gets a local copy; a tag would leave no branch to work on.
+  const canSwitch = isLocal || branches.remote.includes(target);
   const divergence = useAsync(
     () => backend.compareBranch(target, "main"),
     [target],
@@ -114,8 +116,8 @@ export function BranchesView({
               <>
                 <button
                   className="button primary"
-                  disabled={!isLocal}
-                  title={isLocal ? undefined : t("branches.onlyLocal")}
+                  disabled={!canSwitch}
+                  title={canSwitch ? undefined : t("branches.notTag")}
                   onClick={() => openOperation("switch-branch", { target })}
                 >
                   <GitBranch size={14} />

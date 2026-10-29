@@ -12,7 +12,9 @@ export function explainError(
     .map((line) => fileName(line.trim()));
   const files =
     listed.slice(0, 3).join(", ") + (listed.length > 3 ? ", …" : "");
-  if (/would be overwritten by (merge|checkout)/.test(message))
+  if (/would be overwritten by checkout/.test(message))
+    return { key: "error.switchChanges", params: { files } };
+  if (/would be overwritten by merge/.test(message))
     return { key: "error.localChanges", params: { files } };
   if (
     /'lfs' is not a git command|git-lfs.*(not found|not installed)/i.test(

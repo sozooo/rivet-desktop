@@ -21,7 +21,7 @@ export const en = {
   "nav.toggleTheme": "Toggle theme",
   "nav.settings": "Settings",
 
-  "top.currentBranch": "Current branch: {branch}",
+  "top.currentBranch": "Current branch: {branch}. Click to switch.",
   "top.checkRemote": "Check the remote for new commits",
   "top.noRemote": "No remote",
   "top.neverChecked": "Never checked",
@@ -54,17 +54,45 @@ export const en = {
   "top.sync": "Sync",
   "top.syncTitle":
     "Get the latest work from others and send your saved versions",
-  "top.state.upToDate": "Up to date",
-  "top.state.updates": "Updates available: {count}",
-  "top.state.unsent": "Not sent yet: {count}",
-  "top.state.both": "Updates: {behind} · not sent: {ahead}",
-  "top.state.local": "Only on this computer",
+  "top.status.local": "Only on this computer",
+  "top.status.unpublished": "This branch isn't on the server yet",
+  "top.status.upToDate": "You're up to date",
+  "top.status.incoming": {
+    one: "{count} incoming commit",
+    other: "{count} incoming commits",
+  },
+  "top.status.incoming@simple": {
+    one: "{count} new version from others",
+    other: "{count} new versions from others",
+  },
+  "top.status.toPublish": "{count} to publish",
+  "top.status.toPublish@simple": {
+    one: "{count} version not sent yet",
+    other: "{count} versions not sent yet",
+  },
+  "top.busy": "Wait until Rivet finishes",
+
+  "branchMenu.search": "Find a branch",
+  "branchMenu.local": "LOCAL BRANCHES",
+  "branchMenu.local@simple": "YOUR BRANCHES",
+  "branchMenu.remote": "ONLY ON THE SERVER",
+  "branchMenu.remoteHint":
+    "Only on the server. Switching downloads it into a local branch that tracks it.",
+  "branchMenu.remoteHint@simple":
+    "Only on the server. Rivet downloads it when you switch.",
+  "branchMenu.nothing": "No matching branches",
+  "branchMenu.new": "New branch…",
+  "branchMenu.all": "All branches…",
   "top.working.check": "Checking…",
   "top.working.sync": "Syncing…",
 
   "fetch.newCommits": {
     one: "{count} new commit on {upstream}. Pull to bring it in.",
     other: "{count} new commits on {upstream}. Pull to bring them in.",
+  },
+  "fetch.newCommits@simple": {
+    one: "{count} new version from others. Press Sync to get it.",
+    other: "{count} new versions from others. Press Sync to get them.",
   },
   "fetch.nothing": "Checked the remote. Nothing new.",
   "sync.done": "Everything is in sync.",
@@ -326,7 +354,7 @@ export const en = {
   "branches.remoteOrTag": "Remote branch or tag",
   "branches.newFromHere": "New branch from here…",
   "branches.switch": "Switch to this branch",
-  "branches.onlyLocal": "Only local branches can be switched to",
+  "branches.notTag": "Tags can't be switched to, only branches",
   "branches.merge": "Merge into {branch}…",
   "branches.rebase": "Rebase {branch} onto this…",
   "branches.compared": "Compared to main",
@@ -387,7 +415,19 @@ export const en = {
 
   "op.switch-branch.title": "Switch branch",
   "op.switch-branch.describe":
-    "Switch from {branch} to {target}. Uncommitted changes come with you.",
+    "Switch from {branch} to {target}. Files in the working tree change to match {target}.",
+  "op.switch-branch.describe@simple":
+    "Go from {branch} to {target}. Files in the project folder will change to match {target}.",
+  "op.switch-branch.changes": {
+    one: "{count} uncommitted file comes with you to {target}. To keep it here, commit or stash it first.",
+    other:
+      "{count} uncommitted files come with you to {target}. To keep them here, commit or stash them first.",
+  },
+  "op.switch-branch.changes@simple": {
+    one: "{count} unsaved file moves with you to {target}. If it belongs here, save it or put it aside first.",
+    other:
+      "{count} unsaved files move with you to {target}. If they belong here, save them or put them aside first.",
+  },
   "op.switch-branch.confirm": "Switch branch",
   "op.switch-branch.done": "Switched to {target}.",
   "op.new-branch.title": "New branch",
@@ -830,6 +870,10 @@ export const en = {
     "Commit or stash your changes first: the merge would overwrite {files}.",
   "error.localChanges@simple":
     "Save a version first, then sync again. Rivet will then combine your changes with the server's ({files}).",
+  "error.switchChanges":
+    "Commit or stash your changes first: switching branches would overwrite {files}.",
+  "error.switchChanges@simple":
+    "Save a version or put your changes aside first, otherwise switching would lose your work in {files}.",
 
   "settings.project": "This project",
   "settings.lfs": "Large files (Git LFS)",

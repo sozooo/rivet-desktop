@@ -4,9 +4,10 @@ import {
   ArrowUp,
   Check,
   ChevronDown,
+  CloudUpload,
   FolderGit2,
-  GitBranch,
   GitPullRequest,
+  Laptop,
   Plus,
   RefreshCw,
   X,
@@ -17,6 +18,7 @@ import { useI18n } from "../i18n/i18n";
 import { setupModes, type Repository, type SetupMode } from "../repositories";
 import { setupModeMeta } from "../setup/modes";
 import { useDismiss } from "../ui/hooks";
+import { BranchMenu } from "./BranchMenu";
 
 /** Re-renders every minute so relative times stay fresh. */
 function useMinuteTick() {
@@ -36,6 +38,7 @@ export function TopBar({
   onFetch,
   onSync,
   onBranches,
+  onSwitchBranch,
   onSwitchRepository,
   onRemoveRepository,
   onSetup,
@@ -55,6 +58,7 @@ export function TopBar({
   /** Simple mode's one button: fetch, pull and push as needed. */
   onSync: () => void;
   onBranches: () => void;
+  onSwitchBranch: (target: string) => void;
   onSwitchRepository: (id: string) => void;
   onRemoveRepository: (id: string) => void;
   onSetup: (mode: SetupMode) => void;
@@ -91,15 +95,30 @@ export function TopBar({
     return `${checked} ${parts.length ? parts.join(", ") + "." : t("top.sync.upToDate")} ${t("top.sync.clickToCheck")}`;
   }
 
-  const syncState = !hasRemote
-    ? t("top.state.local")
-    : sync.behind && sync.ahead
-      ? t("top.state.both", { behind: sync.behind, ahead: sync.ahead })
-      : sync.behind
-        ? t("top.state.updates", { count: sync.behind })
-        : sync.ahead || !sync.upstream
-          ? t("top.state.unsent", { count: sync.ahead })
-          : t("top.state.upToDate");
+  const pending = !!(
+    sync.behind ||
+    sync.ahead ||
+    (hasRemote && !sync.upstream)
+  );
+  const [StatusIcon, status] = !hasRemote
+    ? [Laptop, t("top.status.local")]
+    : !sync.upstream
+      ? [CloudUpload, t("top.status.unpublished")]
+      : pending
+        ? [
+            sync.behind ? ArrowDown : ArrowUp,
+            [
+              sync.behind
+                ? t("top.status.incoming", { count: sync.behind })
+                : "",
+              sync.ahead
+                ? t("top.status.toPublish", { count: sync.ahead })
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          ]
+        : [Check, t("top.status.upToDate")];
 
   return (
     <header className="topbar">
@@ -109,17 +128,17 @@ export function TopBar({
           rivet<span className="brand-dot">.</span>
         </span>
       </div>
-      {!simple && (
+      <div className="branch-sync">
         <div className="branch-fetch-group">
-          <button
-            className="branch-selector"
-            title={t("top.currentBranch", { branch: branches.current })}
-            onClick={onBranches}
-          >
-            <GitBranch />
-            <span>{branches.current}</span>
-            <ChevronDown size={13} />
-          </button>
+          <BranchMenu
+            branches={branches}
+            blocked={
+              merging ? t("top.syncMerging") : working ? t("top.busy") : null
+            }
+            onSwitch={onSwitchBranch}
+            onNewBranch={onNewBranch}
+            onAllBranches={onBranches}
+          />
           <button
             className="fetch-control"
             title={syncSummary()}
@@ -139,7 +158,14 @@ export function TopBar({
             </span>
           </button>
         </div>
-      )}
+        <span
+          className={`sync-status ${pending ? "pending" : ""}`}
+          aria-live="polite"
+        >
+          <StatusIcon />
+          {status}
+        </span>
+      </div>
       <div className="repo-wrap" ref={menuRef}>
         <button
           className="repo-selector"
@@ -204,22 +230,15 @@ export function TopBar({
       </div>
       <div className="top-actions">
         {simple ? (
-          <>
-            <span
-              className={`sync-state ${sync.behind || sync.ahead ? "pending" : ""}`}
-            >
-              {syncState}
-            </span>
-            <button
-              className="button primary sync-button"
-              disabled={!!working || !hasRemote || merging}
-              title={t(merging ? "top.syncMerging" : "top.syncTitle")}
-              onClick={onSync}
-            >
-              <RefreshCw className={working ? "spinning" : ""} />
-              {working ?? t("top.sync")}
-            </button>
-          </>
+          <button
+            className="button primary sync-button"
+            disabled={!!working || !hasRemote || merging}
+            title={t(merging ? "top.syncMerging" : "top.syncTitle")}
+            onClick={onSync}
+          >
+            <RefreshCw className={working ? "spinning" : ""} />
+            {working ?? t("top.sync")}
+          </button>
         ) : (
           <>
             {pullRequests !== null && (
