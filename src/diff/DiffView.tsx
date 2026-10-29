@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  AlertTriangle,
   AlignJustify,
   ChevronRight,
   Columns2,
@@ -71,7 +72,11 @@ export function DiffView({
         <div className="file-heading">
           <FileIcon path={file.path} />
           <strong>{fileName(file.path)}</strong>
-          <StatusIcon status={file.status} />
+          {file.conflict ? (
+            <AlertTriangle className="title-conflict" />
+          ) : (
+            <StatusIcon status={file.status} />
+          )}
           {!preview && !file.binary && (
             <span className="diff-stats">
               <b>+{added}</b>

@@ -3314,8 +3314,9 @@ textarea::placeholder {
 }
 .merge-banner-main {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px 12px;
 }
 .merge-banner-main > svg {
   width: 18px;
@@ -3328,7 +3329,7 @@ textarea::placeholder {
   color: var(--accent);
 }
 .merge-banner-text {
-  flex: 1;
+  flex: 1 1 340px;
   min-width: 0;
 }
 .merge-banner-text strong {
@@ -3353,6 +3354,7 @@ textarea::placeholder {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .merge-left {
   font-size: 11px;
@@ -3489,4 +3491,13 @@ textarea::placeholder {
 }
 .lfs-download {
   margin-top: 14px;
+}
+.conflict-compare {
+  margin: 12px 0 0;
+  font-size: 11px;
+}
+.file-heading > svg.title-conflict {
+  width: 15px;
+  height: 15px;
+  color: var(--warn);
 }

@@ -87,10 +87,11 @@ export function ConflictView({
       {label}
     </button>
   );
+  const kind = fileKind(file);
   // Fixing a file by hand means editing text; a picture can only be one version or the other.
   const byHand =
     mode === "full" &&
-    fileKind(file) === "code" &&
+    kind === "code" &&
     conflict.mine &&
     conflict.theirs &&
     chosen !== "manual";
@@ -125,6 +126,15 @@ export function ConflictView({
           ),
         )}
       </div>
+      {/* Pictures and models are captioned; text and cards need the direction spelled out. */}
+      {conflict.mine &&
+        conflict.theirs &&
+        kind !== "image" &&
+        kind !== "model" && (
+          <p className="conflict-compare muted">
+            {t(`conflict.compare.${sides.context}`)}
+          </p>
+        )}
       {byHand && (
         <p className="conflict-manual muted">
           {t("conflict.manualHint")}{" "}

@@ -372,13 +372,13 @@ export async function paintBark(
       g.fill();
     }
   if (snowy)
-    for (let i = 0; i < 70; i++) {
-      g.fillStyle = `rgba(236, 242, 248, ${0.55 + random() * 0.4})`;
+    for (let i = 0; i < 160; i++) {
+      g.fillStyle = `rgba(236, 242, 248, ${0.45 + random() * 0.5})`;
       g.beginPath();
       g.arc(
         random() * size,
-        random() * size * 0.6,
-        2 + random() * 6,
+        random() * size * 0.55,
+        0.8 + random() * 2.2,
         0,
         Math.PI * 2,
       );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { needsLfs } from "../git/lfs";
 import { useI18n } from "../i18n/i18n";
 import { findMergeTools, newestTool, type MergeTool } from "../unity/mergeTool";
 import type { RepoApi } from "../views/repoApi";
@@ -33,7 +34,10 @@ export function ProjectSettings({ repo }: { repo: RepoApi }) {
       </span>
       <div className="project-row">
         <span>{t("settings.lfs")}</span>
-        {snapshot.lfs.tracking && snapshot.lfs.installed ? (
+        {/* On, unless changed art would still go in as regular files. */}
+        {snapshot.lfs.tracking &&
+        snapshot.lfs.installed &&
+        !snapshot.files.some(needsLfs) ? (
           <On />
         ) : snapshot.lfs.installed ? (
           <button className="button" disabled={lfs.busy} onClick={lfs.setup}>

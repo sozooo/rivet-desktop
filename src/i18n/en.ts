@@ -658,6 +658,12 @@ export const en = {
   "conflict.manualHint":
     "Fixing it yourself? Edit the file, remove the <<<<<<< and >>>>>>> markers, save, then mark it resolved.",
   "conflict.changeMind": "Changed your mind? Pick the other version.",
+  "conflict.compare.merge":
+    "Below: what changes if you take the server version instead of yours.",
+  "conflict.compare.other":
+    "Below: what changes if you take the incoming version instead of yours.",
+  "conflict.compare.stash":
+    "Below: what changes if you take the put-aside version instead of the current one.",
   "conflict.markers":
     "This file still has conflict markers (<<<<<<< and >>>>>>>). Remove them, save the file, and try again.",
 
@@ -679,9 +685,9 @@ export const en = {
       "{count} art files would go into the repository as regular files. Git LFS keeps such files out of the history, so the repository stays small and quick to clone.",
   },
   "lfs.hint@simple": {
-    one: "{count} picture, model or sound would go into the project as an ordinary file. Projects like that grow fast and take long to download. Rivet can set up proper storage for large files once, for good.",
+    one: "{count} picture, model, sound or video would go into the project as an ordinary file. Projects like that grow fast and take long to download. Rivet can set up proper storage for large files once, for good.",
     other:
-      "{count} pictures, models or sounds would go into the project as ordinary files. Projects like that grow fast and take long to download. Rivet can set up proper storage for large files once, for good.",
+      "{count} pictures, models, sounds or videos would go into the project as ordinary files. Projects like that grow fast and take long to download. Rivet can set up proper storage for large files once, for good.",
   },
   "lfs.setup": "Store large files properly",
   "lfs.later": "Not now",
@@ -693,6 +699,8 @@ export const en = {
   "lfs.missingTitle@simple": "Storage for large files isn't installed",
   "lfs.missing":
     'Git LFS keeps art out of the repository\'s history. It comes with Git for Windows: run the Git installer again, keep "Git LFS" ticked (it is by default), then restart Rivet.',
+  "lfs.missing@simple":
+    'Pictures and models are best stored with Git LFS, which comes with Git for Windows. Run the Git installer again, keep "Git LFS" ticked (it is by default), then restart Rivet.',
   "lfs.download": "Download LFS files",
   "lfs.download@simple": "Download the files",
   "lfs.downloading": "Downloading…",
