@@ -23,7 +23,7 @@ Building the desktop app needs Rust (stable, MSVC) and the Visual Studio C++ bui
 
 ## Releases and updates
 
-Installed copies of Rivet update themselves from this repository's GitHub releases: a few seconds after launch (and every six hours) the app reads `https://github.com/sozooo/rivet/releases/latest/download/latest.json`, and when a newer version is there it offers it with the release notes. Updates are signed; the app only installs files signed with the project's key.
+Installed copies of Rivet update themselves from this repository's GitHub releases: a few seconds after launch (and every six hours) the app reads `https://github.com/sozooo/rivet-desktop/releases/latest/download/latest.json`, and when a newer version is there it offers it with the release notes. Updates are signed; the app only installs files signed with the project's key.
 
 To publish a version:
 
@@ -35,9 +35,9 @@ This sets the version in `package.json`, `src-tauri/tauri.conf.json` and `Cargo.
 
 ### One-time setup
 
-1. Create the public repository **github.com/sozooo/rivet** (empty: no README or license), then push this one:
+1. Create the public repository **github.com/sozooo/rivet-desktop** (empty: no README or license), then push this one:
    ```sh
-   git remote add origin https://github.com/sozooo/rivet.git
+   git remote add origin https://github.com/sozooo/rivet-desktop.git
    git push -u origin main
    ```
    Another name or owner? Change the address in `src-tauri/tauri.conf.json` → `plugins.updater.endpoints`.
@@ -132,11 +132,12 @@ Rivet входит в GitHub через OAuth Device Flow: приложение 
 2. Заполните поля:
    - **Application name**: `Rivet`;
    - **Homepage URL**: любой адрес, например `https://github.com/<ваш-логин>`;
-   - **Authorization callback URL**: тот же адрес. Device Flow его не использует, но поле обязательное.
-3. Нажмите **Register application**.
-4. На странице приложения отметьте **Enable Device Flow** и нажмите **Update application**.
-5. Скопируйте **Client ID** (вида `Ov23li…`). Client secret создавать не нужно.
-6. Вставьте Client ID в `src/github/config.ts` вместо `YOUR_CLIENT_ID` и пересоберите приложение (`npm run desktop` или `npm run desktop:build`).
+   - **Redirect URI** (в старой форме **Authorization callback URL**): тот же адрес. Device Flow его не использует.
+   - **Enable Device Flow**: включить.
+   - **Expire user access tokens**: выключить. Rivet пока не продлевает токены, и с этой галочкой вход слетал бы каждые 8 часов.
+3. Нажмите **Register application**. Если Device Flow не было в форме, включите его на странице приложения и нажмите **Update application**.
+4. Скопируйте **Client ID** (вида `Ov23li…`). Client secret создавать не нужно.
+5. Вставьте Client ID в `src/github/config.ts` вместо `YOUR_CLIENT_ID` и пересоберите приложение (`npm run desktop` или `npm run desktop:build`).
 
 Client ID не секрет: он всё равно виден внутри собранного приложения, его можно коммитить. А client secret в репозиторий попадать не должен, и Rivet он не нужен.
 
