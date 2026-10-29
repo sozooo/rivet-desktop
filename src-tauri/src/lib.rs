@@ -1,4 +1,5 @@
 mod art;
+mod account;
 mod discover;
 mod git;
 
@@ -70,13 +71,20 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             git_text,
             git_bytes,
             read_worktree_file,
             modified_time,
             discover_repositories,
-            art::file_sizes, art::write_worktree_file, art::unity_merge_tools
+            art::file_sizes,
+            art::write_worktree_file,
+            art::unity_merge_tools,
+            account::github_account_save,
+            account::github_account_load,
+            account::github_account_forget
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rivet");

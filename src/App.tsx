@@ -3,6 +3,7 @@ import type { GitBackend } from "./git/backend";
 import { CliBackend } from "./git/cli/CliBackend";
 import { tauriRunner } from "./git/cli/tauriRunner";
 import { MockBackend } from "./git/mock/MockBackend";
+import { AccountProvider } from "./github/account";
 import { I18nProvider, type Language, type UiMode } from "./i18n/i18n";
 import { platform } from "./platform";
 import {
@@ -105,30 +106,32 @@ export function App() {
       <I18nProvider language={language} mode={mode}>
         <UpdatesProvider>
           <ToastProvider>
-            {repository && backend ? (
-              <Workspace
-                key={repository.id}
-                repository={repository}
-                repositories={repositories}
-                backend={backend}
-                dark={dark}
-                preferences={preferences}
-                onSwitchRepository={setActiveId}
-                onAddRepository={add}
-                onRemoveRepository={(id) => {
-                  const next = repositories.filter((r) => r.id !== id);
-                  backends.current.delete(id);
-                  update(next);
-                  if (id === repository.id) setActiveId(next[0]?.id ?? null);
-                }}
-              />
-            ) : (
-              <RepositorySetup
-                initialMode="open"
-                repositories={repositories}
-                onComplete={add}
-              />
-            )}
+            <AccountProvider>
+              {repository && backend ? (
+                <Workspace
+                  key={repository.id}
+                  repository={repository}
+                  repositories={repositories}
+                  backend={backend}
+                  dark={dark}
+                  preferences={preferences}
+                  onSwitchRepository={setActiveId}
+                  onAddRepository={add}
+                  onRemoveRepository={(id) => {
+                    const next = repositories.filter((r) => r.id !== id);
+                    backends.current.delete(id);
+                    update(next);
+                    if (id === repository.id) setActiveId(next[0]?.id ?? null);
+                  }}
+                />
+              ) : (
+                <RepositorySetup
+                  initialMode="open"
+                  repositories={repositories}
+                  onComplete={add}
+                />
+              )}
+            </AccountProvider>
           </ToastProvider>
         </UpdatesProvider>
       </I18nProvider>

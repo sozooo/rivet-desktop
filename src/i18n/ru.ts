@@ -159,6 +159,31 @@ export const ru: Record<keyof typeof en, Message> = {
     "В этой папке ещё нет Git-репозитория. Его можно создать на вкладке «Создать».",
   "setup.footer": "Ваши проекты. Ваш порядок.",
   "setup.closeLabel": "Закрыть",
+  "setup.destination": "Склонируется в {path}",
+  "setup.destination@simple": "Скачается в {path}",
+  "setup.github.title": "Ваши репозитории на GitHub",
+  "setup.github.title@simple": "Ваши проекты на GitHub",
+  "setup.github.text": "Войдите и выбирайте из списка, без копирования ссылок.",
+  "setup.github.text@simple":
+    "Войдите, и ваши проекты появятся списком. Ссылки искать не придётся.",
+  "setup.github.heading": "ВАШ GITHUB · @{login}",
+  "setup.github.manual": "Вставить ссылку",
+  "setup.github.backToList": "К моему списку",
+  "setup.github.refresh": "Обновить список",
+  "setup.github.search": "Найти репозиторий",
+  "setup.github.search@simple": "Найти проект",
+  "setup.github.loading": "Загружаю ваши репозитории…",
+  "setup.github.loading@simple": "Загружаю ваши проекты…",
+  "setup.github.empty": "В этом аккаунте пока нет репозиториев.",
+  "setup.github.empty@simple": "В этом аккаунте пока нет проектов.",
+  "setup.github.noMatches": "По запросу «{query}» ничего нет.",
+  "setup.github.error": "Не получилось загрузить список: {message}",
+  "setup.github.retry": "Попробовать снова",
+  "setup.github.private": "Приватный",
+  "setup.github.private@simple": "Закрытый",
+  "setup.github.updated": "Обновлён {time}",
+  "setup.github.pick": "Выберите репозиторий из списка.",
+  "setup.github.pick@simple": "Выберите проект из списка.",
   "art.label": "МЕСТО ДЛЯ НОВОГО",
   "art.title1": "Всё видно.",
   "art.title2": "Всё под рукой.",
@@ -502,6 +527,52 @@ export const ru: Record<keyof typeof en, Message> = {
   "settings.fullHint":
     "Все инструменты Git: ветки, фрагменты файлов, операции с историей.",
   "settings.version": "Rivet {version}",
+  "settings.account": "Аккаунт GitHub",
+
+  "github.signIn": "Войти через GitHub",
+  "github.signOut": "Выйти",
+  "github.signOutHint":
+    "Rivet и Git на этом компьютере забудут этот вход. Репозитории останутся как есть.",
+  "github.signOutHint@simple":
+    "Rivet забудет этот вход на этом компьютере. Проекты останутся как есть.",
+  "github.checking": "Проверяю…",
+  "github.notSignedIn": "Вход не выполнен",
+  "github.signInHint": "Войдите, чтобы клонировать свои репозитории из списка.",
+  "github.signInHint@simple":
+    "Войдите, чтобы скачивать свои проекты из списка.",
+  "github.notConfigured":
+    "Для входа через GitHub нужен Client ID приложения OAuth в src/github/config.ts. Как его получить, написано в README.md.",
+  "github.signedIn": "Вы вошли как @{login}",
+  "github.signedOut": "Вы вышли из GitHub",
+
+  "signin.eyebrow": "GITHUB",
+  "signin.title": "Вход через GitHub",
+  "signin.text":
+    "Откройте GitHub в браузере и введите там этот код. Rivet подождёт здесь и дальше всё сделает сам.",
+  "signin.codeLabel": "Код для GitHub",
+  "signin.copy": "Скопировать код",
+  "signin.copied": "Скопировано",
+  "signin.open": "Скопировать код и открыть GitHub",
+  "signin.requesting": "Получаю код у GitHub…",
+  "signin.waiting": "Жду подтверждения на GitHub…",
+  "signin.manual": "Если браузер не открылся, зайдите на {url} сами.",
+  "signin.demo":
+    "Демо: вход завершится сам через пару секунд после того, как вы откроете GitHub.",
+  "signin.retry": "Попробовать снова",
+  "signin.error.expired":
+    "Код устарел. Нажмите «Попробовать снова», чтобы получить новый.",
+  "signin.error.denied": "Вход отменён на GitHub.",
+  "signin.error.notConfigured":
+    "GitHub не узнал Client ID приложения. Проверьте src/github/config.ts.",
+  "signin.error.notConfigured@simple":
+    "Вход через GitHub в этой копии Rivet ещё не настроен. Попросите того, кто её установил, проверить.",
+  "signin.error.disabled":
+    "У приложения OAuth выключен Device Flow. Включите его в настройках приложения на GitHub.",
+  "signin.error.disabled@simple":
+    "Вход через GitHub в этой копии Rivet ещё не настроен. Попросите того, кто её установил, проверить.",
+  "signin.error.network":
+    "Не получается связаться с GitHub. Проверьте интернет и попробуйте снова.",
+  "signin.error.unexpected": "Не получилось войти: {message}",
 
   "shortcuts.eyebrow": "ШПАРГАЛКА",
   "shortcuts.title": "Горячие клавиши",
