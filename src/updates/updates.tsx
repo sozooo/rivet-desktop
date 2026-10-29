@@ -17,7 +17,7 @@ export type AvailableUpdate = {
 };
 
 export type UpdateState =
-  | { status: "idle" | "checking" | "latest" | "unavailable" }
+  | { status: "idle" | "checking" | "latest" | "unpublished" | "unavailable" }
   | { status: "available"; update: AvailableUpdate }
   | { status: "error"; error: string };
 
@@ -81,7 +81,12 @@ export function UpdatesProvider({ children }: { children: ReactNode }) {
         ),
       )
       .catch((error: unknown) =>
-        setState({ status: "error", error: String(error) }),
+        setState(
+          // GitHub answered, but there is no release with latest.json yet.
+          /valid release JSON/.test(String(error))
+            ? { status: "unpublished" }
+            : { status: "error", error: String(error) },
+        ),
       );
   }, [desktop]);
 

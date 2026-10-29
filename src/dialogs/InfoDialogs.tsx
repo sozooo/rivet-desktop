@@ -159,11 +159,13 @@ function VersionLine() {
       ? t("settings.checking")
       : state.status === "latest"
         ? t("settings.upToDate")
-        : state.status === "available"
-          ? t("settings.updateAvailable", { version: state.update.version })
-          : state.status === "error"
-            ? t("settings.updateError")
-            : "";
+        : state.status === "unpublished"
+          ? t("settings.unpublished")
+          : state.status === "available"
+            ? t("settings.updateAvailable", { version: state.update.version })
+            : state.status === "error"
+              ? t("settings.updateError")
+              : "";
   return (
     <div className="version-line">
       <span className="muted">{t("settings.version", { version })}</span>

@@ -643,6 +643,7 @@ export const en = {
   "settings.checkUpdates": "Check for updates",
   "settings.checking": "Checking…",
   "settings.upToDate": "You have the latest version.",
+  "settings.unpublished": "No versions have been published yet.",
   "settings.updateAvailable": "Version {version} is available.",
   "settings.updateError": "Couldn't check for updates. Is the internet on?",
   "prs.title": "Pull requests",

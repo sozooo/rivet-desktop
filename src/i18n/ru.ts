@@ -706,6 +706,7 @@ export const ru: Record<keyof typeof en, Message> = {
   "settings.checkUpdates": "Проверить обновления",
   "settings.checking": "Проверяю…",
   "settings.upToDate": "Установлена последняя версия.",
+  "settings.unpublished": "Опубликованных версий пока нет.",
   "settings.updateAvailable": "Доступна версия {version}.",
   "settings.updateError":
     "Не получилось проверить обновления. Есть ли интернет?",
