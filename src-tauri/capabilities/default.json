@@ -3,5 +3,19 @@
   "identifier": "default",
   "description": "Permissions for the main window",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://github.com/login/*" },
+        { "url": "https://api.github.com/*" }
+      ]
+    },
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/*" }]
+    }
+  ]
 }

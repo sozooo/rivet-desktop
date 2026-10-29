@@ -1,3 +1,4 @@
+mod account;
 mod discover;
 mod git;
 
@@ -67,12 +68,17 @@ async fn discover_repositories() -> Vec<discover::FoundRepository> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             git_text,
             git_bytes,
             read_worktree_file,
             modified_time,
-            discover_repositories
+            discover_repositories,
+            account::github_account_save,
+            account::github_account_load,
+            account::github_account_forget
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rivet");
