@@ -4093,3 +4093,25 @@ img.avatar {
 .toast {
   z-index: 60;
 }
+/* Simple mode's sync button says what it will do; nothing to do reads as a calm state. */
+.sync-count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+.sync-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sync-done svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}

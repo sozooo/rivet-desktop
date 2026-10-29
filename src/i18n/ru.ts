@@ -64,9 +64,6 @@ export const ru: Record<keyof typeof en, Message> = {
   },
   "top.nothingToPush": "Нечего отправлять",
   "top.newBranch": "Новая ветка",
-  "top.sync": "Синхронизировать",
-  "top.syncTitle":
-    "Получить свежую работу остальных и отправить ваши сохранённые версии",
   "top.status.local": "Только на этом компьютере",
   "top.status.unpublished": "Этой ветки ещё нет на сервере",
   "top.status.upToDate": "Всё актуально",
@@ -104,6 +101,21 @@ export const ru: Record<keyof typeof en, Message> = {
   "branchMenu.all": "Все ветки…",
   "top.working.check": "Проверяю…",
   "top.working.sync": "Синхронизирую…",
+  "top.working.pull": "Забираю…",
+  "top.working.push": "Отправляю…",
+  "top.synced": "Всё синхронизировано",
+  "top.syncedTitle":
+    "С сервера нечего забирать, отправлять тоже нечего. Кнопка ↻ рядом с веткой проверит сервер ещё раз.",
+  "top.syncAction.pull": "Забрать обновления",
+  "top.syncAction.push": "Отправить",
+  "top.syncAction.both": "Синхронизировать",
+  "top.syncAction.publish": "Отправить на сервер",
+  "top.syncTitle.pull": "Забрать новые версии от коллег",
+  "top.syncTitle.push": "Отправить ваши сохранённые версии коллегам",
+  "top.syncTitle.both":
+    "Забрать новое от коллег, затем отправить ваши сохранённые версии",
+  "top.syncTitle.publish":
+    "Выложить эту ветку на сервер, чтобы коллеги её увидели",
 
   "fetch.newCommits": {
     one: "На {upstream} появился {count} новый коммит. Нажмите «Получить», чтобы забрать его.",

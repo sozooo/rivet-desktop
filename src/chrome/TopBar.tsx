@@ -19,6 +19,7 @@ import { setupModes, type Repository, type SetupMode } from "../repositories";
 import { setupModeMeta } from "../setup/modes";
 import { useDismiss } from "../ui/hooks";
 import { BranchMenu } from "./BranchMenu";
+import { SyncButton } from "./SyncButton";
 
 /** Re-renders every minute so relative times stay fresh. */
 function useMinuteTick() {
@@ -34,6 +35,7 @@ export function TopBar({
   repository,
   repositories,
   working,
+  checking,
   pullRequests,
   onFetch,
   onSync,
@@ -52,6 +54,8 @@ export function TopBar({
   repositories: Repository[];
   /** A long-running operation in progress, e.g. "Pull…". */
   working: string | null;
+  /** The operation in progress is a check of the server. */
+  checking: boolean;
   /** Open pull requests, or null when no hosting service is connected. */
   pullRequests: number | null;
   onFetch: () => void;
@@ -77,6 +81,8 @@ export function TopBar({
   const hasRemote = !!sync.upstream || branches.remote.length > 0;
   // Nothing goes in or out until a stopped merge is finished or cancelled.
   const merging = !!snapshot.operation || unresolved(snapshot.files).length > 0;
+  // Simple mode shows sending and receiving on its sync button instead.
+  const shownHere = !!working && (!simple || checking);
 
   function syncSummary() {
     if (!sync.upstream) return t("top.sync.unpublished");
@@ -146,9 +152,9 @@ export function TopBar({
             disabled={!!working || !sync.upstream}
             onClick={onFetch}
           >
-            <RefreshCw className={working ? "spinning" : ""} />
+            <RefreshCw className={shownHere ? "spinning" : ""} />
             <span>
-              {working
+              {shownHere
                 ? working
                 : !sync.upstream
                   ? t("top.noRemote")
@@ -230,15 +236,14 @@ export function TopBar({
       </div>
       <div className="top-actions">
         {simple ? (
-          <button
-            className="button primary sync-button"
-            disabled={!!working || !hasRemote || merging}
-            title={t(merging ? "top.syncMerging" : "top.syncTitle")}
-            onClick={onSync}
-          >
-            <RefreshCw className={working ? "spinning" : ""} />
-            {working ?? t("top.sync")}
-          </button>
+          hasRemote && (
+            <SyncButton
+              sync={sync}
+              merging={merging}
+              working={checking ? null : working}
+              onSync={onSync}
+            />
+          )
         ) : (
           <>
             {pullRequests !== null && (

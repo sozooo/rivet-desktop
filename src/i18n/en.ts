@@ -51,9 +51,6 @@ export const en = {
   },
   "top.nothingToPush": "Nothing to push",
   "top.newBranch": "New branch",
-  "top.sync": "Sync",
-  "top.syncTitle":
-    "Get the latest work from others and send your saved versions",
   "top.status.local": "Only on this computer",
   "top.status.unpublished": "This branch isn't on the server yet",
   "top.status.upToDate": "You're up to date",
@@ -85,6 +82,20 @@ export const en = {
   "branchMenu.all": "All branches…",
   "top.working.check": "Checking…",
   "top.working.sync": "Syncing…",
+  "top.working.pull": "Getting…",
+  "top.working.push": "Sending…",
+  "top.synced": "All synced",
+  "top.syncedTitle":
+    "Nothing to get from the server and nothing to send. The ↻ next to the branch checks the server again.",
+  "top.syncAction.pull": "Get updates",
+  "top.syncAction.push": "Send",
+  "top.syncAction.both": "Sync",
+  "top.syncAction.publish": "Put on the server",
+  "top.syncTitle.pull": "Get the new versions from others",
+  "top.syncTitle.push": "Send your saved versions to others",
+  "top.syncTitle.both":
+    "Get the latest work from others, then send your saved versions",
+  "top.syncTitle.publish": "Put this branch on the server so others can see it",
 
   "fetch.newCommits": {
     one: "{count} new commit on {upstream}. Pull to bring it in.",

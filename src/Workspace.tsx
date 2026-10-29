@@ -79,6 +79,7 @@ export function Workspace({
   const [loadError, setLoadError] = useState<string>();
   /** What a long-running git operation is doing, shown in the top bar. */
   const [working, setWorking] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
   /** A file to show when another view sends the user to Changes or History. */
   const [focus, setFocus] = useState<{ changes?: string; history?: string }>(
     {},
@@ -266,8 +267,10 @@ export function Workspace({
 
   async function fetchRemote() {
     setWorking(t("top.working.check"));
+    setChecking(true);
     const next = await act((b) => b.fetch(), undefined, fetchRemote);
     setWorking(null);
+    setChecking(false);
     if (next)
       notify(
         next.sync.behind
@@ -284,7 +287,16 @@ export function Workspace({
    * stop it before sending, and so do files GitHub would refuse.
    */
   async function sync() {
-    setWorking(t("top.working.sync"));
+    const before = latest.current?.sync;
+    setWorking(
+      t(
+        before?.upstream && before.behind
+          ? before.ahead
+            ? "top.working.sync"
+            : "top.working.pull"
+          : "top.working.push",
+      ),
+    );
     let outcome = "sent" as "sent" | "stopped" | "too-large";
     const next = await act(
       async (b) => {
@@ -318,6 +330,7 @@ export function Workspace({
         repository={repository}
         repositories={repositories}
         working={working}
+        checking={checking}
         pullRequests={demo ? openPullRequests : null}
         onFetch={fetchRemote}
         onSync={sync}
