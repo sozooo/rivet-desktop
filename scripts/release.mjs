@@ -1,5 +1,5 @@
 // Publishes a new version of Rivet:
-//   npm run release -- 0.2.0 "Что нового: …"
+//   npm run release -- 0.2.0 "What's new: …"
 // Sets the version everywhere, commits, tags v0.2.0 with the notes and pushes.
 // GitHub Actions then builds the installer and publishes the release that
 // installed copies of Rivet update from. The notes appear in the update dialog.
@@ -10,8 +10,7 @@ const fail = (message) => {
   console.error(message);
   process.exit(1);
 };
-const git = (...args) =>
-  execFileSync("git", args, { encoding: "utf8" }).trim();
+const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
 const parse = (v) => v.split(".").map(Number);
 const compare = (a, b) => {
   for (const [x, y] of parse(a).map((n, i) => [n, parse(b)[i]]))
@@ -22,7 +21,10 @@ const compare = (a, b) => {
 const [version, ...noteWords] = process.argv.slice(2);
 const notes = noteWords.join(" ").trim();
 if (!/^\d+\.\d+\.\d+$/.test(version ?? ""))
-  fail('Usage: npm run release -- 0.2.0 "Что нового"');
+  fail(`Usage: npm run release -- 0.2.0 "What's new"`);
+// Releases and their notes are in English.
+if (/\p{Script=Cyrillic}/u.test(notes))
+  fail("Write the release notes in English.");
 
 const current = JSON.parse(readFileSync("package.json", "utf8")).version;
 if (compare(version, current) < 0)
@@ -36,7 +38,10 @@ if (version !== current) {
   const edit = (path, change) =>
     writeFileSync(path, change(readFileSync(path, "utf8")));
   const json = (path, change) =>
-    edit(path, (text) => JSON.stringify(change(JSON.parse(text)), null, 2) + "\n");
+    edit(
+      path,
+      (text) => JSON.stringify(change(JSON.parse(text)), null, 2) + "\n",
+    );
   json("package.json", (p) => ({ ...p, version }));
   json("package-lock.json", (p) => {
     p.version = version;
