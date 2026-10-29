@@ -21,6 +21,33 @@ npm run format         # Prettier
 
 Building the desktop app needs Rust (stable, MSVC) and the Visual Studio C++ build tools. WebView2 ships with Windows 11.
 
+## Releases and updates
+
+Installed copies of Rivet update themselves from this repository's GitHub releases: a few seconds after launch (and every six hours) the app reads `https://github.com/sozooo/rivet/releases/latest/download/latest.json`, and when a newer version is there it offers it with the release notes. Updates are signed; the app only installs files signed with the project's key.
+
+To publish a version:
+
+```sh
+npm run release -- 0.2.0 "Что нового: …"
+```
+
+This sets the version in `package.json`, `src-tauri/tauri.conf.json` and `Cargo.toml`, commits, creates the tag `v0.2.0` with the notes and pushes. GitHub Actions (`.github/workflows/release.yml`) builds the installer and publishes the release with `latest.json`; the notes become the release text and the "What's new" of the update dialog.
+
+### One-time setup
+
+1. Create the public repository **github.com/sozooo/rivet** (empty: no README or license), then push this one:
+   ```sh
+   git remote add origin https://github.com/sozooo/rivet.git
+   git push -u origin main
+   ```
+   Another name or owner? Change the address in `src-tauri/tauri.conf.json` → `plugins.updater.endpoints`.
+2. Add the signing key as a repository secret: **Settings → Secrets and variables → Actions → New repository secret**, name `TAURI_SIGNING_PRIVATE_KEY`, value: the contents of `%USERPROFILE%\.tauri\rivet-updater.key`. The key has no password, so `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is not needed.
+3. Publish the first version: `npm run release -- 0.1.0 "Первая версия"`, wait for the Release workflow (about 10–15 minutes), and install `Rivet_0.1.0_x64-setup.exe` from the release. Later versions arrive by themselves.
+
+Keep `rivet-updater.key` safe and private: it is the only key installed copies trust. If it is lost, they can no longer update and have to be reinstalled by hand once with a build signed by a new key.
+
+The installer is not code-signed, so on first install Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. Updates installed from inside the app don't go through this.
+
 ## How it works
 
 ```
