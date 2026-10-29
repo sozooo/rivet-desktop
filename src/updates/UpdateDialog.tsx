@@ -11,7 +11,7 @@ export function UpdateDialog({
   update: AvailableUpdate;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, mode } = useI18n();
   const [progress, setProgress] = useState<number | null | undefined>();
   const [error, setError] = useState<string>();
   const installing = progress !== undefined && !error;
@@ -49,8 +49,15 @@ export function UpdateDialog({
           <Sparkles className="update-icon" />
           {t("updates.title", { version: update.version })}
         </h2>
-        <h3>{t("updates.notes")}</h3>
-        <p className="update-notes">{update.notes || t("updates.noNotes")}</p>
+        {/* Release notes are in English and for those who want details; simple mode just updates. */}
+        {mode === "full" && (
+          <>
+            <h3>{t("updates.notes")}</h3>
+            <p className="update-notes">
+              {update.notes || t("updates.noNotes")}
+            </p>
+          </>
+        )}
         <p className="muted">{t("updates.hint")}</p>
         {error && (
           <p className="setup-error" role="alert">
