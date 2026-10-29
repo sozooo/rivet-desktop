@@ -10,6 +10,7 @@ import type {
 } from "../git/types";
 import { fileName } from "../git/paths";
 import type { Key, Params } from "../i18n/i18n";
+import { restoreDraft } from "../views/changes/draft";
 
 export type OpContext = {
   branch: string;
@@ -28,6 +29,10 @@ export type OpContext = {
   extraPaths?: string[];
   /** A merge, rebase or cherry-pick under way. */
   operation?: OperationKind;
+  /** Where an undone commit's message goes back to the form. */
+  repositoryId?: string;
+  /** Files to put back, each from the revision that still has it. */
+  restore?: { path: string; revision: string }[];
 };
 
 type Translate = (key: Key, params?: Params) => string;
@@ -130,6 +135,33 @@ const definitions = {
     run: async (b, c) => {
       for (const path of [c.file!.path, ...(c.extraPaths ?? [])])
         await b.discard(path);
+    },
+  },
+  "undo-commit": {
+    params: (c) => ({ summary: c.commit?.summary ?? "", branch: c.branch }),
+    command: () => "git reset --soft HEAD~1",
+    run: async (b, c) => {
+      const message = await b.undoLastCommit();
+      if (c.repositoryId) restoreDraft(c.repositoryId, message);
+    },
+  },
+  "restore-file": {
+    params: (c) => ({
+      path: c.file?.path ?? "",
+      name: fileName(c.file?.path ?? ""),
+      sha: shortSha(c.commit?.sha ?? ""),
+      summary: c.commit?.summary ?? "",
+    }),
+    command: (c) =>
+      (c.restore ?? [])
+        .map(
+          (r) => `git restore --source=${r.revision} --worktree -- ${r.path}`,
+        )
+        .join("\n"),
+    danger: true,
+    run: async (b, c) => {
+      for (const { path, revision } of c.restore ?? [])
+        await b.restoreFile(path, revision);
     },
   },
   "drop-stash": {

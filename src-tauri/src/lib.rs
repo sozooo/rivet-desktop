@@ -8,14 +8,16 @@ use std::time::UNIX_EPOCH;
 use tauri::ipc::Response;
 
 /// Runs git and returns its exit code with text output. Failures are data, not errors,
-/// so the frontend can show git's own message.
+/// so the frontend can show git's own message. `background` runs never ask for passwords.
 #[tauri::command]
 async fn git_text(
     cwd: String,
     args: Vec<String>,
     stdin: Option<String>,
+    background: Option<bool>,
 ) -> Result<git::TextOutput, String> {
-    tauri::async_runtime::spawn_blocking(move || git::run(&cwd, &args, stdin))
+    let background = background.unwrap_or(false);
+    tauri::async_runtime::spawn_blocking(move || git::run_with(&cwd, &args, stdin, background))
         .await
         .map_err(|e| e.to_string())?
         .map(git::TextOutput::from)

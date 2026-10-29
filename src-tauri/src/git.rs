@@ -32,6 +32,17 @@ impl From<Output> for TextOutput {
 }
 
 pub fn run(cwd: &str, args: &[String], stdin: Option<String>) -> Result<Output, String> {
+    run_with(cwd, args, stdin, false)
+}
+
+/// `background`: nobody is watching, so git must fail rather than ask for a password
+/// in any window, including Git Credential Manager's and askpass programs.
+pub fn run_with(
+    cwd: &str,
+    args: &[String],
+    stdin: Option<String>,
+    background: bool,
+) -> Result<Output, String> {
     let mut command = Command::new("git");
     command
         .current_dir(cwd)
@@ -48,6 +59,13 @@ pub fn run(cwd: &str, args: &[String], stdin: Option<String>) -> Result<Output, 
         })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    if background {
+        // An empty GIT_ASKPASS also overrides core.askPass and SSH_ASKPASS.
+        command
+            .env("GIT_ASKPASS", "")
+            .env("SSH_ASKPASS_REQUIRE", "never")
+            .env("GCM_INTERACTIVE", "never");
+    }
     #[cfg(windows)]
     command.creation_flags(CREATE_NO_WINDOW);
 

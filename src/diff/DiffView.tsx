@@ -29,6 +29,7 @@ export function DiffView({
   empty,
   revisions,
   banner,
+  actions,
 }: {
   file?: FileChange;
   /** What the diff compares, e.g. "Working tree → HEAD". */
@@ -40,6 +41,8 @@ export function DiffView({
   empty?: ReactNode;
   /** Shown above the preview or the hunks, e.g. the choices for a conflict. */
   banner?: ReactNode;
+  /** Buttons for this file beside the layout switches, e.g. Restore this version. */
+  actions?: ReactNode;
 }) {
   const [split, setSplit] = useStoredState("rivet.diff.split", false);
   const [whitespace, setWhitespace] = useStoredState(
@@ -85,6 +88,7 @@ export function DiffView({
           )}
         </div>
         <div className="row" ref={menuRef}>
+          {actions}
           {canToggle && (
             <button
               className="text-button preview-toggle"

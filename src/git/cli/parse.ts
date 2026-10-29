@@ -1,4 +1,10 @@
-import type { Commit, DiffLine, FileStatus, StashEntry } from "../types";
+import type {
+  Commit,
+  DiffLine,
+  FileStatus,
+  FileVersion,
+  StashEntry,
+} from "../types";
 
 // ---------------------------------------------------------------------------
 // git status --porcelain=v2 -z --branch
@@ -281,6 +287,42 @@ export function parseLog(output: string, currentBranch: string): Commit[] {
         summary,
         description: (body ?? "").trim(),
         refs: refs.length ? refs : undefined,
+      };
+    });
+}
+
+/** LOG_FORMAT for `git log --name-status`: each commit's files follow its \x1f. */
+export const FILE_LOG_FORMAT = `%x1e${LOG_FORMAT.replace(/%x1e$/, "%x1f")}`;
+
+const STATUS_LETTERS: Record<string, FileStatus> = {
+  A: "added",
+  D: "deleted",
+  R: "renamed",
+  C: "added",
+};
+
+/** `git log --follow --name-status` of one file: where it was in each commit. */
+export function parseFileLog(
+  output: string,
+  currentBranch: string,
+  path: string,
+): FileVersion[] {
+  return output
+    .split("\x1e")
+    .filter((record) => record.includes("\x1f"))
+    .map((record) => {
+      const end = record.lastIndexOf("\x1f");
+      const [commit] = parseLog(record.slice(0, end), currentBranch);
+      // "M\tpath", or "R100\told\tnew"; merges list nothing.
+      const line = record
+        .slice(end + 1)
+        .split("\n")
+        .find((l) => l.includes("\t"));
+      const fields = line?.split("\t") ?? [];
+      return {
+        commit,
+        path: fields.length > 1 ? unquotePath(fields[fields.length - 1]) : path,
+        status: STATUS_LETTERS[fields[0]?.[0]] ?? "modified",
       };
     });
 }

@@ -1,8 +1,15 @@
 export type GitResult = { code: number; stdout: string; stderr: string };
 
+/** `background`: nobody is watching, so git fails instead of asking for a password. */
+export type RunOptions = { background?: boolean };
+
 /** Runs git inside one repository. Tauri and the tests provide implementations. */
 export interface GitRunner {
-  text(args: string[], stdin?: string): Promise<GitResult>;
+  text(
+    args: string[],
+    stdin?: string,
+    options?: RunOptions,
+  ): Promise<GitResult>;
   /** Raw stdout; rejects when git fails. */
   bytes(args: string[]): Promise<Uint8Array>;
   /** A working-tree file, or null when it doesn't exist. */

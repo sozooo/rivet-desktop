@@ -30,6 +30,7 @@ import { explainError } from "./i18n/errors";
 import { useI18n } from "./i18n/i18n";
 import { platform } from "./platform";
 import { PreviewContext } from "./preview/data";
+import { useBackgroundFetch } from "./sync/backgroundFetch";
 import { useStoredState } from "./ui/hooks";
 import { SidebarContext } from "./ui/Panes";
 import { useNotify } from "./ui/Toast";
@@ -74,6 +75,10 @@ export function Workspace({
   const [loadError, setLoadError] = useState<string>();
   /** What a long-running git operation is doing, shown in the top bar. */
   const [working, setWorking] = useState<string | null>(null);
+  /** A file to show when another view sends the user to Changes or History. */
+  const [focus, setFocus] = useState<{ changes?: string; history?: string }>(
+    {},
+  );
   const [sidebarOpen, setSidebarOpen] = useStoredState(
     "rivet.sidebar.open",
     true,
@@ -127,6 +132,39 @@ export function Workspace({
     },
     [backend, notify, refresh, t, setMode],
   );
+
+  // Teammates' work shows up by itself, with one button to bring it in.
+  useBackgroundFetch({
+    backend,
+    snapshot,
+    refresh,
+    busy: !!working || !!dialog || !!setup,
+    onIncoming: (next) =>
+      notify(
+        t("incoming.toast", {
+          count: next.sync.behind,
+          upstream: next.sync.upstream ?? "",
+        }),
+        "info",
+        {
+          queue: true,
+          action: { label: t("incoming.take"), run: takeIncoming },
+        },
+      ),
+  });
+  async function takeIncoming() {
+    const current = latest.current!;
+    const context = {
+      branch: current.branches.current,
+      branches: current.branches.local,
+      sync: current.sync,
+    };
+    if (uiMode === "full")
+      return setDialog({ kind: "operation", id: "pull", context });
+    setWorking(t("incoming.taking"));
+    await act((b) => b.pull(), t(opKey("pull", "done")));
+    setWorking(null);
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -202,6 +240,14 @@ export function Workspace({
     act,
     openOperation,
     sync,
+    showChanges: (path) => {
+      setFocus({ changes: path });
+      setMode("Changes");
+    },
+    showFileHistory: (path) => {
+      setFocus({ history: path });
+      setMode("History");
+    },
   };
 
   async function fetchRemote() {
@@ -273,7 +319,10 @@ export function Workspace({
       >
         <NavRail
           mode={view}
-          onMode={setMode}
+          onMode={(next) => {
+            setFocus({});
+            setMode(next);
+          }}
           hasChanges={snapshot.files.length > 0}
           dark={dark}
           onToggleTheme={() => preferences.setTheme(dark ? "light" : "dark")}
@@ -289,9 +338,18 @@ export function Workspace({
           }}
         >
           {view === "Changes" ? (
-            <ChangesView repo={repo} phase={phase} />
+            <ChangesView
+              repo={repo}
+              phase={phase}
+              initialPath={focus.changes}
+            />
           ) : view === "History" ? (
-            <HistoryView repo={repo} phase={phase} />
+            <HistoryView
+              key={focus.history}
+              repo={repo}
+              phase={phase}
+              initialFile={focus.history}
+            />
           ) : (
             <BranchesView
               repo={repo}

@@ -8,9 +8,13 @@ import {
 } from "lucide-react";
 import { tooLarge } from "../../git/lfs";
 import { fileName, selectionOf } from "../../git/paths";
+import { undoBlocker } from "../../git/undo";
 import { useI18n } from "../../i18n/i18n";
 import { initials, useStoredState } from "../../ui/hooks";
+import { useNotify } from "../../ui/Toast";
 import type { RepoApi } from "../repoApi";
+import { useUndoCommit } from "../useUndoCommit";
+import { useDraft } from "./draft";
 import { useLfsSetup } from "./LfsHint";
 
 /**
@@ -30,10 +34,9 @@ export function Composer({
 }) {
   const { snapshot, act, repository } = repo;
   const { t, mode } = useI18n();
-  const [draft, setDraft] = useStoredState(`rivet.draft.${repository.id}`, {
-    summary: "",
-    description: "",
-  });
+  const notify = useNotify();
+  const undo = useUndoCommit(repo);
+  const [draft, setDraft] = useDraft(repository.id);
   const [collapsed, setCollapsed] = useStoredState(
     "rivet.composer.collapsed",
     false,
@@ -53,15 +56,22 @@ export function Composer({
 
   async function submit() {
     if (!ready) return;
-    const done = await act(
-      (b) =>
-        b.commit(
-          withDescription ? draft : { ...draft, description: "" },
-          selectedCount ? "staged" : "all",
-        ),
-      t("composer.done", { count }),
+    const done = await act((b) =>
+      b.commit(
+        withDescription ? draft : { ...draft, description: "" },
+        selectedCount ? "staged" : "all",
+      ),
     );
-    if (done) setDraft({ summary: "", description: "" });
+    if (!done) return;
+    setDraft({ summary: "", description: "" });
+    // A save made by mistake is one click away from being a list of changes again.
+    const sha = done.commits[0]?.sha;
+    notify(t("composer.done", { count }), "success", {
+      action:
+        sha && !undoBlocker(done, sha)
+          ? { label: t("undo.action"), run: () => undo(sha) }
+          : undefined,
+    });
   }
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {

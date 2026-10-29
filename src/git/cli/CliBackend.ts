@@ -10,6 +10,7 @@ import {
 } from "../lfs";
 import type {
   Commit,
+  CommitMessage,
   CommitScope,
   Conflict,
   FileChange,
@@ -21,6 +22,7 @@ import type {
   Side,
 } from "../types";
 import {
+  FILE_LOG_FORMAT,
   LOG_FORMAT,
   STASH_FORMAT,
   conflictPaths,
@@ -29,6 +31,7 @@ import {
   looksBinary,
   parseCheckAttr,
   parseDiff,
+  parseFileLog,
   parseLog,
   parseRefs,
   parseStages,
@@ -40,13 +43,14 @@ import {
   type Status,
   type StatusEntry,
 } from "./parse";
-import { GitError, type GitRunner } from "./runner";
+import { GitError, type GitRunner, type RunOptions } from "./runner";
 
 /** Untracked text files larger than this are listed without their contents. */
 const MAX_UNTRACKED_TEXT = 512 * 1024;
 /** Reading every new file can be slow in big Unity projects. */
 const MAX_UNTRACKED_READS = 200;
 const LOG_LIMIT = 400;
+const FILE_LOG_LIMIT = 200;
 
 /**
  * Operations git leaves unfinished, by the file in .git that marks them, and
@@ -124,6 +128,8 @@ export class CliBackend implements GitBackend {
     key: string;
     files: Promise<{ path: string; size: number }[]>;
   };
+  /** The last fetch, pull or push: they take turns, since each moves remote refs. */
+  private remoteTurn: Promise<unknown> = Promise.resolve();
 
   constructor(private git: GitRunner) {}
 
@@ -139,8 +145,8 @@ export class CliBackend implements GitBackend {
     return file;
   }
 
-  private async run(args: string[], stdin?: string) {
-    const result = await this.git.text(args, stdin);
+  private async run(args: string[], stdin?: string, options?: RunOptions) {
+    const result = await this.git.text(args, stdin, options);
     if (result.code !== 0)
       throw new GitError(
         result.stderr.trim() || result.stdout.trim() || `git ${args[0]} failed`,
@@ -154,6 +160,13 @@ export class CliBackend implements GitBackend {
   private async tryRun(args: string[], stdin?: string) {
     const result = await this.git.text(args, stdin);
     return result.code === 0 ? result.stdout : "";
+  }
+
+  /** Runs remote commands one at a time, so a background fetch can't collide with a pull. */
+  private inTurn<T>(task: () => Promise<T>) {
+    const turn = this.remoteTurn.then(task);
+    this.remoteTurn = turn.catch(() => {});
+    return turn;
   }
 
   /** Runs a command that may stop on conflicts; stopping there is not a failure. */
@@ -530,6 +543,21 @@ export class CliBackend implements GitBackend {
     return parseDiff(out).map(diffToChange);
   }
 
+  async fileHistory(path: string) {
+    await this.ensureLoaded();
+    const out = await this.run([
+      "log",
+      "--follow",
+      `-n${FILE_LOG_LIMIT}`,
+      "-M",
+      `--format=${FILE_LOG_FORMAT}`,
+      "--name-status",
+      "--",
+      literal(path),
+    ]);
+    return parseFileLog(out, this.branch, path);
+  }
+
   async stashFiles(index: number) {
     const out = await this.run([
       "stash",
@@ -704,6 +732,42 @@ export class CliBackend implements GitBackend {
     return commit;
   }
 
+  async undoLastCommit(): Promise<CommitMessage> {
+    if (await this.currentOperation())
+      throw new Error("Finish or cancel the merge first.");
+    const [head] = parseLog(
+      await this.run(["log", "-n1", `--format=${LOG_FORMAT}`, "HEAD"]),
+      this.branch,
+    );
+    if (!head.parents.length)
+      throw new Error("The first commit has nothing before it to go back to.");
+    if (head.parents.length > 1)
+      throw new Error("A merge commit can't be undone this way.");
+    // Once a remote has the commit, someone may have built on it.
+    if ((await this.run(["branch", "-r", "--contains", "HEAD"])).trim())
+      throw new Error(
+        "This commit is already pushed. Undo it with a new commit (revert) instead.",
+      );
+    await this.run(["reset", "-q", "--soft", "HEAD~1"]);
+    return { summary: head.summary, description: head.description };
+  }
+
+  async restoreFile(path: string, revision: Revision) {
+    const spec = literal(path);
+    await this.run([
+      "restore",
+      `--source=${revision}`,
+      "--worktree",
+      "--",
+      spec,
+    ]);
+    // Changes selected before would mix with the restored file; they were given up.
+    const selected =
+      (await this.git.text(["diff", "--cached", "--quiet", "--", spec]))
+        .code === 1;
+    if (selected) await this.run(["restore", "--staged", "--", spec]);
+  }
+
   async stash() {
     await this.ensureLoaded();
     await this.run([
@@ -746,18 +810,37 @@ export class CliBackend implements GitBackend {
     else await this.run(["switch", "--track", name]);
   }
 
-  async fetch() {
-    await this.run(["fetch", "--all", "--prune"]);
+  async fetch(options?: { background?: boolean }) {
+    const background = !!options?.background;
+    await this.inTurn(() =>
+      this.run(
+        [
+          // Housekeeping can take minutes on a big project; leave it to fetches someone asked for.
+          ...(background
+            ? ["-c", "gc.auto=0", "-c", "maintenance.auto=false"]
+            : []),
+          "fetch",
+          "--all",
+          "--prune",
+        ],
+        undefined,
+        { background },
+      ),
+    );
   }
 
   async pull() {
-    await this.runUntilConflict(["pull", "--no-rebase", "--no-edit"]);
+    await this.inTurn(() =>
+      this.runUntilConflict(["pull", "--no-rebase", "--no-edit"]),
+    );
   }
 
   async push() {
     await this.ensureLoaded();
-    await this.run(
-      this.upstream ? ["push"] : ["push", "--set-upstream", "origin", "HEAD"],
+    await this.inTurn(() =>
+      this.run(
+        this.upstream ? ["push"] : ["push", "--set-upstream", "origin", "HEAD"],
+      ),
     );
   }
 
@@ -870,6 +953,9 @@ export class CliBackend implements GitBackend {
 
 const text = (bytes: Uint8Array | null) =>
   bytes ? new TextDecoder().decode(bytes) : null;
+
+/** A pathspec that matches only this path, even with [ ] or * in its name. */
+const literal = (path: string) => `:(literal)${path}`;
 
 function diffToChange(diff: FileDiff): FileChange {
   return {
