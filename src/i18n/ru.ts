@@ -351,6 +351,79 @@ export const ru: Record<keyof typeof en, Message> = {
   "history.revert": "Отменить коммит…",
   "history.context": "Коммит → родитель",
 
+  "history.undo": "Вернуть в изменения…",
+  "history.undo@simple": "Отменить это сохранение",
+  "history.restore": "Вернуть эту версию",
+  "history.restore@simple": "Вернуть файл к этой версии",
+  "history.restoreTitle":
+    "Сделать {name} таким, как в этом коммите. Перед коммитом его можно будет посмотреть.",
+  "history.restoreTitle@simple":
+    "{name} станет таким, каким был в этой версии. Перед сохранением его можно посмотреть.",
+  "history.fileHistory": "История файла",
+  "history.fileHistory@simple": "Все версии файла",
+  "history.fileVersions": "ИСТОРИЯ ФАЙЛА",
+  "history.fileVersions@simple": "ВЕРСИИ ФАЙЛА",
+  "history.showAll": "Показать все коммиты",
+  "history.showAll@simple": "Показать все версии",
+  "history.noVersions": "Этот файл не менялся ни в одном коммите.",
+  "history.noVersions@simple": "У этого файла пока нет сохранённых версий.",
+  "undo.action": "Отменить",
+  "undo.blocked.pushed":
+    "Этот коммит уже отправлен. Отменить его можно только новым коммитом (Revert).",
+  "undo.blocked.pushed@simple":
+    "Эта версия уже отправлена коллегам — отменить её можно только новой версией.",
+  "undo.blocked.merge":
+    "Это merge-коммит. Rivet отменяет только обычные коммиты.",
+  "undo.blocked.merge@simple":
+    "В этой версии ваша работа соединилась с работой коллег. Её нельзя отменить здесь.",
+  "undo.blocked.first": "Это первый коммит: до него возвращаться некуда.",
+  "undo.blocked.first@simple":
+    "Это самая первая версия проекта, её нельзя отменить.",
+  "undo.blocked.merging": "Сначала завершите или отмените слияние.",
+  "undo.blocked.merging@simple":
+    "Сначала выберите, какую версию оставить для файлов с конфликтом.",
+  "undo.blocked.moved": "Отменить можно только последний коммит.",
+  "undo.blocked.moved@simple":
+    "Отменить можно только последнюю сохранённую версию.",
+  "op.undo-commit.title": "Вернуть коммит в изменения",
+  "op.undo-commit.title@simple": "Отменить последнее сохранение",
+  "op.undo-commit.describe":
+    "Убрать «{summary}» из {branch}. Изменения останутся в файлах и вернутся в список выбранными, а сообщение — в форму коммита. Коммит ещё не отправлен, так что ни у кого его нет.",
+  "op.undo-commit.describe@simple":
+    "Версия «{summary}» исчезнет из истории. Файлы останутся как есть: изменения вернутся в список, а описание — в поле сохранения, чтобы можно было что-то поправить и сохранить заново.",
+  "op.undo-commit.confirm": "Вернуть в изменения",
+  "op.undo-commit.confirm@simple": "Отменить сохранение",
+  "op.undo-commit.done":
+    "Коммит отменён. Изменения снова в списке, сообщение — в форме коммита.",
+  "op.undo-commit.done@simple":
+    "Сохранение отменено. Изменения снова в списке — можно поправить и сохранить заново.",
+  "op.restore-file.title": "Вернуть файл",
+  "op.restore-file.title@simple": "Вернуть файл к этой версии",
+  "op.restore-file.describe":
+    "Заменить {path} версией из {sha} «{summary}». Незакоммиченные изменения в нём пропадут. Восстановленный файл станет обычным изменением: его можно посмотреть и закоммитить.",
+  "op.restore-file.describe@simple":
+    "Файл {name} станет таким, каким был в версии «{summary}». Несохранённые изменения в этом файле пропадут.",
+  "op.restore-file.confirm": "Вернуть",
+  "op.restore-file.confirm@simple": "Вернуть",
+  "op.restore-file.done":
+    "Файл {name} возвращён к версии {sha}. Посмотрите его в «Изменениях» и закоммитьте.",
+  "op.restore-file.done@simple":
+    "Файл {name} снова такой, как в версии «{summary}». Посмотрите его в «Изменениях» и сохраните, если всё так.",
+  "restore.same": "Файл {name} уже совпадает с этой версией.",
+  "restore.review": "Посмотреть",
+  "restore.review@simple": "Посмотреть",
+  "incoming.toast": {
+    one: "{count} новый коммит в {upstream}",
+    few: "{count} новых коммита в {upstream}",
+    many: "{count} новых коммитов в {upstream}",
+    other: "{count} новых коммита в {upstream}",
+  },
+  "incoming.toast@simple": "Пришли обновления от коллег: {count}",
+  "incoming.take": "Получить…",
+  "incoming.take@simple": "Забрать",
+  "incoming.taking": "Забираю обновления…",
+  "op.pull.done@simple": "Готово: работа коллег теперь у вас.",
+
   "branches.title": "Ветки",
   "branches.search": "Поиск веток…",
   "branches.local": "ЛОКАЛЬНЫЕ",

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Archive,
   CheckCircle2,
   CircleCheck,
+  History,
 } from "lucide-react";
 import { DiffView } from "../../diff/DiffView";
 import { dirName, fileName } from "../../git/paths";
@@ -32,16 +33,32 @@ const conflictOf = (g: FileGroup) =>
   groupFiles(g).find((f) => f.conflict && !f.conflict.resolution) ??
   groupFiles(g).find((f) => f.conflict);
 
-export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
+export function ChangesView({
+  repo,
+  phase,
+  initialPath,
+}: {
+  repo: RepoApi;
+  phase: string;
+  /** The row to show first. */
+  initialPath?: string;
+}) {
   const { snapshot, act, openOperation } = repo;
   const { files, stashes, operation } = snapshot;
   const { t, mode } = useI18n();
   const stashName = useStashName();
   const conflictNote = useConflictNote(operation);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string>();
+  const [selected, setSelected] = useState(initialPath);
   // Stashes renumber when one is removed, so remember the viewed one by date.
   const [viewingStash, setViewingStash] = useState<number | null>(null);
+  // Sent here for one file: bring its row into view.
+  useEffect(() => {
+    if (initialPath)
+      document
+        .querySelector(".file-row.selected")
+        ?.scrollIntoView({ block: "nearest" });
+  }, [initialPath]);
 
   // An asset and its Unity .meta file are one row, selected together.
   const groups = groupWithMeta(files);
@@ -260,6 +277,21 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
                 file={current}
                 context={t("changes.diffContext")}
                 revisions={{ before: "HEAD", after: "worktree" }}
+                actions={
+                  // A new file has no versions yet.
+                  current?.status !== "added" && (
+                    <button
+                      className="text-button file-action"
+                      title={t("history.fileHistory")}
+                      onClick={() =>
+                        current && repo.showFileHistory(current.path)
+                      }
+                    >
+                      <History size={14} />
+                      <span>{t("history.fileHistory")}</span>
+                    </button>
+                  )
+                }
                 onToggleHunk={
                   // Picking parts of a file is a full-mode tool, and a merge commit takes everything.
                   mode === "full" && !merging

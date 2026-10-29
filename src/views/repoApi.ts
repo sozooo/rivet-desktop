@@ -18,4 +18,8 @@ export type RepoApi = {
   openOperation: (id: OperationId, context?: Partial<OpContext>) => void;
   /** Gets others' work and sends ours: simple mode's one button. */
   sync: () => Promise<void>;
+  /** Opens Changes, on one file's row when given (an asset's path stands for its .meta too). */
+  showChanges: (path?: string) => void;
+  /** Opens History on the commits that changed one file. */
+  showFileHistory: (path: string) => void;
 };

@@ -1095,6 +1095,50 @@ textarea::placeholder {
 .toast.warning {
   border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
+.toast-action {
+  font-size: 11px;
+  padding: 4px 10px;
+  margin-left: 4px;
+  color: var(--accent);
+}
+.file-action {
+  color: var(--muted);
+  margin-right: 6px;
+}
+.file-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.file-history-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 8px 6px;
+  padding: 7px 6px 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  font-size: 11px;
+}
+.file-history-heading > svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.file-history-heading strong {
+  flex: 1;
+  min-width: 0;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 1150px) {
+  .file-action span {
+    display: none;
+  }
+}
 .modal-overlay {
   position: fixed;
   inset: 0;

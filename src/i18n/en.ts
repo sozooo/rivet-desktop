@@ -314,6 +314,77 @@ export const en = {
   "history.revert": "Revert…",
   "history.context": "Commit → Parent",
 
+  "history.undo": "Undo commit…",
+  "history.undo@simple": "Undo this save",
+  "history.restore": "Restore this version",
+  "history.restore@simple": "Put the file back to this version",
+  "history.restoreTitle":
+    "Make {name} the way it was in this commit. You can review it before committing.",
+  "history.restoreTitle@simple":
+    "{name} becomes the way it was in this version. You can look at it before saving.",
+  "history.fileHistory": "File history",
+  "history.fileHistory@simple": "All versions of this file",
+  "history.fileVersions": "FILE HISTORY",
+  "history.fileVersions@simple": "VERSIONS OF THIS FILE",
+  "history.showAll": "Show all commits",
+  "history.showAll@simple": "Show all versions",
+  "history.noVersions": "No commits changed this file.",
+  "history.noVersions@simple": "This file has no saved versions yet.",
+  "undo.action": "Undo",
+  "undo.blocked.pushed":
+    "This commit is already pushed. Undo it with a new commit instead (Revert).",
+  "undo.blocked.pushed@simple":
+    "This version has already been sent to your teammates, so it can only be undone with a new version.",
+  "undo.blocked.merge":
+    "This is a merge commit. Rivet only undoes ordinary commits.",
+  "undo.blocked.merge@simple":
+    "In this version your work was joined with your teammates'. It can't be undone here.",
+  "undo.blocked.first":
+    "This is the first commit, so there is nothing before it to go back to.",
+  "undo.blocked.first@simple":
+    "This is the very first version of the project, so it can't be undone.",
+  "undo.blocked.merging": "Finish or cancel the merge first.",
+  "undo.blocked.merging@simple":
+    "First choose which version to keep for the files in conflict.",
+  "undo.blocked.moved": "Only the latest commit can be undone.",
+  "undo.blocked.moved@simple": "Only the latest saved version can be undone.",
+  "op.undo-commit.title": "Undo commit",
+  "op.undo-commit.title@simple": "Undo the last save",
+  "op.undo-commit.describe":
+    "Remove “{summary}” from {branch}. Its changes stay in your files and come back to Changes, selected, and its message goes back into the commit form. It isn't pushed, so nobody else has it.",
+  "op.undo-commit.describe@simple":
+    "The version “{summary}” disappears from the history. Your files stay exactly as they are: the changes come back to the list and the description to the save form, so you can fix something and save again.",
+  "op.undo-commit.confirm": "Undo commit",
+  "op.undo-commit.confirm@simple": "Undo save",
+  "op.undo-commit.done":
+    "Commit undone. Its changes are back in Changes, and its message is in the commit form.",
+  "op.undo-commit.done@simple":
+    "Save undone. Your changes are back in the list, ready to save again.",
+  "op.restore-file.title": "Restore file",
+  "op.restore-file.title@simple": "Put the file back to this version",
+  "op.restore-file.describe":
+    "Replace {path} with its version from {sha} “{summary}”. Your uncommitted changes to it are lost. The restored file becomes an ordinary change to review and commit.",
+  "op.restore-file.describe@simple":
+    "{name} becomes the way it was in the version “{summary}”. The changes you haven't saved in this file will be lost.",
+  "op.restore-file.confirm": "Restore",
+  "op.restore-file.confirm@simple": "Put it back",
+  "op.restore-file.done":
+    "Restored {name} from {sha}. Review it in Changes and commit it.",
+  "op.restore-file.done@simple":
+    "{name} is back to the version “{summary}”. Have a look in Changes, and save it if it's right.",
+  "restore.same": "{name} already matches this version.",
+  "restore.review": "Review",
+  "restore.review@simple": "Show me",
+  "incoming.toast": {
+    one: "{count} new commit on {upstream}",
+    other: "{count} new commits on {upstream}",
+  },
+  "incoming.toast@simple": "Updates from your teammates: {count}",
+  "incoming.take": "Pull…",
+  "incoming.take@simple": "Get them",
+  "incoming.taking": "Getting updates…",
+  "op.pull.done@simple": "Done: your teammates' work is here now.",
+
   "branches.title": "Branches",
   "branches.search": "Search branches…",
   "branches.local": "LOCAL",
