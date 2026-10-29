@@ -421,9 +421,12 @@ textarea::placeholder {
 .file-row .file-select {
   padding-right: 12px;
 }
+/* The select-all box sits right above the file rows' boxes (row margin + padding). */
+.changes-heading {
+  padding-left: 18px;
+}
 .changes-heading .row {
   gap: 9px;
-  padding-left: 10px;
 }
 .file-row:hover {
   background: var(--hover);
