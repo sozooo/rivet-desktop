@@ -4,6 +4,7 @@ const avatar = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rec
 
 /** The account the browser demo signs in to. */
 export const demoUser: GitHubUser = {
+  id: 48213077,
   login: "alexkim-art",
   name: "Alex Kim",
   avatarUrl: `data:image/svg+xml,${encodeURIComponent(avatar)}`,

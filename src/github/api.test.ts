@@ -142,10 +142,11 @@ describe("fetchRepositories", () => {
 });
 
 describe("fetchUser", () => {
-  it("reads the login, name and picture", async () => {
+  it("reads the id, login, name and picture", async () => {
     const api = fakeApi({
       "https://api.github.com/user": {
         body: {
+          id: 48213077,
           login: "alexkim-art",
           name: null,
           avatar_url: "https://avatars.githubusercontent.com/u/1",
@@ -153,6 +154,7 @@ describe("fetchUser", () => {
       },
     });
     expect(await fetchUser(api.fetch, "gho_token")).toEqual({
+      id: 48213077,
       login: "alexkim-art",
       name: null,
       avatarUrl: "https://avatars.githubusercontent.com/u/1",

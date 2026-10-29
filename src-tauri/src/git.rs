@@ -1,12 +1,15 @@
 use serde::Serialize;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::OnceLock;
+use std::time::Instant;
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 /// Keeps Windows from flashing a console window for every git call.
 #[cfg(windows)]
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+pub(crate) const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 pub struct Output {
     pub code: i32,
@@ -31,8 +34,48 @@ impl From<Output> for TextOutput {
     }
 }
 
+/// Runs git and writes the command, its exit code and its errors to the log.
 pub fn run(cwd: &str, args: &[String], stdin: Option<String>) -> Result<Output, String> {
-    let mut command = Command::new("git");
+    let started = Instant::now();
+    let result = spawn(cwd, args, stdin);
+    crate::applog::git(cwd, args, &result, started.elapsed());
+    result
+}
+
+/// Git on PATH, or where Git for Windows installs: PATH changes from an install made
+/// while Rivet runs only reach programs started later, and "Check again" must see it.
+fn program() -> PathBuf {
+    static FOUND: OnceLock<PathBuf> = OnceLock::new();
+    if let Some(found) = FOUND.get() {
+        return found.clone();
+    }
+    let exe = if cfg!(windows) { "git.exe" } else { "git" };
+    let on_path = std::env::var_os("PATH")
+        .is_some_and(|path| std::env::split_paths(&path).any(|dir| dir.join(exe).is_file()));
+    let installed = || {
+        [
+            ("ProgramW6432", r"Git\cmd\git.exe"),
+            ("ProgramFiles", r"Git\cmd\git.exe"),
+            ("LOCALAPPDATA", r"Programs\Git\cmd\git.exe"),
+        ]
+        .iter()
+        .filter_map(|(base, path)| Some(PathBuf::from(std::env::var_os(base)?).join(path)))
+        .find(|path| path.is_file())
+    };
+    match on_path.then(|| PathBuf::from("git")).or_else(installed) {
+        Some(found) => FOUND.get_or_init(|| found).clone(),
+        None => PathBuf::from("git"),
+    }
+}
+
+fn spawn(cwd: &str, args: &[String], stdin: Option<String>) -> Result<Output, String> {
+    // Windows reports a missing working folder like a missing program.
+    if !Path::new(cwd).is_dir() {
+        return Err(format!(
+            "Could not start git in {cwd}: the folder does not exist."
+        ));
+    }
+    let mut command = Command::new(program());
     command
         .current_dir(cwd)
         .args(["-c", "core.quotepath=false", "-c", "color.ui=false"])

@@ -1,6 +1,8 @@
 import type { Fetch } from "./deviceFlow";
 
 export type GitHubUser = {
+  /** The account number, for the private noreply email; unknown offline. */
+  id?: number;
   login: string;
   name: string | null;
   /** Empty when unknown, e.g. offline; show initials instead. */
@@ -65,6 +67,7 @@ type Json = any;
 
 export function toUser(raw: Json): GitHubUser {
   return {
+    ...(raw.id && { id: Number(raw.id) }),
     login: String(raw.login),
     name: raw.name ? String(raw.name) : null,
     avatarUrl: raw.avatar_url ? String(raw.avatar_url) : "",

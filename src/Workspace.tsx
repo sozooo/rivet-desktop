@@ -6,7 +6,6 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { AlertTriangle } from "lucide-react";
 import { NavRail, type Mode } from "./chrome/NavRail";
 import { StatusBar } from "./chrome/StatusBar";
 import { TopBar } from "./chrome/TopBar";
@@ -25,8 +24,11 @@ import type { RepoSnapshot } from "./git/types";
 import type { Repository, SetupMode } from "./repositories";
 import { RepositorySetup } from "./setup/RepositorySetup";
 import type { Preferences } from "./App";
-import { explainError } from "./i18n/errors";
+import { errorText, explainError } from "./errors/explain";
+import { LoadError } from "./errors/LoadError";
+import { useShowError } from "./errors/notice";
 import { useI18n } from "./i18n/i18n";
+import { useIdentity } from "./onboarding/identity";
 import { platform } from "./platform";
 import { PreviewContext } from "./preview/data";
 import { useStoredState } from "./ui/hooks";
@@ -64,6 +66,8 @@ export function Workspace({
   onRemoveRepository: (id: string) => void;
 }) {
   const notify = useNotify();
+  const showError = useShowError();
+  const { ask: askIdentity } = useIdentity();
   const { t, mode: uiMode } = useI18n();
   const updates = useUpdates();
   const [snapshot, setSnapshot] = useState<RepoSnapshot>();
@@ -84,6 +88,8 @@ export function Workspace({
 
   /** The latest snapshot, for comparing before and after an action. */
   const latest = useRef<RepoSnapshot>(undefined);
+  /** What an error's "Sync" button does: Sync in simple mode, the Pull dialog in full. */
+  const syncAfterError = useRef(() => {});
   const refresh = useCallback(async () => {
     try {
       const next = await backend.snapshot();
@@ -104,7 +110,7 @@ export function Workspace({
   }, [refresh]);
 
   const act = useCallback<RepoApi["act"]>(
-    async (action, success) => {
+    async function attempt(action, success, again) {
       const conflictsBefore = unresolved(latest.current?.files ?? []).length;
       try {
         await action(backend);
@@ -117,14 +123,31 @@ export function Workspace({
         } else if (success) notify(success);
         return next;
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        const known = explainError(message);
-        notify(known ? t(known.key, known.params) : message, "error");
+        // Without a name and email nothing can be saved: ask, then go on as if nothing happened.
+        if (
+          explainError(errorText(error))?.action === "identity" &&
+          (await askIdentity())
+        )
+          return attempt(action, success, again);
+        showError(repository.path, error, {
+          retry: () =>
+            void (again ? again() : attempt(action, success, undefined)),
+          sync: () => syncAfterError.current(),
+        });
         await refresh();
         return null;
       }
     },
-    [backend, notify, refresh, t, setMode],
+    [
+      backend,
+      notify,
+      refresh,
+      t,
+      setMode,
+      showError,
+      askIdentity,
+      repository.path,
+    ],
   );
 
   useEffect(() => {
@@ -148,23 +171,12 @@ export function Workspace({
 
   if (!snapshot)
     return loadError ? (
-      <div className="load-error">
-        <AlertTriangle />
-        <h2>{t("load.title", { name: repository.name })}</h2>
-        <code>{repository.path}</code>
-        <p>{loadError}</p>
-        <div className="row">
-          <button className="button primary" onClick={refresh}>
-            {t("load.retry")}
-          </button>
-          <button
-            className="button"
-            onClick={() => onRemoveRepository(repository.id)}
-          >
-            {t("load.remove")}
-          </button>
-        </div>
-      </div>
+      <LoadError
+        repository={repository}
+        error={loadError}
+        onRetry={refresh}
+        onRemove={() => onRemoveRepository(repository.id)}
+      />
     ) : null;
 
   const openOperation = (id: OperationId, context: Partial<OpContext> = {}) =>
@@ -178,6 +190,8 @@ export function Workspace({
         ...context,
       },
     });
+  syncAfterError.current =
+    uiMode === "simple" ? sync : () => openOperation("pull");
   const demo = !platform.desktop || repository.kind === "demo";
   const repo: RepoApi = {
     repository,
@@ -191,7 +205,7 @@ export function Workspace({
 
   async function fetchRemote() {
     setWorking(t("top.working.check"));
-    const next = await act((b) => b.fetch());
+    const next = await act((b) => b.fetch(), undefined, fetchRemote);
     setWorking(null);
     if (next)
       notify(
@@ -211,18 +225,22 @@ export function Workspace({
   async function sync() {
     setWorking(t("top.working.sync"));
     let outcome = "sent" as "sent" | "stopped" | "too-large";
-    const next = await act(async (b) => {
-      await b.fetch();
-      let state = await b.snapshot();
-      if (state.sync.behind) {
-        await b.pull();
-        state = await b.snapshot();
-        if (state.operation || unresolved(state.files).length)
-          return (outcome = "stopped");
-      }
-      if (state.sync.tooLarge?.length) return (outcome = "too-large");
-      if (state.sync.ahead || !state.sync.upstream) await b.push();
-    });
+    const next = await act(
+      async (b) => {
+        await b.fetch();
+        let state = await b.snapshot();
+        if (state.sync.behind) {
+          await b.pull();
+          state = await b.snapshot();
+          if (state.operation || unresolved(state.files).length)
+            return (outcome = "stopped");
+        }
+        if (state.sync.tooLarge?.length) return (outcome = "too-large");
+        if (state.sync.ahead || !state.sync.upstream) await b.push();
+      },
+      undefined,
+      sync,
+    );
     setWorking(null);
     if (next && outcome === "sent") notify(t("sync.done"));
     if (next && outcome === "too-large")

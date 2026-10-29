@@ -830,6 +830,182 @@ export const en = {
     "Commit or stash your changes first: the merge would overwrite {files}.",
   "error.localChanges@simple":
     "Save a version first, then sync again. Rivet will then combine your changes with the server's ({files}).",
+  "error.localChangesSwitch":
+    "Commit or stash your changes first: switching would overwrite {files}.",
+  "error.localChangesSwitch@simple":
+    "Save a version first, then try again: otherwise your changes to {files} would be lost.",
+  "error.unknown":
+    "Something went wrong. Try again; if it keeps happening, send the developer an error report (Settings → Copy error report).",
+  "error.offline":
+    "Couldn't reach the server. Check that the internet is on, then try again.",
+  "error.timeout":
+    "The server took too long to answer. The connection may be slow or unstable; try again in a minute.",
+  "error.connectionLost":
+    "The connection broke off halfway. Nothing was lost: try again. If it keeps happening with large files, the internet may be unstable.",
+  "error.certificate":
+    "The server's security certificate couldn't be checked (SSL certificate problem). An antivirus or a company network often causes this.",
+  "error.certificate@simple":
+    "Rivet couldn't check that the connection to the server is safe. An antivirus or the network's settings may be getting in the way. Ask whoever set up the project for help.",
+  "error.auth":
+    "The server didn't accept your sign-in: the password or token is wrong or has expired. Sign in again.",
+  "error.auth@simple":
+    "The server didn't recognise you: your sign-in has probably expired. Sign in to GitHub again.",
+  "error.authPrompt":
+    "The server asks for a login and there's no saved sign-in for it. Sign in to GitHub in Rivet, or sign in once through Git Credential Manager for this server.",
+  "error.authPrompt@simple":
+    "The server asks you to sign in. Sign in to GitHub, then try again.",
+  "error.sshKey":
+    "The server didn't accept this computer's SSH key (Permission denied (publickey)). Add the key to your account, or use the HTTPS link instead.",
+  "error.sshKey@simple":
+    "This project is connected in a way that needs extra setup on this computer. Ask whoever set up the project for help.",
+  "error.sshHost":
+    "SSH doesn't know this server yet (host key verification failed). Connect once from a terminal to confirm it, e.g. ssh -T git@github.com, or use the HTTPS link.",
+  "error.sshHost@simple":
+    "This project is connected in a way that needs extra setup on this computer. Ask whoever set up the project for help.",
+  "error.noAccess":
+    "Your account isn't allowed to change this repository. Ask its owner for write access.",
+  "error.noAccess@simple":
+    "Your account isn't allowed to send changes to this project. Ask the project's owner to add you.",
+  "error.notFound":
+    "There's no repository at this address, or your account can't see it. Check the link, or sign in with the account that has access.",
+  "error.notFound@simple":
+    "There's no project at this address, or your account can't see it. Check the link, or sign in with the account that has access.",
+  "error.noRemote":
+    "This repository isn't connected to a server (there's no remote named origin).",
+  "error.noRemote@simple":
+    "This project isn't connected to a server yet, so there's nowhere to send it.",
+  "error.pushRejected":
+    "The server has commits you don't have yet, so it refused the push. Pull first, then push again.",
+  "error.pushRejected@simple":
+    "Someone sent their changes to the server while you were working. Press Sync: Rivet will get their changes first, then send yours.",
+  "error.protectedBranch":
+    "This branch is protected on the server: changes go in through pull requests. Push to a new branch and open a pull request.",
+  "error.protectedBranch@simple":
+    "The server doesn't let anyone send changes straight into this project. Ask whoever set up the project for help.",
+  "error.tooLarge":
+    "GitHub refuses files over 100 MB: {files}. Undo the commit, put the file in Git LFS and commit it again.",
+  "error.tooLarge@simple":
+    "GitHub doesn't take files over 100 MB: {files}. Large files need special storage. Ask whoever set up the project for help.",
+  "error.tooLargeAny":
+    "GitHub refused a file over 100 MB. Undo the commit, put the file in Git LFS and commit it again.",
+  "error.tooLargeAny@simple":
+    "GitHub doesn't take files over 100 MB, and this version has one. Ask whoever set up the project for help.",
+  "error.locked":
+    "Another program is working with this repository right now (.git/index.lock exists). Wait a moment and try again. If no other Git program is running, delete that file.",
+  "error.locked@simple":
+    "Another program is busy with this project right now. Wait a moment and try again.",
+  "error.fileBusy":
+    "{file} is in use by another program, most often Unity. Close Unity (or whatever has the file open) and try again.",
+  "error.filesBusy":
+    "A project file is in use by another program, most often Unity. Close Unity and try again.",
+  "error.noPermission":
+    "Rivet isn't allowed to write in this folder. Choose another one, for example in Documents or on drive D.",
+  "error.diskFull":
+    "The disk is full. Free up some space (empty the Recycle Bin, delete old builds), then try again.",
+  "error.pathTooLong":
+    "Some file paths are too long for Windows. Move the project to a shorter folder such as D:\\Projects, or turn on long paths: git config --global core.longpaths true.",
+  "error.pathTooLong@simple":
+    "Some file paths in this project are too long for Windows. Choose a shorter folder, such as D:\\Projects, and try again.",
+  "error.lfsFilter":
+    "Git LFS couldn't fetch or store a large file. Try again; if it repeats, the file may be missing on the server: ask whoever committed it to push it again.",
+  "error.lfsFilter@simple":
+    "A large file couldn't be downloaded or saved. Try again; if it repeats, ask whoever set up the project for help.",
+  "error.notRepository":
+    "This folder isn't a Git repository (any more). The .git folder may have been deleted, or the project moved.",
+  "error.notRepository@simple":
+    "Rivet can't find the project's history in this folder any more. The project may have been moved or replaced.",
+  "error.folderMissing":
+    "The project folder isn't there any more. It may have been moved, renamed or deleted, or it's on a drive that isn't connected.",
+  "error.gitMissing":
+    "Git isn't installed on this computer. Install Git for Windows, then try again.",
+  "error.identity": "Git needs your name and email to sign commits.",
+  "error.identity@simple":
+    "To save versions, Rivet needs to know how to sign them.",
+  "error.dubiousOwnership":
+    "Git won't open this repository: the folder belongs to another Windows user (common on external drives). Trust the folder if it's yours.",
+  "error.dubiousOwnership@simple":
+    "Windows says this folder belongs to another user, so it can't be opened (this happens on external drives). If the project is yours, press Trust this folder.",
+  "error.destinationExists":
+    "There's already a folder named {name} there, and it isn't empty. Choose another location, or rename that folder.",
+  "error.unrelatedHistories":
+    "The server's history and yours have nothing in common, so they can't be merged. Check that the project is connected to the right repository.",
+  "error.unrelatedHistories@simple":
+    "The project on the server is a different project from yours. Ask whoever set up the project for help.",
+  "error.noRemoteBranch":
+    "This branch isn't on the server (any more): it may have been deleted there. Push it again, or switch to another branch.",
+  "error.noRemoteBranch@simple":
+    "The server no longer has this project's work. Ask whoever set up the project for help.",
+  "error.detached":
+    "You aren't on a branch right now (detached HEAD), so there's nothing to push. Create a branch here, or switch to one.",
+  "error.detached@simple":
+    "Rivet is showing an older version of the project, so there's nothing to send. Ask whoever set up the project for help.",
+  "error.nothingToCommit": "There's nothing to commit.",
+  "error.nothingToCommit@simple": "There are no changes to save.",
+  "error.details": "Details",
+  "error.hideDetails": "Hide details",
+  "error.action.retry": "Try again",
+  "error.action.sync": "Pull…",
+  "error.action.sync@simple": "Sync",
+  "error.action.signIn": "Sign in to GitHub",
+  "error.action.identity": "Add name and email",
+  "error.action.installGit": "Download Git",
+  "error.action.trust": "Trust this folder",
+  "error.trusted": "Done: Git now trusts {path}.",
+  "error.trusted@simple": "Done. The project can be opened now.",
+
+  "health.eyebrow": "BEFORE WE START",
+  "health.missing.title": "Rivet needs Git",
+  "health.missing.text":
+    "Git is the free program that keeps the versions of your files; Rivet works on top of it. Install Git for Windows: download the installer, run it and keep pressing Next. The default settings are fine.",
+  "health.old.title": "Git needs an update",
+  "health.old.text":
+    "This computer has Git {version}, and Rivet needs {required} or newer. Download the new version and install it over the old one; your projects and settings stay as they are.",
+  "health.download": "Download Git for Windows",
+  "health.recheck": "Check again",
+  "health.checking": "Checking…",
+  "health.stillMissing":
+    "Still not found. If the installer is still running, let it finish, then check again.",
+
+  "identity.eyebrow": "ONE LAST THING",
+  "identity.title": "Your name and email for commits",
+  "identity.title@simple": "How should we sign your versions?",
+  "identity.text":
+    "Git signs every commit with a name and an email. Rivet saves them in your global Git settings (user.name and user.email).",
+  "identity.text@simple":
+    "Every version you save is signed with a name and an email, so the team sees who did what.",
+  "identity.name": "Name",
+  "identity.email": "Email",
+  "identity.namePlaceholder": "Alex Morgan",
+  "identity.githubHint":
+    "This is your private GitHub address: commits are linked to your account, and your real email stays hidden.",
+  "identity.githubHint@simple":
+    "This is your private GitHub address: versions are linked to your account, and your real email stays hidden.",
+  "identity.publicHint":
+    "Everyone with access to the project will see this address.",
+  "identity.fromGitHub": "Fill in from GitHub",
+  "identity.useGitHub": "Use the private GitHub address",
+  "identity.save": "Save",
+  "identity.later": "Later",
+  "identity.saved": "Saved. Commits will be signed {name} <{email}>.",
+  "identity.saved@simple": "Done. Your versions will be signed {name}.",
+  "identity.error.name": "Enter your name.",
+  "identity.error.email": "Enter an email address, like name@example.com.",
+
+  "settings.identity": "Name and email for commits",
+  "settings.identity@simple": "Signature on your versions",
+  "settings.identityNone": "Not set yet",
+  "settings.identityEdit": "Change",
+  "settings.help": "Help",
+  "settings.report": "Copy error report",
+  "settings.reportHint":
+    "If something doesn't work, copy the report and send it to the developer. It holds the versions of Rivet, Windows and Git and the latest log, without passwords.",
+  "settings.reportCopied":
+    "Report copied. Paste it into a message to the developer.",
+
+  "crash.title": "Something broke",
+  "crash.text":
+    "Rivet ran into a problem it didn't expect. Your files are safe. Reload the window; if it happens again, copy the error report and send it to the developer.",
+  "crash.reload": "Reload",
 
   "settings.project": "This project",
   "settings.lfs": "Large files (Git LFS)",

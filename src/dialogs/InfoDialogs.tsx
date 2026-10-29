@@ -1,12 +1,15 @@
-import { Github, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { Copy, Github, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import type { Preferences } from "../App";
+import { copyReport } from "../errors/log";
 import { useAccount } from "../github/account";
 import { useI18n, type Key } from "../i18n/i18n";
+import { useIdentity } from "../onboarding/identity";
 import type { RepoApi } from "../views/repoApi";
 import { ProjectSettings } from "./ProjectSettings";
 import { useUpdates } from "../updates/updates";
 import { Dialog } from "../ui/Dialog";
 import { Avatar } from "../ui/Avatar";
+import { useNotify } from "../ui/Toast";
 
 function Choice<T extends string>({
   label,
@@ -144,9 +147,60 @@ export function SettingsDialog({
           { value: "system", label: t("settings.system"), Icon: Monitor },
         ]}
       />
+      <IdentitySetting />
       {repo && <ProjectSettings repo={repo} />}
+      <HelpSetting />
       <VersionLine />
     </Dialog>
+  );
+}
+
+/** The name and email commits are signed with, and a way to change them. */
+function IdentitySetting() {
+  const { t } = useI18n();
+  const { identity, ask } = useIdentity();
+  if (identity === undefined) return null;
+  return (
+    <div className="setting">
+      <span className="setting-label">{t("settings.identity")}</span>
+      <div className="identity-row">
+        <span>
+          {identity ? (
+            <>
+              <strong>{identity.name}</strong> <small>{identity.email}</small>
+            </>
+          ) : (
+            t("settings.identityNone")
+          )}
+        </span>
+        <button className="text-button" onClick={ask}>
+          {t("settings.identityEdit")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** The error report to send the developer when something doesn't work. */
+function HelpSetting() {
+  const { t, language, mode } = useI18n();
+  const notify = useNotify();
+  const copy = () =>
+    copyReport(`UI: ${language}, ${mode}`).then(
+      () => notify(t("settings.reportCopied")),
+      () => notify(t("common.clipboardUnavailable"), "error"),
+    );
+  return (
+    <div className="setting">
+      <span className="setting-label">{t("settings.help")}</span>
+      <div className="row">
+        <button className="button" onClick={copy}>
+          <Copy />
+          {t("settings.report")}
+        </button>
+      </div>
+      <p className="setting-hint">{t("settings.reportHint")}</p>
+    </div>
   );
 }
 

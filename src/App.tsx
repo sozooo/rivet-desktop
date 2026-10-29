@@ -3,8 +3,12 @@ import type { GitBackend } from "./git/backend";
 import { CliBackend } from "./git/cli/CliBackend";
 import { tauriRunner } from "./git/cli/tauriRunner";
 import { MockBackend } from "./git/mock/MockBackend";
+import { ErrorBoundary } from "./errors/ErrorBoundary";
+import { withDemoFailures } from "./errors/demoFailure";
 import { AccountProvider } from "./github/account";
 import { I18nProvider, type Language, type UiMode } from "./i18n/i18n";
+import { GitCheck } from "./onboarding/GitCheck";
+import { IdentityProvider } from "./onboarding/identity";
 import { platform } from "./platform";
 import {
   demoRepositories,
@@ -46,9 +50,11 @@ function useSystemDark() {
 function createBackend(repository: Repository): GitBackend {
   if (platform.desktop && repository.kind !== "demo")
     return new CliBackend(tauriRunner(repository.path));
-  return new MockBackend(
-    repository.kind === "create" ? "empty" : "sample",
-    repository.id,
+  return withDemoFailures(
+    new MockBackend(
+      repository.kind === "create" ? "empty" : "sample",
+      repository.id,
+    ),
   );
 }
 
@@ -104,36 +110,43 @@ export function App() {
   return (
     <div className={`app ${dark ? "dark" : ""}`} lang={language}>
       <I18nProvider language={language} mode={mode}>
-        <UpdatesProvider>
-          <ToastProvider>
-            <AccountProvider>
-              {repository && backend ? (
-                <Workspace
-                  key={repository.id}
-                  repository={repository}
-                  repositories={repositories}
-                  backend={backend}
-                  dark={dark}
-                  preferences={preferences}
-                  onSwitchRepository={setActiveId}
-                  onAddRepository={add}
-                  onRemoveRepository={(id) => {
-                    const next = repositories.filter((r) => r.id !== id);
-                    backends.current.delete(id);
-                    update(next);
-                    if (id === repository.id) setActiveId(next[0]?.id ?? null);
-                  }}
-                />
-              ) : (
-                <RepositorySetup
-                  initialMode="open"
-                  repositories={repositories}
-                  onComplete={add}
-                />
-              )}
-            </AccountProvider>
-          </ToastProvider>
-        </UpdatesProvider>
+        <ErrorBoundary>
+          <UpdatesProvider>
+            <ToastProvider>
+              <AccountProvider>
+                <GitCheck>
+                  <IdentityProvider prompt={!!repository}>
+                    {repository && backend ? (
+                      <Workspace
+                        key={repository.id}
+                        repository={repository}
+                        repositories={repositories}
+                        backend={backend}
+                        dark={dark}
+                        preferences={preferences}
+                        onSwitchRepository={setActiveId}
+                        onAddRepository={add}
+                        onRemoveRepository={(id) => {
+                          const next = repositories.filter((r) => r.id !== id);
+                          backends.current.delete(id);
+                          update(next);
+                          if (id === repository.id)
+                            setActiveId(next[0]?.id ?? null);
+                        }}
+                      />
+                    ) : (
+                      <RepositorySetup
+                        initialMode="open"
+                        repositories={repositories}
+                        onComplete={add}
+                      />
+                    )}
+                  </IdentityProvider>
+                </GitCheck>
+              </AccountProvider>
+            </ToastProvider>
+          </UpdatesProvider>
+        </ErrorBoundary>
       </I18nProvider>
     </div>
   );
