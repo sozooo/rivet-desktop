@@ -47,7 +47,10 @@ export function ChangesView({ repo, phase }: { repo: RepoApi; phase: string }) {
   const groups = groupWithMeta(files);
   // A stopped merge: conflicts come first, and nothing is picked for a commit.
   const merging = !!operation || files.some((f) => f.conflict);
-  const conflicts = groups.filter(conflictOf);
+  // By path, so a settled file whose row git rebuilt keeps its place.
+  const conflicts = groups
+    .filter(conflictOf)
+    .sort((a, b) => (a.path < b.path ? -1 : 1));
   const others = groups.filter((g) => !conflictOf(g));
   // During a merge, what is already in the index came with the merge.
   const merged = others.filter((g) => groupSelection(g) !== "none");

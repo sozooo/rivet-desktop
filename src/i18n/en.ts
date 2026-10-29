@@ -692,9 +692,9 @@ export const en = {
   "lfs.setup": "Store large files properly",
   "lfs.later": "Not now",
   "lfs.done":
-    "Large files now go through Git LFS. Commit .gitattributes so it works for everyone.",
+    "Large files now go through Git LFS. Commit .gitattributes; art committed earlier shows as modified until its next commit moves it into LFS.",
   "lfs.done@simple":
-    "Done. Save a version with the .gitattributes file so it works for everyone.",
+    "Done. Save a version with the .gitattributes file. Pictures and models saved earlier show up as changed too: that's them moving to the new storage.",
   "lfs.missingTitle": "Git LFS isn't installed",
   "lfs.missingTitle@simple": "Storage for large files isn't installed",
   "lfs.missing":
