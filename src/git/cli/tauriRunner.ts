@@ -8,8 +8,13 @@ const join = (root: string, path: string) =>
 
 export function tauriRunner(root: string): GitRunner {
   return {
-    text: (args, stdin) =>
-      invoke<GitResult>("git_text", { cwd: root, args, stdin: stdin ?? null }),
+    text: (args, stdin, options) =>
+      invoke<GitResult>("git_text", {
+        cwd: root,
+        args,
+        stdin: stdin ?? null,
+        background: options?.background ?? false,
+      }),
     bytes: async (args) =>
       new Uint8Array(
         await invoke<ArrayBuffer>("git_bytes", { cwd: root, args }),

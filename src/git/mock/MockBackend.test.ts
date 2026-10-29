@@ -146,3 +146,57 @@ describe("MockBackend", () => {
     expect(after.files.find((f) => f.path === files[0].path)).toBeUndefined();
   });
 });
+
+describe("MockBackend safety nets", () => {
+  it("undoes the latest save and refuses a merge commit", async () => {
+    const git = new MockBackend("sample");
+    await git.commit({ summary: "Moss", description: "Greener" }, "all");
+    const saved = await git.snapshot();
+    expect(await git.undoLastCommit()).toEqual({
+      summary: "Moss",
+      description: "Greener",
+    });
+    const undone = await git.snapshot();
+    expect(undone.commits).toEqual(saved.commits.slice(1));
+    expect(undone.sync.ahead).toBe(saved.sync.ahead - 1);
+    expect(undone.files.length).toBeGreaterThan(0);
+    expect(
+      undone.files.every((f) => f.staged || f.hunks.every((h) => h.staged)),
+    ).toBe(true);
+
+    await git.undoLastCommit(); // the sample's own latest commit
+    await expect(git.undoLastCommit()).rejects.toThrow("merge commit");
+  });
+
+  it("puts a file back to an older version and lists its versions", async () => {
+    const git = new MockBackend("sample");
+    const versions = await git.fileHistory("Assets/Textures/Moss.tga");
+    expect(versions.map((v) => [v.commit.summary, v.status])).toEqual([
+      ["Texture pass: moss, cliffs, poster and a waving hero", "modified"],
+      ["Create base scene and project structure", "added"],
+    ]);
+    const first = versions[1].commit.sha;
+    // A text file, since Node has no canvas to paint the sample textures.
+    const material = "Assets/Materials/Bark.mat";
+    const text = async (revision: string) =>
+      new TextDecoder().decode((await git.readFile(material, revision))!);
+    await git.restoreFile(material, first);
+    const { files } = await git.snapshot();
+    expect(files.find((f) => f.path === material)?.status).toBe("modified");
+    // The restored file reads as that version; the latest commit has another.
+    expect(await text("worktree")).toBe(await text(first));
+    expect(await text("HEAD")).not.toBe(await text("worktree"));
+  });
+
+  it("finds a teammate's push on the next fetch", async () => {
+    const git = new MockBackend("sample");
+    const before = (await git.snapshot()).sync;
+    await git.fetch();
+    const after = (await git.snapshot()).sync;
+    expect(after.behind).toBe(before.behind + 1);
+    expect(after.lastFetched).toBeGreaterThan(before.lastFetched!);
+    // The next one isn't pushed yet.
+    await git.fetch();
+    expect((await git.snapshot()).sync.behind).toBe(after.behind);
+  });
+});

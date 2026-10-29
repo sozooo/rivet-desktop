@@ -4,11 +4,14 @@ import { SMART_MERGE_EXTENSIONS, tooLarge } from "../lfs";
 import { extension } from "../paths";
 import type {
   Commit,
+  CommitMessage,
   CommitScope,
   FileChange,
+  FileVersion,
   Operation,
   Person,
   RepoSnapshot,
+  Revision,
   Side,
 } from "../types";
 import * as assets from "./assets";
@@ -33,6 +36,8 @@ const unstage = (files: FileChange[]) =>
     hunks: f.hunks.map((h) => ({ ...h, staged: false })),
   }));
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+/** How often a simulated teammate pushes while the demo is open. */
+const PUSH_EVERY = 4 * 60_000;
 
 /**
  * An in-memory repository that follows git semantics closely enough to drive
@@ -62,6 +67,11 @@ export class MockBackend implements GitBackend {
   private smartMerge: boolean | undefined;
   /** Oversized files committed but not pushed yet. */
   private unpushedLarge: { path: string; size: number }[] = [];
+  /** Teammates' commits still on their way to the remote, and when the next one lands. */
+  private arriving: ReturnType<typeof fixtures.colleagueCommits>;
+  private nextArrival = Date.now();
+  /** Files put back to an older version, and the revision their contents come from. */
+  private restored = new Map<string, Revision>();
 
   /** `variant` "kinetic-sandbox" adds a video too large for GitHub. */
   constructor(kind: "sample" | "empty", variant?: string) {
@@ -81,6 +91,7 @@ export class MockBackend implements GitBackend {
     this.hasRemote = sample;
     this.ahead = sample ? 3 : 0;
     this.incoming = sample ? fixtures.incoming() : [];
+    this.arriving = sample ? fixtures.colleagueCommits() : [];
     this.lastFetched = sample ? Date.now() - 4 * 60_000 : null;
     // The sample keeps Photoshop files in LFS, but not the rest of its art.
     this.lfsPatterns = sample ? ["*.psd"] : [];
@@ -127,11 +138,24 @@ export class MockBackend implements GitBackend {
     return this.lfsPatterns.includes(`*.${extension(path)}`);
   }
 
+  /** What the commit at `index` in the history changed. */
+  private changesAt(index: number) {
+    const sha = this.commits[index]?.sha;
+    return this.contents.get(sha) ?? fixtures.sampleContents(index);
+  }
+
   async commitFiles(sha: string) {
     const index = this.commits.findIndex((c) => c.sha === sha);
-    return clone(
-      this.contents.get(sha) ?? fixtures.sampleContents(Math.max(index, 0)),
-    );
+    return clone(this.changesAt(Math.max(index, 0)));
+  }
+
+  async fileHistory(path: string) {
+    const versions: FileVersion[] = [];
+    this.commits.forEach((commit, index) => {
+      const file = this.changesAt(index).find((f) => f.path === path);
+      if (file) versions.push({ commit, path, status: file.status });
+    });
+    return clone(versions);
   }
 
   async stashFiles(index: number) {
@@ -159,12 +183,33 @@ export class MockBackend implements GitBackend {
       const bytes = fixtures.conflictSide(path, side);
       if (bytes !== undefined) return bytes;
     }
+    const restored = this.restored.get(path);
+    if (restored && (revision === "worktree" || revision === "index"))
+      return this.readFile(path, restored);
+    // A put-back file is compared with the latest commit's version.
+    if (restored && revision === "HEAD" && this.commits[0])
+      return this.readFile(path, this.commits[0].sha);
     if (path === "Assets/Art/Cliffs.psd" && this.lfsDownloaded)
       return fixtures.sampleFile("Assets/Art/Poster.psd", false) ?? null;
     // Commits are "x" vs "x^", stashes "stash@{n}" vs "stash@{n}^1", working changes HEAD vs worktree.
-    const before = revision === "HEAD" || /\^\d*$/.test(revision);
+    const before =
+      revision === "HEAD" ||
+      /\^\d*$/.test(revision) ||
+      this.firstOfSeveral(path, revision);
     const sample = fixtures.sampleFile(path, before);
     return sample instanceof Promise ? sample : (sample ?? null);
+  }
+
+  /** A file's first version, from before a later commit changed it: "before" in the samples. */
+  private firstOfSeveral(path: string, sha: string) {
+    const index = this.commits.findIndex((c) => c.sha === sha);
+    if (index === -1) return false;
+    const changes = (i: number) =>
+      this.changesAt(i).find((f) => f.path === path);
+    return (
+      changes(index)?.status === "added" &&
+      this.commits.slice(0, index).some((_, i) => changes(i))
+    );
   }
 
   async resolveGuid(guid: string) {
@@ -189,6 +234,7 @@ export class MockBackend implements GitBackend {
   async discard(path: string) {
     this.file_(path);
     this.files = this.files.filter((f) => f.path !== path);
+    this.restored.delete(path);
   }
 
   async commit(
@@ -217,6 +263,7 @@ export class MockBackend implements GitBackend {
       if (tooLarge(f) && staged.some((s) => s.path === f.path))
         this.unpushedLarge.push({ path: f.path, size: f.size! });
     this.contents.set(commit.sha, staged);
+    for (const f of staged) this.restored.delete(f.path);
     this.commits = [commit, ...this.commits];
     this.files = this.files
       .filter((f) => !isStagedBinary(f))
@@ -224,6 +271,61 @@ export class MockBackend implements GitBackend {
       .filter((f) => f.hunks.length || f.binary);
     this.ahead++;
     return clone(commit);
+  }
+
+  async undoLastCommit(): Promise<CommitMessage> {
+    if (this.operation) throw new Error("Finish or cancel the merge first.");
+    const [head] = this.commits;
+    if (!head?.parents.length)
+      throw new Error("The first commit has nothing before it to go back to.");
+    if (head.parents.length > 1)
+      throw new Error("A merge commit can't be undone this way.");
+    if (this.hasRemote && !this.ahead)
+      throw new Error(
+        "This commit is already pushed. Undo it with a new commit (revert) instead.",
+      );
+    // Like `git reset --soft`: the commit's changes come back selected.
+    for (const file of clone(this.changesAt(0))) {
+      const existing = this.files.find((f) => f.path === file.path);
+      if (!existing) {
+        this.files.push({
+          ...file,
+          staged: true,
+          hunks: file.hunks.map((h) => ({ ...h, staged: true })),
+        });
+        continue;
+      }
+      existing.staged = true;
+      for (const hunk of file.hunks) {
+        const same = existing.hunks.find((h) => h.header === hunk.header);
+        if (same) same.staged = true;
+        else existing.hunks.push({ ...hunk, staged: true });
+      }
+    }
+    this.commits = this.commits.slice(1);
+    this.contents.delete(head.sha);
+    this.ahead--;
+    const paths = new Set(this.files.map((f) => f.path));
+    this.unpushedLarge = this.unpushedLarge.filter((f) => !paths.has(f.path));
+    return { summary: head.summary, description: head.description };
+  }
+
+  async restoreFile(path: string, revision: Revision) {
+    await wait(300);
+    const sha = revision.replace(/\^$/, "");
+    const index = this.commits.findIndex((c) => c.sha === sha);
+    if (index === -1) throw new Error(`${revision} is not in this history.`);
+    const inCommit = this.changesAt(index).find((f) => f.path === path);
+    // A file brought back from before the commit that deleted it is new again.
+    const back = sha !== revision;
+    this.files = this.files.filter((f) => f.path !== path);
+    this.files.push({
+      path,
+      status: back && inCommit?.status === "deleted" ? "added" : "modified",
+      hunks: clone(inCommit?.hunks ?? []).map((h) => ({ ...h, staged: false })),
+      binary: inCommit?.binary,
+    });
+    this.restored.set(path, revision);
   }
 
   async stash() {
@@ -269,6 +371,12 @@ export class MockBackend implements GitBackend {
   async fetch() {
     await wait(900);
     this.lastFetched = Date.now();
+    // Whatever teammates pushed since the last check is waiting on the remote.
+    while (this.arriving.length && this.nextArrival <= this.lastFetched) {
+      const { commit } = this.arriving.shift()!;
+      this.incoming = [{ ...commit, date: this.nextArrival }, ...this.incoming];
+      this.nextArrival += PUSH_EVERY;
+    }
   }
 
   async pull() {

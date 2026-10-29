@@ -68,6 +68,11 @@ export type Commit = {
   refs?: string[];
 };
 
+export type CommitMessage = { summary: string; description: string };
+
+/** A commit that changed one file, and the file's path and status in it. */
+export type FileVersion = { commit: Commit; path: string; status: FileStatus };
+
 export type StashEntry = {
   index: number;
   message: string;

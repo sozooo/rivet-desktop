@@ -51,21 +51,28 @@ export function write(dir: string, path: string, content: string | Uint8Array) {
   writeFileSync(full, content);
 }
 
+/** What src-tauri/src/git.rs adds for background runs. */
+const backgroundEnv = {
+  GIT_ASKPASS: "",
+  SSH_ASKPASS_REQUIRE: "never",
+  GCM_INTERACTIVE: "never",
+};
+
 export function nodeRunner(cwd: string): GitRunner {
-  const spawn = (args: string[], stdin?: string) =>
+  const spawn = (args: string[], stdin?: string, background = false) =>
     spawnSync(
       "git",
       ["-c", "core.quotepath=false", "-c", "color.ui=false", ...args],
       {
         cwd,
-        env,
+        env: background ? { ...env, ...backgroundEnv } : env,
         input: stdin === undefined ? undefined : Buffer.from(stdin, "utf8"),
         encoding: "buffer",
       },
     );
   return {
-    async text(args, stdin) {
-      const r = spawn(args, stdin);
+    async text(args, stdin, options) {
+      const r = spawn(args, stdin, options?.background);
       return {
         code: r.status ?? -1,
         stdout: r.stdout.toString("utf8"),

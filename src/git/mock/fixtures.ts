@@ -610,6 +610,32 @@ export function history(): Commit[] {
   ];
 }
 
+/** The first commit: where the sample art comes from. */
+function baseScene(): FileChange[] {
+  const added = (path: string, binary = true): FileChange => ({
+    path,
+    status: "added",
+    hunks: [],
+    binary,
+  });
+  return [
+    added("Assets/Textures/Bark.png"),
+    added("Assets/Models/Crate.fbx"),
+    added("Assets/Textures/Moss.tga"),
+    {
+      path: "Assets/Materials/Bark.mat",
+      status: "added",
+      hunks: [
+        {
+          header: "@@ -0,0 +1 @@",
+          lines: lines([], [], barkMaterial.before.split("\n"), []),
+          staged: false,
+        },
+      ],
+    },
+  ];
+}
+
 /** File snapshots for commits; commits without an entry get a small sample. */
 export function commitContents(): Map<string, FileChange[]> {
   const changes = workingChanges();
@@ -619,6 +645,10 @@ export function commitContents(): Map<string, FileChange[]> {
     ["d84e2a9", gamepad],
     ["f1b03c7", artChanges()],
     ["c5d2f80", artPass()],
+    ["4d791e2", baseScene()],
+    ...colleagueCommits().map(
+      ({ commit, files }) => [commit.sha, files] as [string, FileChange[]],
+    ),
   ]);
 }
 
@@ -665,6 +695,44 @@ export function incoming(): Omit<Commit, "parents">[] {
       description: "",
       author: people.sam,
       date: minutes(6),
+    },
+  ];
+}
+
+/**
+ * Work teammates push while the demo is open, oldest first. A background
+ * check finds each one, the way it would find a colleague's real push.
+ */
+export function colleagueCommits(): {
+  commit: Omit<Commit, "parents">;
+  files: FileChange[];
+}[] {
+  const texture = (path: string): FileChange => ({
+    path,
+    status: "modified",
+    hunks: [],
+    binary: true,
+  });
+  return [
+    {
+      commit: {
+        sha: "6e1d4a7",
+        summary: "Greener moss on the cliff rocks",
+        description: "",
+        author: people.mira,
+        date: minutes(1),
+      },
+      files: [texture("Assets/Textures/Moss.tga")],
+    },
+    {
+      commit: {
+        sha: "5b0c9e3",
+        summary: "Tune jump buffering for gamepads",
+        description: "",
+        author: people.jamie,
+        date: minutes(1),
+      },
+      files: [workingChanges()[2]],
     },
   ];
 }
