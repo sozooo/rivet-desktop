@@ -56,6 +56,10 @@ pub fn run_with(
 /// Git on PATH, or where Git for Windows installs: PATH changes from an install made
 /// while Rivet runs only reach programs started later, and "Check again" must see it.
 fn program() -> PathBuf {
+    // Downloaded because this computer had no suitable Git; it wins from then on.
+    if let Some(own) = crate::private_git::git_exe() {
+        return own;
+    }
     static FOUND: OnceLock<PathBuf> = OnceLock::new();
     if let Some(found) = FOUND.get() {
         return found.clone();

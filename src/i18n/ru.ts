@@ -1202,17 +1202,18 @@ export const ru: Record<keyof typeof en, Message> = {
   "error.trusted@simple": "Готово, теперь проект можно открыть.",
 
   "health.eyebrow": "ПРЕЖДЕ ЧЕМ НАЧАТЬ",
-  "health.missing.title": "Для работы Rivet нужен Git",
-  "health.missing.text":
-    "Git — бесплатная программа, которая хранит версии ваших файлов; Rivet работает поверх неё. Установите Git для Windows: скачайте установщик, запустите его и нажимайте «Next» — настройки по умолчанию подходят.",
-  "health.old.title": "Git нужно обновить",
-  "health.old.text":
-    "На компьютере установлен Git {version}, а Rivet нужна версия {required} или новее. Скачайте свежую версию и установите поверх старой — проекты и настройки останутся как были.",
+  "health.installing.title": "Готовим Git для Rivet",
+  "health.installing.missing":
+    "Rivet хранит версии ваших файлов с помощью Git. На этом компьютере его нет, поэтому Rivet скачивает свою копию. Это нужно только один раз.",
+  "health.installing.old":
+    "На компьютере установлен Git {version}, а Rivet нужна версия {required} или новее, поэтому Rivet скачивает свою копию. Ваш Git останется как был.",
+  "health.progress": "{received} из {total} МБ",
+  "health.unpacking": "Распаковываю…",
+  "health.failed.title": "Не получилось скачать Git",
+  "health.failed.text":
+    "Попробуйте снова или установите Git для Windows самостоятельно — Rivet его найдёт.",
+  "health.retry": "Попробовать снова",
   "health.download": "Скачать Git для Windows",
-  "health.recheck": "Проверить снова",
-  "health.checking": "Проверяю…",
-  "health.stillMissing":
-    "Пока не нашёлся. Если установка ещё идёт, дождитесь её окончания и проверьте снова.",
 
   "identity.eyebrow": "ОСТАЛОСЬ ОДНО",
   "identity.title": "Имя и почта для коммитов",

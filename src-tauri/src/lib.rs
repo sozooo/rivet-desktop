@@ -1,8 +1,9 @@
-mod art;
 mod account;
 mod applog;
+mod art;
 mod discover;
 mod git;
+mod private_git;
 
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
@@ -95,7 +96,8 @@ pub fn run() {
             account::github_account_load,
             account::github_account_forget,
             applog::log_write,
-            applog::diagnostics_report
+            applog::diagnostics_report,
+            private_git::install_git
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rivet");

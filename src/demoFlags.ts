@@ -1,6 +1,6 @@
 /**
  * Switches for the browser demo, read from the address, to see screens that real
- * computers rarely show: `?git=missing|old`, `?lfs=missing`, `?identity=empty`,
+ * computers rarely show: `?git=missing|old|offline`, `?lfs=missing`, `?identity=empty`,
  * `?fail=<sample>` (one of src/errors/samples.ts) and `?crash`. The desktop app ignores them.
  */
 const params = new URLSearchParams(
@@ -8,7 +8,7 @@ const params = new URLSearchParams(
 );
 
 export const demoFlags = {
-  git: params.get("git") as "missing" | "old" | null,
+  git: params.get("git") as "missing" | "old" | "offline" | null,
   lfs: params.get("lfs") as "missing" | null,
   identity: params.get("identity") as "empty" | null,
   fail: params.get("fail"),

@@ -1,4 +1,4 @@
-import { invoke, isTauri } from "@tauri-apps/api/core";
+import { Channel, invoke, isTauri } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { demoFlags } from "./demoFlags";
@@ -35,6 +35,10 @@ export interface Platform {
   clone(url: string, destination: string): Promise<void>;
   init(destination: string): Promise<void>;
   gitVersions(): Promise<GitVersions>;
+  /** Downloads Rivet's own Git, for a computer without a suitable one. */
+  installGit(
+    onProgress: (received: number, total: number) => void,
+  ): Promise<void>;
   /** From the global (or system) git settings. */
   identity(): Promise<Identity>;
   /** Saves the name and email in the global git settings. */
@@ -46,6 +50,7 @@ export interface Platform {
 }
 
 /** The browser demo pretends, following the switches in its address. */
+let demoGitInstalled = false;
 let demoIdentity: Identity =
   demoFlags.identity === "empty"
     ? { name: "", email: "" }
@@ -101,11 +106,27 @@ const browserPlatform: Platform = {
   },
   async init() {},
   async gitVersions() {
-    if (demoFlags.git === "missing") return { git: null, lfs: null };
+    if (demoGitInstalled) return { git: "2.56.0", lfs: "3.8.1" };
+    if (demoFlags.git === "missing" || demoFlags.git === "offline")
+      return { git: null, lfs: null };
     return {
       git: demoFlags.git === "old" ? "2.25.1" : "2.51.0",
       lfs: demoFlags.lfs === "missing" ? null : "3.7.0",
     };
+  },
+  async installGit(onProgress) {
+    const total = 45_717_731;
+    for (let received = 0; received < total; received += total / 30) {
+      onProgress(received, total);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      if (demoFlags.git === "offline" && received > total / 3)
+        throw new Error(
+          "Could not download https://github.com/…: error sending request: dns error: No such host is known. (os error 11001)",
+        );
+    }
+    onProgress(total, total);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    demoGitInstalled = true;
   },
   async identity() {
     return demoIdentity;
@@ -172,6 +193,11 @@ const desktopPlatform: Platform = {
   },
   async init(destination) {
     await git(".", ["init", "-b", "main", "--", destination]);
+  },
+  async installGit(onProgress) {
+    const channel = new Channel<{ received: number; total: number }>();
+    channel.onmessage = ({ received, total }) => onProgress(received, total);
+    await invoke("install_git", { onProgress: channel });
   },
   async gitVersions() {
     const [gitText, lfsText] = await Promise.all([

@@ -1088,17 +1088,18 @@ export const en = {
   "error.trusted@simple": "Done. The project can be opened now.",
 
   "health.eyebrow": "BEFORE WE START",
-  "health.missing.title": "Rivet needs Git",
-  "health.missing.text":
-    "Git is the free program that keeps the versions of your files; Rivet works on top of it. Install Git for Windows: download the installer, run it and keep pressing Next. The default settings are fine.",
-  "health.old.title": "Git needs an update",
-  "health.old.text":
-    "This computer has Git {version}, and Rivet needs {required} or newer. Download the new version and install it over the old one; your projects and settings stay as they are.",
+  "health.installing.title": "Getting Git ready for Rivet",
+  "health.installing.missing":
+    "Rivet keeps the versions of your files with Git. This computer doesn't have it, so Rivet is downloading its own copy. This happens only once.",
+  "health.installing.old":
+    "This computer has Git {version}, and Rivet needs {required} or newer, so Rivet is downloading its own copy. Your Git stays as it is.",
+  "health.progress": "{received} of {total} MB",
+  "health.unpacking": "Unpacking…",
+  "health.failed.title": "Couldn't download Git",
+  "health.failed.text":
+    "Try again, or install Git for Windows yourself: Rivet will find it.",
+  "health.retry": "Try again",
   "health.download": "Download Git for Windows",
-  "health.recheck": "Check again",
-  "health.checking": "Checking…",
-  "health.stillMissing":
-    "Still not found. If the installer is still running, let it finish, then check again.",
 
   "identity.eyebrow": "ONE LAST THING",
   "identity.title": "Your name and email for commits",

@@ -52,3 +52,22 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
+
+      # The notes above also become the update dialog's "What's new", so the page
+      # gets its download hint only now, after latest.json is written.
+      - name: Say which file to download
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            git tag --list --format='%(contents)' "$GITHUB_REF_NAME"
+            echo
+            echo "### Download"
+            echo
+            echo "Download **Rivet_${version}_x64-setup.exe** below and run it. Already have Rivet? It offers the update by itself."
+            echo
+            echo "The other files are for Rivet itself: \`latest.json\` tells installed copies that a new version is out, and the \`.sig\` file is the installer's signature they check before updating. GitHub adds the source code archives to every release."
+          } > release-notes.md
+          gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md

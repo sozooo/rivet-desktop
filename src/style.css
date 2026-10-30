@@ -4182,3 +4182,11 @@ img.avatar {
     display: none;
   }
 }
+/* Rivet downloading its own Git on the first run. */
+.git-check-content .git-progress {
+  align-self: stretch;
+  margin: 4px 0 0;
+}
+.git-check-content .git-check-error {
+  margin: 0 0 12px;
+}

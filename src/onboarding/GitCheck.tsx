@@ -7,7 +7,7 @@ import {
 } from "react";
 import { Download, RefreshCw } from "lucide-react";
 import { DragStrip } from "../chrome/WindowControls";
-import { gitDownloadPage } from "../errors/notice";
+import { gitDownloadPage, ErrorMessage } from "../errors/notice";
 import { useI18n } from "../i18n/i18n";
 import { platform } from "../platform";
 import { useNotify } from "../ui/Toast";
@@ -26,32 +26,49 @@ export function atLeast(version: string, required: string) {
 }
 
 type Health =
-  { status: "ok" } | { status: "missing" } | { status: "old"; version: string };
+  | { status: "ok" }
+  /** Downloading Rivet's own Git; `old` is the too-old version found, if any. */
+  | { status: "installing"; old?: string; received: number; total: number }
+  | { status: "failed"; error: string };
+
+const megabytes = (bytes: number) => Math.round(bytes / 1_048_576);
 
 /**
- * Checks on start that Git is installed and recent enough. Without it nothing works,
- * so the whole window explains what to install; a missing Git LFS only gets a note.
+ * Checks on start that Git is there and recent enough. Without it nothing
+ * works, so Rivet downloads its own copy right away; installing Git by hand is
+ * only the fallback when that fails. A missing Git LFS only gets a note.
  */
 export function GitCheck({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const notify = useNotify();
   const [health, setHealth] = useState<Health>();
-  const [checking, setChecking] = useState(false);
-  const [attempts, setAttempts] = useState(0);
   const noted = useRef(false);
 
   const check = useCallback(async () => {
-    setChecking(true);
     const { git, lfs } = await platform.gitVersions();
-    setChecking(false);
-    if (!git) return setHealth({ status: "missing" });
-    if (!atLeast(git, requiredGit))
-      return setHealth({ status: "old", version: git });
-    setHealth({ status: "ok" });
-    if (!lfs && !noted.current) {
-      noted.current = true;
-      notify(t("lfs.missing"), "warning");
+    if (git && atLeast(git, requiredGit)) {
+      setHealth({ status: "ok" });
+      if (!lfs && !noted.current) {
+        noted.current = true;
+        notify(t("lfs.missing"), "warning");
+      }
+      return;
     }
+    const old = git ?? undefined;
+    setHealth({ status: "installing", old, received: 0, total: 0 });
+    try {
+      await platform.installGit((received, total) =>
+        setHealth({ status: "installing", old, received, total }),
+      );
+    } catch (error) {
+      return setHealth({ status: "failed", error: String(error) });
+    }
+    const after = await platform.gitVersions();
+    setHealth(
+      after.git
+        ? { status: "ok" }
+        : { status: "failed", error: "git --version found no Git" },
+    );
   }, [notify, t]);
   useEffect(() => {
     check();
@@ -59,9 +76,9 @@ export function GitCheck({ children }: { children: ReactNode }) {
 
   if (!health) return null;
   if (health.status === "ok") return children;
-  const old = health.status === "old";
+  const installing = health.status === "installing";
   return (
-    <section className="git-check" role="alert">
+    <section className="git-check" role={installing ? "status" : "alert"}>
       <DragStrip />
       <div className="git-check-content">
         <div className="brand">
@@ -71,39 +88,58 @@ export function GitCheck({ children }: { children: ReactNode }) {
           </span>
         </div>
         <div className="eyebrow">{t("health.eyebrow")}</div>
-        <h1>{t(old ? "health.old.title" : "health.missing.title")}</h1>
-        <p>
-          {old
-            ? t("health.old.text", {
-                version: health.version,
-                required: requiredGit,
-              })
-            : t("health.missing.text")}
-        </p>
-        <div className="row">
-          <button
-            className="button primary"
-            onClick={() => platform.openWebPage(gitDownloadPage)}
-          >
-            <Download />
-            {t("health.download")}
-          </button>
-          <button
-            className="button"
-            disabled={checking}
-            onClick={() => {
-              setAttempts((n) => n + 1);
-              check();
-            }}
-          >
-            <RefreshCw className={checking ? "spin" : ""} />
-            {t(checking ? "health.checking" : "health.recheck")}
-          </button>
-        </div>
-        <p className="git-check-status" role="status">
-          {attempts > 0 && !checking && !old ? t("health.stillMissing") : " "}
-        </p>
-        <small>git-scm.com/download/win</small>
+        {installing ? (
+          <>
+            <h1>{t("health.installing.title")}</h1>
+            <p>
+              {health.old
+                ? t("health.installing.old", {
+                    version: health.old,
+                    required: requiredGit,
+                  })
+                : t("health.installing.missing")}
+            </p>
+            <div className="update-progress git-progress">
+              <div
+                className="update-bar"
+                style={{
+                  width: health.total
+                    ? `${Math.round((health.received / health.total) * 100)}%`
+                    : "0%",
+                }}
+              />
+            </div>
+            <p className="git-check-status">
+              {health.total && health.received >= health.total
+                ? t("health.unpacking")
+                : health.total
+                  ? t("health.progress", {
+                      received: megabytes(health.received),
+                      total: megabytes(health.total),
+                    })
+                  : " "}
+            </p>
+          </>
+        ) : (
+          <>
+            <h1>{t("health.failed.title")}</h1>
+            <ErrorMessage error={health.error} className="git-check-error" />
+            <p>{t("health.failed.text")}</p>
+            <div className="row">
+              <button className="button primary" onClick={check}>
+                <RefreshCw />
+                {t("health.retry")}
+              </button>
+              <button
+                className="button"
+                onClick={() => platform.openWebPage(gitDownloadPage)}
+              >
+                <Download />
+                {t("health.download")}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );
