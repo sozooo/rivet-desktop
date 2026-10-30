@@ -105,6 +105,18 @@ export type LfsState = {
   tracking: boolean;
 };
 
+/**
+ * What Unity and code editors make for themselves in a Unity project
+ * (Library, Temp, project files) and no .gitignore leaves out. Paths are from
+ * the repository's root; folders end with "/".
+ */
+export type UnityGenerated = {
+  /** Never committed: kept out of the list, and out of commits and stashes. */
+  untracked: string[];
+  /** Committed earlier, so git goes on saving their changes. */
+  tracked: string[];
+};
+
 export type RepoSnapshot = {
   user: Person;
   files: FileChange[];
@@ -116,6 +128,8 @@ export type RepoSnapshot = {
   lfs: LfsState;
   /** Unity projects only: whether git merges scenes and prefabs with Unity's Smart Merge. */
   smartMerge?: boolean;
+  /** Unity projects only, when something Unity generates isn't ignored. */
+  generated?: UnityGenerated;
 };
 
 /** What a commit includes: only selected changes, or everything when nothing is selected. */

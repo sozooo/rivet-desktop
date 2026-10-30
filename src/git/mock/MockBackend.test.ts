@@ -36,6 +36,8 @@ describe("MockBackend", () => {
 
   it("refuses an empty commit", async () => {
     const git = new MockBackend("empty");
+    // A new repository starts with Unity's .gitignore.
+    await git.discard(".gitignore");
     await expect(git.commit(message, "all")).rejects.toThrow(
       "nothing to commit",
     );

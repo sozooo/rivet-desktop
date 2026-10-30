@@ -1,3 +1,4 @@
+import { demoFlags } from "../../demoFlags";
 import type { GitBackend } from "../backend";
 import { localName } from "../branches";
 import { isConflicted } from "../conflicts";
@@ -14,9 +15,16 @@ import type {
   RepoSnapshot,
   Revision,
   Side,
+  UnityGenerated,
 } from "../types";
 import * as assets from "./assets";
 import * as fixtures from "./fixtures";
+import {
+  demoGenerated,
+  generatedChanges,
+  gitignoreChange,
+  untrackCommit,
+} from "./generated";
 
 type StoredStash = {
   message: string;
@@ -73,13 +81,21 @@ export class MockBackend implements GitBackend {
   private nextArrival = Date.now();
   /** Files put back to an older version, and the revision their contents come from. */
   private restored = new Map<string, Revision>();
+  /** Unity's generated files no .gitignore leaves out; only with `?gitignore=`. */
+  private generated: UnityGenerated | undefined;
 
-  /** `variant` "kinetic-sandbox" adds a video too large for GitHub. */
+  /**
+   * "empty" is a repository Rivet just created for a Unity project, with only
+   * Unity's .gitignore in it. `variant` "kinetic-sandbox" adds a video too
+   * large for GitHub.
+   */
   constructor(kind: "sample" | "empty", variant?: string) {
     const sample = kind === "sample";
-    this.files = sample ? fixtures.workingChanges() : [];
+    this.files = sample ? fixtures.workingChanges() : [gitignoreChange()];
     if (sample && variant === "kinetic-sandbox")
       this.files.push(fixtures.largeVideo());
+    this.generated = sample ? demoGenerated(demoFlags.gitignore) : undefined;
+    if (this.generated?.tracked.length) this.files.push(...generatedChanges());
     this.commits = sample ? fixtures.history() : [];
     this.contents = sample ? fixtures.commitContents() : new Map();
     this.stashList = sample ? fixtures.stashes() : [];
@@ -134,6 +150,10 @@ export class MockBackend implements GitBackend {
       operation: this.operation,
       lfs: { installed: true, tracking: this.lfsPatterns.length > 0 },
       smartMerge: this.smartMerge,
+      generated:
+        this.generated?.untracked.length || this.generated?.tracked.length
+          ? this.generated
+          : undefined,
     });
   }
 
@@ -508,6 +528,42 @@ export class MockBackend implements GitBackend {
     this.addAttributes(
       SMART_MERGE_EXTENSIONS.map((e) => `*.${e} merge=unityyamlmerge`),
     );
+  }
+
+  async ignoreUnityGenerated() {
+    await wait(400);
+    // Without the demo switch, the sample's own .gitignore already has it all.
+    if (!this.generated) return [];
+    this.generated = { ...this.generated, untracked: [] };
+    if (this.files.some((f) => f.path === ".gitignore")) return [];
+    this.files.push(gitignoreChange());
+    return [".gitignore"];
+  }
+
+  async untrackUnityGenerated(message: CommitMessage) {
+    await wait(900);
+    if (this.operation) throw new Error("Finish or cancel the merge first.");
+    const tracked = this.generated?.tracked ?? [];
+    if (!tracked.length)
+      throw new Error("Nothing Unity generates is committed.");
+    const commit: Commit = {
+      sha: randomSha(),
+      summary: message.summary.trim(),
+      description: message.description.trim(),
+      author: this.user,
+      date: Date.now(),
+      parents: this.commits[0] ? [this.commits[0].sha] : [],
+    };
+    this.contents.set(commit.sha, untrackCommit(tracked));
+    this.commits = [commit, ...this.commits];
+    this.ahead++;
+    // Their changes and the .gitignore went into the commit; the rest stays as it was.
+    const gone = (path: string) =>
+      path === ".gitignore" ||
+      tracked.some((t) => (t.endsWith("/") ? path.startsWith(t) : path === t));
+    this.files = this.files.filter((f) => !gone(f.path));
+    this.generated = undefined;
+    return clone(commit);
   }
 
   private file_(path: string) {

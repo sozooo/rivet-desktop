@@ -66,4 +66,16 @@ export interface GitBackend {
   lfsPull(): Promise<void>;
   /** Lets git merge Unity scenes and prefabs with UnityYAMLMerge at `tool`. */
   setupSmartMerge(tool: string): Promise<void>;
+
+  /**
+   * Writes Unity's .gitignore into each Unity project in the repository, or
+   * adds the lines an existing one lacks. Returns the files it changed.
+   */
+  ignoreUnityGenerated(): Promise<string[]>;
+  /**
+   * Stops saving what Unity generates that was committed earlier: takes it out
+   * of git, keeping the files on disk, and commits that with the .gitignore.
+   * Changes selected before stay selected and out of this commit.
+   */
+  untrackUnityGenerated(message: CommitMessage): Promise<Commit>;
 }
