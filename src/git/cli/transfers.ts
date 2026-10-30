@@ -20,12 +20,17 @@ export function reportProgress(
 }
 
 /**
- * The Git LFS files `git lfs pull` would download, from `git lfs ls-files`
- * (which reads them from the commit, without the server); null when git-lfs
- * can't tell.
+ * The Git LFS files of a commit (HEAD by default) that aren't on this
+ * computer yet, from `git lfs ls-files`, which doesn't ask the server; null
+ * when git-lfs can't tell.
  */
-export async function pendingLfs(git: GitRunner) {
-  const result = await git.text(["lfs", "ls-files", "--json"]);
+export async function pendingLfs(git: GitRunner, ref?: string) {
+  const result = await git.text([
+    "lfs",
+    "ls-files",
+    "--json",
+    ...(ref ? [ref] : []),
+  ]);
   if (result.code !== 0) return null;
   try {
     const { files } = JSON.parse(result.stdout) as {

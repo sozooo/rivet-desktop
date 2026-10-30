@@ -837,16 +837,46 @@ export class CliBackend implements GitBackend {
 
   async pull(options?: { onProgress?: ProgressListener }) {
     const onProgress = options?.onProgress;
-    await this.inTurn(() =>
-      this.runUntilConflict(
+    await this.ensureLoaded();
+    const upstream = this.upstream;
+    await this.inTurn(async () => {
+      const tracker = new ProgressTracker("pull");
+      if (onProgress && upstream)
+        await this.fetchLfs(upstream, tracker, onProgress);
+      await this.runUntilConflict(
         [
           "pull",
           "--no-rebase",
           "--no-edit",
           ...(onProgress ? ["--progress"] : []),
         ],
-        reportProgress(new ProgressTracker("pull"), onProgress),
-      ),
+        reportProgress(tracker, onProgress),
+      );
+    });
+  }
+
+  /**
+   * Downloads the Git LFS files `ref` has and this computer doesn't. Inside a
+   * merge git-lfs only says when each file is done, so a pull fetches them
+   * first, byte by byte; the merge then finds them here. Failing is fine:
+   * the merge downloads what is missing, as it always has.
+   */
+  private async fetchLfs(
+    ref: string,
+    tracker: ProgressTracker,
+    onProgress: ProgressListener,
+  ) {
+    const pending = await pendingLfs(this.git, ref);
+    if (!pending?.files) return;
+    tracker.expect(pending);
+    const remote =
+      (
+        await this.tryRun(["config", "--get", `branch.${this.branch}.remote`])
+      ).trim() || "origin";
+    await this.git.text(
+      ["lfs", "fetch", remote, ref],
+      undefined,
+      reportProgress(tracker, onProgress),
     );
   }
 

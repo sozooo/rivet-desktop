@@ -88,6 +88,29 @@ describe("transfers with progress", () => {
       hero,
     );
     expect(git(destination, "status", "--porcelain")).toBe("");
+
+    // New art arrives: the pull downloads it byte by byte before merging.
+    const waterfall = randomBytes(2 * MiB);
+    write(project, "Assets/Art/Waterfall.psd", waterfall);
+    git(project, "add", "-A");
+    git(project, "commit", "-q", "-m", "Waterfall");
+    // Only runs with progress are asynchronous here; a blocking run that
+    // needs the LFS server, which lives in this process, would never end.
+    await new CliBackend(nodeRunner(project)).push({ onProgress: () => {} });
+    const copy = new CliBackend(nodeRunner(destination));
+    await copy.fetch();
+    const pulled: GitProgress[] = [];
+    await copy.pull({ onProgress: (p) => pulled.push(p) });
+    const arriving = pulled.filter((p) => p.phase === "download");
+    expect(arriving[0].bytes?.total).toBe(2 * MiB);
+    expect(arriving.at(-1)).toMatchObject({
+      percent: 100,
+      files: { done: 1, total: 1 },
+    });
+    expect(readFileSync(join(destination, "Assets/Art/Waterfall.psd"))).toEqual(
+      waterfall,
+    );
+    expect(git(destination, "status", "--porcelain")).toBe("");
   }, 60_000);
 
   it("fetches and pulls with progress, and reports none in the background", async () => {

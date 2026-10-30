@@ -36,11 +36,11 @@ export function progressDetail(
   language: Language,
 ) {
   const { files, bytes } = progress;
-  if (lfs(progress) && files && bytes)
+  if (lfs(progress) && files)
     return t(`progress.${progress.phase as "download" | "upload"}.detail`, {
       done: files.done,
       total: files.total,
-      size: sizeText(bytes, t, language),
+      size: sizeSuffix(bytes, t, language),
     });
   const label = t(
     lfs(progress)
@@ -56,6 +56,17 @@ const UNITS: Record<Language, string[]> = {
   ru: ["Б", "КБ", "МБ", "ГБ", "ТБ"],
   en: ["B", "KB", "MB", "GB", "TB"],
 };
+
+/** ", 120 из 480 МБ" after a file count; nothing while no size is known yet. */
+export function sizeSuffix(
+  bytes: GitProgress["bytes"],
+  t: Translate,
+  language: Language,
+) {
+  return bytes && (bytes.done || bytes.total)
+    ? `, ${sizeText(bytes, t, language)}`
+    : "";
+}
 
 /** "120 из 480 МБ" in one unit, or "120 МБ" while the total is unknown. */
 export function sizeText(

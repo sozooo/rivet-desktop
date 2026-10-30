@@ -45,6 +45,18 @@ describe("progress texts", () => {
     );
   });
 
+  it("leaves the size out while nothing is known about it", () => {
+    const counted: GitProgress = {
+      phase: "download",
+      percent: 50,
+      files: { done: 1, total: 2 },
+      bytes: { done: 0, total: null },
+    };
+    expect(progressDetail(counted, translator("ru", "simple"), "ru")).toBe(
+      "Скачиваю файлы: 1 из 2",
+    );
+  });
+
   it("shows sizes in one unit, and bytes alone until the total is known", () => {
     const upload: GitProgress = {
       phase: "upload",

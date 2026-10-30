@@ -92,16 +92,15 @@ export const en = {
   "progress.download@simple": "Downloading files…",
   "progress.upload": "Uploading LFS files…",
   "progress.upload@simple": "Sending files…",
-  "progress.download.detail":
-    "Downloading LFS files: {done} of {total}, {size}",
+  "progress.download.detail": "Downloading LFS files: {done} of {total}{size}",
   "progress.download.detail@simple":
-    "Downloading files: {done} of {total}, {size}",
-  "progress.upload.detail": "Uploading LFS files: {done} of {total}, {size}",
-  "progress.upload.detail@simple": "Sending files: {done} of {total}, {size}",
+    "Downloading files: {done} of {total}{size}",
+  "progress.upload.detail": "Uploading LFS files: {done} of {total}{size}",
+  "progress.upload.detail@simple": "Sending files: {done} of {total}{size}",
   "progress.size": "{done} of {total} {unit}",
   "progress.files": {
-    one: "{done} of {total} file, {size}",
-    other: "{done} of {total} files, {size}",
+    one: "{done} of {total} file{size}",
+    other: "{done} of {total} files{size}",
   },
   "progress.phase.prepare": "Preparing…",
   "progress.phase.receive": "Receiving objects…",
