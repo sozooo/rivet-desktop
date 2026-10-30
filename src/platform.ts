@@ -3,7 +3,9 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { demoFlags } from "./demoFlags";
 import { errorSamples } from "./errors/samples";
+import { CliBackend } from "./git/cli/CliBackend";
 import type { GitResult } from "./git/cli/runner";
+import { tauriRunner } from "./git/cli/tauriRunner";
 
 /** A repository found on this computer that can be added in one click. */
 export type FoundRepository = {
@@ -33,6 +35,7 @@ export interface Platform {
   /** The root of the repository containing `path`; rejects when there is none. */
   repositoryRoot(path: string): Promise<string>;
   clone(url: string, destination: string): Promise<void>;
+  /** Creates a repository; in a Unity project, with Unity's .gitignore. */
   init(destination: string): Promise<void>;
   gitVersions(): Promise<GitVersions>;
   /** Downloads Rivet's own Git, for a computer without a suitable one. */
@@ -193,6 +196,8 @@ const desktopPlatform: Platform = {
   },
   async init(destination) {
     await git(".", ["init", "-b", "main", "--", destination]);
+    // Unity's Library, Temp and the like must never get into the first version.
+    await new CliBackend(tauriRunner(destination)).ignoreUnityGenerated();
   },
   async installGit(onProgress) {
     const channel = new Channel<{ received: number; total: number }>();

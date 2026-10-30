@@ -3862,6 +3862,22 @@ img.avatar {
   gap: 12px;
   flex-wrap: wrap;
 }
+.generated-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: -3px 0 11px;
+  padding: 0;
+  list-style: none;
+}
+.generated-names li {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
 .composer-warning {
   align-items: center;
   margin: 0 0 11px;

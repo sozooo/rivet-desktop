@@ -1033,6 +1033,49 @@ export const ru: Record<keyof typeof en, Message> = {
   "lfs.downloaded": "Файлы LFS скачаны.",
   "lfs.downloaded@simple": "Файлы скачаны.",
 
+  "generated.title": "Служебные файлы Unity не в .gitignore",
+  "generated.title@simple": "Служебные папки Unity",
+  "generated.trackedTitle": "Служебные файлы Unity в коммитах",
+  "generated.trackedTitle@simple": "Служебные папки Unity",
+  "generated.folders":
+    "Rivet не берёт их в коммиты. «Исправить» добавит .gitignore от Unity — тогда их будут пропускать и другие Git-программы.",
+  "generated.folders@simple":
+    "Эти папки Unity создаёт сама — сохранять их не нужно.",
+  "generated.files":
+    "Rivet не берёт их в коммиты. «Исправить» добавит .gitignore от Unity — тогда их будут пропускать и другие Git-программы.",
+  "generated.files@simple":
+    "Эти файлы создают сама Unity и редактор кода — сохранять их не нужно.",
+  "generated.tracked":
+    "Они попали в коммиты раньше, поэтому git продолжает записывать их изменения. Один коммит уберёт их из git, а файлы останутся на диске.",
+  "generated.tracked@simple":
+    "Эти папки Unity создаёт сама, но они попали в сохранённые версии, поэтому их изменения всё время появляются в списке. Их можно перестать сохранять — на компьютере ничего не пропадёт.",
+  "generated.fix": "Исправить",
+  "generated.untrack": "Убрать из git…",
+  "generated.untrack@simple": "Перестать сохранять…",
+  "generated.fixed":
+    "Правила Unity добавлены в .gitignore. Закоммитьте его, чтобы они были у всей команды.",
+  "generated.fixed@simple":
+    "Готово. Сохраните версию вместе с файлом .gitignore — и эти папки не будут сохраняться ни у кого.",
+  "generated.untrackMessage": "Убрать служебные файлы Unity из git",
+  "generated.untrackMessage@simple":
+    "Служебные папки Unity больше не сохраняются",
+  "op.untrack-generated.title": "Убрать служебные файлы Unity из git",
+  "op.untrack-generated.title@simple": "Перестать сохранять служебные папки",
+  "op.untrack-generated.describe":
+    "Один коммит уберёт из репозитория {list} и добавит .gitignore от Unity. Файлы останутся на диске, а выбранные изменения — выбранными и в этот коммит не попадут.",
+  "op.untrack-generated.describe@simple":
+    "Rivet сохранит отдельную версию, в которой больше не будет {list}. Все файлы останутся на этом компьютере, а отмеченные изменения — отмеченными.",
+  "op.untrack-generated.team":
+    "Когда коллеги получат этот коммит, git удалит у них эти папки, и Unity пересоздаст их при следующем запуске — это может занять время. Пусть перед получением изменений закроют Unity.",
+  "op.untrack-generated.team@simple":
+    "Когда коллеги синхронизируются, эти папки исчезнут и у них, а Unity при следующем запуске создаст их заново — это может занять время. Пусть перед синхронизацией закроют Unity.",
+  "op.untrack-generated.confirm": "Убрать из git",
+  "op.untrack-generated.confirm@simple": "Перестать сохранять",
+  "op.untrack-generated.done":
+    "Готово. Отправьте коммит, чтобы это дошло до команды.",
+  "op.untrack-generated.done@simple":
+    "Готово. Синхронизируйтесь, чтобы это дошло до остальных.",
+
   "composer.tooLarge": {
     one: "GitHub не примет {files}: файл больше 100 МБ. Храните большие файлы в Git LFS или не включайте его в коммит.",
     few: "GitHub не примет {files}: файлы больше 100 МБ. Храните большие файлы в Git LFS или не включайте их в коммит.",

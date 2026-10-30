@@ -7,8 +7,10 @@ import type {
   OperationKind,
   StashEntry,
   SyncState,
+  UnityGenerated,
 } from "../git/types";
 import { fileName } from "../git/paths";
+import { generatedNames } from "../unity/gitignore";
 import type { Key, Params } from "../i18n/i18n";
 import { restoreDraft } from "../views/changes/draft";
 
@@ -33,6 +35,10 @@ export type OpContext = {
   repositoryId?: string;
   /** Files to put back, each from the revision that still has it. */
   restore?: { path: string; revision: string }[];
+  /** What Unity generates that no .gitignore leaves out. */
+  generated?: UnityGenerated;
+  /** The message of the commit the operation makes. */
+  summary?: string;
 };
 
 type Translate = (key: Key, params?: Params) => string;
@@ -163,6 +169,24 @@ const definitions = {
       for (const { path, revision } of c.restore ?? [])
         await b.restoreFile(path, revision);
     },
+  },
+  "untrack-generated": {
+    params: (c) => ({ list: generatedNames(c.generated?.tracked ?? []) }),
+    command: (c) => {
+      const tracked = c.generated?.tracked ?? [];
+      // Each project's .gitignore sits next to its generated folders.
+      const ignores = [
+        ...new Set(tracked.map((p) => p.replace(/[^/]+\/?$/, ""))),
+      ].map((folder) => `${folder}.gitignore`);
+      return [
+        `git rm -r --cached -- ${tracked.join(" ")}`,
+        `git add -- ${ignores.join(" ")}`,
+        `git commit -m "${c.summary ?? ""}"`,
+      ].join("\n");
+    },
+    warning: (_, t) => t("op.untrack-generated.team"),
+    run: (b, c) =>
+      b.untrackUnityGenerated({ summary: c.summary ?? "", description: "" }),
   },
   "drop-stash": {
     params: (c) => ({

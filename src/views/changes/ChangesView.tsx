@@ -25,6 +25,7 @@ import { Panes } from "../../ui/Panes";
 import type { RepoApi } from "../repoApi";
 import { Composer } from "./Composer";
 import { ConflictView, useConflictNote } from "./ConflictView";
+import { GeneratedHint } from "./GeneratedHint";
 import { LfsHint } from "./LfsHint";
 import { MergeBanner } from "./MergeBanner";
 import { StashDetail, StashList, useStashName } from "./Stashes";
@@ -198,6 +199,7 @@ export function ChangesView({
           </>
         ) : (
           <>
+            <GeneratedHint repo={repo} />
             <LfsHint repo={repo} />
             <div className="group-heading changes-heading">
               <span className="row">

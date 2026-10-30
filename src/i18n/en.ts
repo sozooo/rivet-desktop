@@ -927,6 +927,47 @@ export const en = {
   "lfs.downloaded": "LFS files downloaded.",
   "lfs.downloaded@simple": "Files downloaded.",
 
+  "generated.title": "Unity's generated files aren't ignored",
+  "generated.title@simple": "Unity's own folders",
+  "generated.trackedTitle": "Unity's generated files are committed",
+  "generated.trackedTitle@simple": "Unity's own folders",
+  "generated.folders":
+    "Rivet leaves them out of commits. Fix adds Unity's .gitignore, so every Git tool leaves them out too.",
+  "generated.folders@simple":
+    "Unity makes these folders itself, so they don't need saving.",
+  "generated.files":
+    "Rivet leaves them out of commits. Fix adds Unity's .gitignore, so every Git tool leaves them out too.",
+  "generated.files@simple":
+    "Unity and the code editor make these files themselves, so they don't need saving.",
+  "generated.tracked":
+    "Committed earlier, so git keeps recording their changes. One commit can stop tracking them; the files stay on disk.",
+  "generated.tracked@simple":
+    "Unity makes these folders itself, but they got into saved versions, so their changes keep showing up. Rivet can stop saving them; nothing on this computer goes away.",
+  "generated.fix": "Fix",
+  "generated.untrack": "Stop tracking…",
+  "generated.untrack@simple": "Stop saving them…",
+  "generated.fixed":
+    "Added Unity's rules to .gitignore. Commit it so the whole team gets them.",
+  "generated.fixed@simple":
+    "Done. Save a version with the .gitignore file in it, and these folders stay out for everyone.",
+  "generated.untrackMessage": "Stop tracking Unity's generated files",
+  "generated.untrackMessage@simple": "Stop saving Unity's own folders",
+  "op.untrack-generated.title": "Stop tracking Unity's generated files",
+  "op.untrack-generated.title@simple": "Stop saving Unity's own folders",
+  "op.untrack-generated.describe":
+    "One commit removes {list} from the repository and adds Unity's .gitignore. The files stay on disk, and changes you selected stay selected, outside this commit.",
+  "op.untrack-generated.describe@simple":
+    "Rivet saves a separate version in which {list} are no longer kept. Every file stays on this computer, and the changes you ticked stay ticked.",
+  "op.untrack-generated.team":
+    "When teammates pull this commit, git deletes these folders from their copies and Unity rebuilds them on its next start, which can take a while. Ask them to close Unity before pulling.",
+  "op.untrack-generated.team@simple":
+    "When teammates sync, these folders go away on their computers too, and Unity makes them again on its next start, which can take a while. Ask them to close Unity before syncing.",
+  "op.untrack-generated.confirm": "Stop tracking",
+  "op.untrack-generated.confirm@simple": "Stop saving",
+  "op.untrack-generated.done":
+    "Done. Push the commit so the team stops tracking them too.",
+  "op.untrack-generated.done@simple": "Done. Sync so it reaches everyone.",
+
   "composer.tooLarge": {
     one: "GitHub won't accept {files}: it's over 100 MB. Store large files in Git LFS, or leave it out of this commit.",
     other:

@@ -3,6 +3,11 @@ import { localName } from "../branches";
 import { conflictStatus } from "../conflicts";
 import { lfsPointer, type LfsPointer } from "../fileKinds";
 import {
+  GENERATED_FOLDER_NAMES,
+  isGenerated,
+  withUnityIgnore,
+} from "../../unity/gitignore";
+import {
   GITHUB_LIMIT,
   SMART_MERGE_DRIVER,
   readAttributes,
@@ -92,6 +97,9 @@ const OPERATIONS: {
 
 const CONFLICT_MARKER = /^(<{7}|>{7})( |$)/m;
 
+/** The file every Unity project has, relative to the project's folder. */
+const PROJECT_VERSION = "ProjectSettings/ProjectVersion.txt";
+
 /** The operation under way, and the files git said conflict when it stopped. */
 type OperationState = { operation: Operation | null; conflicts: string[] };
 
@@ -122,7 +130,13 @@ export class CliBackend implements GitBackend {
   /** Paths of the markers in OPERATIONS, then MERGE_MSG, as git reports them. */
   private gitPaths?: Promise<string[]>;
   private lfsInstalled?: Promise<boolean>;
-  private unityProject?: Promise<boolean>;
+  /**
+   * What Unity generates and git doesn't ignore yet, as of the last snapshot.
+   * Commands that take everything leave it out.
+   */
+  private skipped: string[] = [];
+  /** Generated folders and project files in HEAD, kept while HEAD and the projects stay put. */
+  private committed?: { key: string; paths: Promise<string[]> };
   /** Oversized files in unpushed commits, kept while HEAD and the upstream stay put. */
   private tooLarge?: {
     key: string;
@@ -193,7 +207,6 @@ export class CliBackend implements GitBackend {
     this.lfsInstalled ??= this.git
       .text(["lfs", "version"])
       .then((r) => r.code === 0);
-    this.unityProject ??= this.isUnityProject();
     const [
       statusOut,
       unstagedOut,
@@ -205,15 +218,17 @@ export class CliBackend implements GitBackend {
       fetchHead,
       attributes,
       lfsInstalled,
-      unityProject,
+      projects,
       state,
     ] = await Promise.all([
+      // New folders come as one line each, so an unignored Library is one line,
+      // not a hundred thousand files; untracked() opens the others up.
       this.run([
         "status",
         "--porcelain=v2",
         "-z",
         "--branch",
-        "--untracked-files=all",
+        "--untracked-files=normal",
       ]),
       this.run(["diff", "--no-color", "--no-ext-diff", "-M"]),
       this.run(["diff", "--cached", "--no-color", "--no-ext-diff", "-M"]),
@@ -230,10 +245,16 @@ export class CliBackend implements GitBackend {
       this.tryRun(["rev-parse", "--git-path", "FETCH_HEAD"]),
       this.git.readWorktree(".gitattributes").then(text),
       this.lfsInstalled,
-      this.unityProject,
+      this.trackedProjects(),
       this.readOperation(),
     ]);
     const status = parseStatus(statusOut);
+    const roots = await this.unityRoots(projects, status.entries);
+    const [{ entries, generated }, committed] = await Promise.all([
+      this.untracked(status.entries, roots),
+      this.committedGenerated(roots, status.oid),
+    ]);
+    this.skipped = generated;
     this.hasHead = status.oid !== null;
     this.branch = status.head;
     this.upstream = status.upstream;
@@ -253,7 +274,7 @@ export class CliBackend implements GitBackend {
             ]).then((out) => parseLog(out, status.head))
           : Promise.resolve([] as Commit[]),
         this.buildFiles(
-          status.entries,
+          entries,
           parseDiff(stagedOut),
           parseDiff(unstagedOut),
           state,
@@ -279,7 +300,7 @@ export class CliBackend implements GitBackend {
         fetchHead.trim()
           ? this.git.modifiedTime(fetchHead.trim())
           : Promise.resolve(null),
-        unityProject ? this.smartMergeReady(attributes ?? "") : undefined,
+        roots.length ? this.smartMergeReady(attributes ?? "") : undefined,
         this.unpushedTooLarge(status),
       ]);
     const refs = parseRefs(refsOut);
@@ -300,6 +321,10 @@ export class CliBackend implements GitBackend {
       operation: state.operation,
       lfs: { installed: lfsInstalled, tracking: lfsTracking },
       smartMerge,
+      generated:
+        generated.length || committed.length
+          ? { untracked: generated, tracked: committed }
+          : undefined,
     };
   }
 
@@ -326,11 +351,135 @@ export class CliBackend implements GitBackend {
     };
   }
 
-  private async isUnityProject() {
-    const version = "ProjectSettings/ProjectVersion.txt";
-    if ((await this.git.modifiedTime(version)) !== null) return true;
-    // A Unity project can live in a subfolder of the repository.
-    return !!(await this.tryRun(["ls-files", "-z", "--", `*/${version}`]));
+  /**
+   * Unity projects git knows: the repository's own folder, or folders inside
+   * it, as path prefixes ("" or "Game/").
+   */
+  private async trackedProjects() {
+    const [atRoot, listed] = await Promise.all([
+      this.git.modifiedTime(PROJECT_VERSION),
+      this.tryRun(["ls-files", "-z", "--", `*/${PROJECT_VERSION}`]),
+    ]);
+    return [
+      ...(atRoot !== null ? [""] : []),
+      ...listed
+        .split("\0")
+        .filter(Boolean)
+        .map((path) => path.slice(0, -PROJECT_VERSION.length)),
+    ];
+  }
+
+  /** Adds a Unity project git doesn't know yet: a new folder one level down. */
+  private async unityRoots(tracked: string[], entries: StatusEntry[]) {
+    const folders = entries
+      .filter((e) => e.untracked && /^[^/]+\/$/.test(e.path))
+      .map((e) => e.path)
+      .filter((path) => !tracked.includes(path));
+    const found = await Promise.all(
+      folders.map((f) => this.git.modifiedTime(f + PROJECT_VERSION)),
+    );
+    return [...tracked, ...folders.filter((_, i) => found[i] !== null)];
+  }
+
+  /**
+   * New files, which status gives folder by folder. What Unity generates
+   * stays out of the list; other new folders are opened up into their files,
+   * without walking into a Library folder.
+   */
+  private async untracked(entries: StatusEntry[], roots: string[]) {
+    const generated: string[] = [];
+    const isUnitys = (path: string) =>
+      roots.some(
+        (root) => path.startsWith(root) && isGenerated(path.slice(root.length)),
+      );
+    const folders = entries
+      .filter((e) => e.untracked && e.path.endsWith("/") && !isUnitys(e.path))
+      .map((e) => e.path);
+    const opened = new Map(folders.map((f) => [f, [] as StatusEntry[]]));
+    if (folders.length) {
+      // A project git doesn't know yet is one new folder: find its generated
+      // folders by name instead of listing what they hold.
+      const skip = roots
+        .filter((root) => folders.some((f) => root.startsWith(f)))
+        .flatMap((root) => GENERATED_FOLDER_NAMES.map((n) => `${root}${n}/`));
+      const [files, present] = await Promise.all([
+        this.run([
+          "ls-files",
+          "--others",
+          "--exclude-standard",
+          "-z",
+          "--",
+          ...folders.map(literal),
+          ...skip.map(exclude),
+        ]),
+        skip.length
+          ? this.run([
+              "ls-files",
+              "--others",
+              "--directory",
+              "--exclude-standard",
+              "-z",
+              "--",
+              ...skip.map(literal),
+            ])
+          : "",
+      ]);
+      generated.push(...present.split("\0").filter(Boolean));
+      for (const path of files.split("\0").filter(Boolean)) {
+        const folder = folders.find((f) => path.startsWith(f));
+        opened.get(folder ?? "")?.push({
+          path,
+          index: "?",
+          worktree: "?",
+          untracked: true,
+          conflicted: false,
+        });
+      }
+    }
+    const list = entries.flatMap((entry) =>
+      entry.untracked ? (opened.get(entry.path) ?? [entry]) : [entry],
+    );
+    return {
+      entries: list.filter((e) => {
+        if (!e.untracked || !isUnitys(e.path)) return true;
+        generated.push(e.path);
+        return false;
+      }),
+      generated: generated.sort(),
+    };
+  }
+
+  /** Generated folders and project files committed in each Unity project. */
+  private committedGenerated(roots: string[], head: string | null) {
+    if (!head || !roots.length) return Promise.resolve([]);
+    const key = `${head} ${roots.join("|")}`;
+    if (this.committed?.key !== key)
+      this.committed = { key, paths: this.findCommitted(roots) };
+    return this.committed.paths;
+  }
+
+  private async findCommitted(roots: string[]) {
+    // Only what is directly in each project's folder: ls-tree doesn't recurse.
+    const listings = await Promise.all(
+      roots.map((root) =>
+        this.tryRun(["ls-tree", "-z", "HEAD", ...(root ? ["--", root] : [])]),
+      ),
+    );
+    return listings.flatMap((out, i) =>
+      out
+        .split("\0")
+        .filter(Boolean)
+        .map((line) => {
+          const [info, path] = line.split("\t");
+          return info.split(" ")[1] === "tree" ? `${path}/` : path;
+        })
+        .filter((path) => isGenerated(path.slice(roots[i].length))),
+    );
+  }
+
+  /** Arguments that make a command take everything except what Unity generates. */
+  private everything() {
+    return this.skipped.length ? ["--", ".", ...this.skipped.map(exclude)] : [];
   }
 
   /** Whether scenes merge through a driver whose program is still installed. */
@@ -659,7 +808,7 @@ export class CliBackend implements GitBackend {
 
   async setAllStaged(staged: boolean) {
     await this.ensureLoaded();
-    if (staged) await this.run(["add", "--all"]);
+    if (staged) await this.run(["add", "--all", ...this.everything()]);
     else if (this.hasHead) await this.run(["reset", "-q"]);
     else await this.run(["rm", "-r", "-q", "--cached", "--", "."]);
   }
@@ -716,7 +865,7 @@ export class CliBackend implements GitBackend {
       [...this.tracked.values()].some((f) => f.entry.conflicted)
     )
       throw new Error("Finish or cancel the merge first.");
-    if (scope === "all") await this.run(["add", "--all"]);
+    if (scope === "all") await this.run(["add", "--all", ...this.everything()]);
     const nothingStaged =
       (await this.git.text(["diff", "--cached", "--quiet"])).code === 0;
     if (nothingStaged) throw new Error("There is nothing to commit.");
@@ -776,6 +925,7 @@ export class CliBackend implements GitBackend {
       "--include-untracked",
       "-m",
       `Changes on ${this.branch}`,
+      ...this.everything(),
     ]);
   }
 
@@ -949,6 +1099,106 @@ export class CliBackend implements GitBackend {
     const next = withSmartMerge(current, driver);
     if (next !== current) await this.git.writeWorktree(".gitattributes", next);
   }
+
+  async ignoreUnityGenerated() {
+    const status = parseStatus(
+      await this.run([
+        "status",
+        "--porcelain=v2",
+        "-z",
+        "--untracked-files=normal",
+      ]),
+    );
+    return this.writeIgnores(
+      await this.unityRoots(await this.trackedProjects(), status.entries),
+    );
+  }
+
+  /** Writes or completes the .gitignore in each project's folder; returns the files changed. */
+  private async writeIgnores(roots: string[]) {
+    const written: string[] = [];
+    for (const root of roots) {
+      const path = `${root}.gitignore`;
+      const current = text(await this.git.readWorktree(path)) ?? "";
+      const next = withUnityIgnore(current);
+      if (next === current) continue;
+      await this.git.writeWorktree(path, next);
+      written.push(path);
+    }
+    return written;
+  }
+
+  async untrackUnityGenerated(message: CommitMessage) {
+    const summary = message.summary.trim();
+    if (!summary) throw new Error("Add a commit summary.");
+    if (await this.currentOperation())
+      throw new Error("Finish or cancel the merge first.");
+    const roots = await this.trackedProjects();
+    const committed = this.hasHead ? await this.findCommitted(roots) : [];
+    if (!committed.length)
+      throw new Error("Nothing Unity generates is committed.");
+    await this.writeIgnores(roots);
+    const ignores = roots.map((root) => `${root}.gitignore`);
+    // Changes selected for the next commit, as their exact index entries: put
+    // back afterwards, they stay selected and out of this commit.
+    const selected = indexEntries(
+      await this.run([
+        "diff",
+        "--cached",
+        "--raw",
+        "-z",
+        "--no-renames",
+        "--no-abbrev",
+        "--",
+        ".",
+        ...[...committed, ...ignores].map(exclude),
+      ]),
+    );
+    await this.run(["reset", "-q"]);
+    try {
+      await this.run([
+        "rm",
+        "-r",
+        "-q",
+        "--cached",
+        "--ignore-unmatch",
+        "--",
+        ...committed.map(literal),
+      ]);
+      await this.run(["add", "--", ...ignores.map(literal)]);
+      const description = message.description.trim();
+      await this.run(
+        ["commit", "-q", "-F", "-"],
+        description ? `${summary}\n\n${description}\n` : `${summary}\n`,
+      );
+    } catch (error) {
+      // Nothing changed on disk; the index goes back to the last commit.
+      await this.tryRun(["reset", "-q"]);
+      throw error;
+    } finally {
+      if (selected)
+        await this.tryRun(["update-index", "-z", "--index-info"], selected);
+    }
+    const [commit] = parseLog(
+      await this.run(["log", "-n1", `--format=${LOG_FORMAT}`, "HEAD"]),
+      this.branch,
+    );
+    return commit;
+  }
+}
+
+/**
+ * `diff --cached --raw -z` as input for `update-index -z --index-info`: each
+ * path with its mode and blob in the index (mode 0 for a removed file).
+ */
+function indexEntries(raw: string) {
+  const records = raw.split("\0");
+  let out = "";
+  for (let i = 0; i + 1 < records.length; i += 2) {
+    const [, mode, , object] = records[i].split(" ");
+    if (object) out += `${mode} ${object}\t${records[i + 1]}\0`;
+  }
+  return out;
 }
 
 const text = (bytes: Uint8Array | null) =>
@@ -956,6 +1206,8 @@ const text = (bytes: Uint8Array | null) =>
 
 /** A pathspec that matches only this path, even with [ ] or * in its name. */
 const literal = (path: string) => `:(literal)${path}`;
+/** A pathspec that leaves out this path (and everything in it, for a folder). */
+const exclude = (path: string) => `:(exclude,literal)${path}`;
 
 function diffToChange(diff: FileDiff): FileChange {
   return {
