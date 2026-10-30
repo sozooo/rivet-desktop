@@ -24,8 +24,8 @@ import { blockerKey } from "../useUndoCommit";
 import { useRestoreFile } from "./useRestoreFile";
 
 const LANE = 14,
-  ROW = 64,
-  NODE_Y = 22;
+  ROW = 70,
+  NODE_Y = 21;
 const x = (lane: number) => LANE / 2 + lane * LANE;
 const link = (x1: number, y1: number, x2: number, y2: number) => {
   if (x1 === x2) return `M${x1} ${y1}V${y2}`;

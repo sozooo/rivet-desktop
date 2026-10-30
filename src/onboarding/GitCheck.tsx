@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { Download, RefreshCw } from "lucide-react";
+import { DragStrip } from "../chrome/WindowControls";
 import { gitDownloadPage } from "../errors/notice";
 import { useI18n } from "../i18n/i18n";
 import { platform } from "../platform";
@@ -61,6 +62,7 @@ export function GitCheck({ children }: { children: ReactNode }) {
   const old = health.status === "old";
   return (
     <section className="git-check" role="alert">
+      <DragStrip />
       <div className="git-check-content">
         <div className="brand">
           <span className="brand-mark">r</span>

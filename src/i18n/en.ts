@@ -20,6 +20,10 @@ export const en = {
   "nav.darkTheme": "Dark theme",
   "nav.toggleTheme": "Toggle theme",
   "nav.settings": "Settings",
+  "window.minimize": "Minimize",
+  "window.maximize": "Maximize",
+  "window.restore": "Restore down",
+  "window.close": "Close",
 
   "top.currentBranch": "Current branch: {branch}. Click to switch.",
   "top.checkRemote": "Check the remote for new commits",
@@ -579,6 +583,12 @@ export const en = {
 
   "settings.eyebrow": "PERSONALIZE YOUR WORKSPACE",
   "settings.title": "Settings",
+  "settings.scale": "Interface size",
+  "settings.scaleNormal": "Normal",
+  "settings.scaleLarge": "Large",
+  "settings.scaleLarger": "Larger",
+  "settings.scaleHint":
+    "Ctrl + = and Ctrl + − change it from anywhere; Ctrl + 0 goes back to normal.",
   "settings.appearance": "Appearance",
   "settings.light": "Light",
   "settings.dark": "Dark",
@@ -638,6 +648,8 @@ export const en = {
 
   "shortcuts.eyebrow": "QUICK REFERENCE",
   "shortcuts.title": "Shortcuts",
+  "shortcuts.zoom": "Make the interface larger or smaller",
+  "shortcuts.zoomReset": "Back to the normal size",
   "shortcuts.commit": "Commit from the message fields",
   "shortcuts.commit@simple": "Save a version from the message field",
   "shortcuts.escape": "Close a dialog or menu",

@@ -1,5 +1,6 @@
 import { Component, useState, type ReactNode } from "react";
 import { AlertTriangle, Copy, RotateCw } from "lucide-react";
+import { DragStrip } from "../chrome/WindowControls";
 import { demoFlags } from "../demoFlags";
 import { useI18n } from "../i18n/i18n";
 import { appLog, copyReport } from "./log";
@@ -43,6 +44,7 @@ function Crashed() {
   const [copied, setCopied] = useState(false);
   return (
     <div className="load-error crashed">
+      <DragStrip />
       <AlertTriangle />
       <h2>{t("crash.title")}</h2>
       <p>{t("crash.text")}</p>

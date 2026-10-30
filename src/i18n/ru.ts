@@ -28,6 +28,10 @@ export const ru: Record<keyof typeof en, Message> = {
   "nav.darkTheme": "Тёмная тема",
   "nav.toggleTheme": "Переключить тему",
   "nav.settings": "Настройки",
+  "window.minimize": "Свернуть",
+  "window.maximize": "Развернуть",
+  "window.restore": "Свернуть в окно",
+  "window.close": "Закрыть",
 
   "top.currentBranch":
     "Текущая ветка: {branch}. Нажмите, чтобы перейти на другую.",
@@ -653,6 +657,12 @@ export const ru: Record<keyof typeof en, Message> = {
 
   "settings.eyebrow": "НАСТРОЙТЕ ПОД СЕБЯ",
   "settings.title": "Настройки",
+  "settings.scale": "Размер интерфейса",
+  "settings.scaleNormal": "Обычный",
+  "settings.scaleLarge": "Крупный",
+  "settings.scaleLarger": "Очень крупный",
+  "settings.scaleHint":
+    "Ctrl + = и Ctrl + − меняют размер из любого места, Ctrl + 0 возвращает обычный.",
   "settings.appearance": "Оформление",
   "settings.light": "Светлое",
   "settings.dark": "Тёмное",
@@ -715,6 +725,8 @@ export const ru: Record<keyof typeof en, Message> = {
 
   "shortcuts.eyebrow": "ШПАРГАЛКА",
   "shortcuts.title": "Горячие клавиши",
+  "shortcuts.zoom": "Сделать интерфейс крупнее или мельче",
+  "shortcuts.zoomReset": "Вернуть обычный размер",
   "shortcuts.commit": "Закоммитить из поля описания",
   "shortcuts.commit@simple": "Сохранить версию из поля описания",
   "shortcuts.escape": "Закрыть окно или меню",

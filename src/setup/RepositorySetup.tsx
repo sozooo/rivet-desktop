@@ -7,6 +7,7 @@ import {
   FolderSearch,
   Plus,
 } from "lucide-react";
+import { DragStrip } from "../chrome/WindowControls";
 import { explainError } from "../errors/explain";
 import { appLog } from "../errors/log";
 import { ErrorMessage, useErrorAction } from "../errors/notice";
@@ -152,6 +153,7 @@ export function RepositorySetup({
       aria-modal="true"
       aria-label={t(setupModeMeta[mode].tab)}
     >
+      <DragStrip />
       <div className="setup-left">
         {onCancel ? (
           <button className="text-button setup-back" onClick={onCancel}>

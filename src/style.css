@@ -81,12 +81,13 @@ textarea::placeholder {
   --warn-soft: #f8f0df;
   background: var(--bg);
   color: var(--text);
-  height: 100dvh;
+  /* The browser demo zooms the page; the desktop app zooms the whole window. */
+  height: calc(100dvh / var(--ui-zoom, 1));
   min-height: 540px;
   min-width: 920px;
   display: flex;
   flex-direction: column;
-  font-size: 12px;
+  font-size: 13px;
   transition:
     background 0.15s,
     color 0.15s;
@@ -149,7 +150,7 @@ textarea::placeholder {
   align-items: center;
   gap: 8px;
   max-width: 245px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .branch-selector span {
   overflow: hidden;
@@ -196,14 +197,14 @@ textarea::placeholder {
   align-items: center;
   gap: 6px;
   padding: 3px 0;
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
 }
 .text-button:hover {
   color: var(--accent);
 }
 .text-button .muted {
-  font-size: 10px;
+  font-size: 11px;
   margin-left: 2px;
 }
 .muted {
@@ -223,7 +224,7 @@ textarea::placeholder {
   border-radius: 5px;
   padding: 7px 11px;
   background: var(--surface);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
   transition: background 0.15s;
@@ -323,7 +324,7 @@ textarea::placeholder {
   height: 29px;
   border-radius: 50%;
   font-weight: 600;
-  font-size: 10px;
+  font-size: 11px;
   margin-top: 7px;
 }
 .avatar.tiny {
@@ -357,7 +358,7 @@ textarea::placeholder {
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 1px 5px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .search {
@@ -374,7 +375,7 @@ textarea::placeholder {
 .search input {
   min-width: 0;
   width: 100%;
-  font-size: 11px;
+  font-size: 12px;
 }
 .sidebar-content {
   flex: 1;
@@ -390,7 +391,7 @@ textarea::placeholder {
   justify-content: space-between;
   padding: 0 19px;
   height: 33px;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1px;
   color: var(--muted);
   font-weight: 600;
@@ -402,7 +403,7 @@ textarea::placeholder {
 }
 .group-heading .text-button {
   letter-spacing: 0;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 400;
 }
 .file-row {
@@ -460,7 +461,7 @@ textarea::placeholder {
   min-width: 0;
   flex-direction: column;
   gap: 3px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 .file-label > span,
@@ -470,7 +471,7 @@ textarea::placeholder {
   white-space: nowrap;
 }
 .file-label small {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   font-weight: 400;
 }
@@ -496,7 +497,7 @@ textarea::placeholder {
   flex-shrink: 0;
 }
 .status-word {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
 }
 .status-added {
@@ -574,7 +575,7 @@ textarea::placeholder {
   align-items: center;
   gap: 6px;
   padding: 0 18px;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
 }
 .sidebar-footer > .muted {
@@ -623,7 +624,7 @@ textarea::placeholder {
   align-items: center;
   padding: 0 24px;
   border-bottom: 1px solid var(--border);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .workspace-label > span:first-child {
@@ -633,7 +634,7 @@ textarea::placeholder {
   gap: 7px;
 }
 .workspace-label > span:last-child {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.1px;
 }
 .diff-title {
@@ -659,7 +660,7 @@ textarea::placeholder {
   color: var(--muted);
 }
 .file-heading strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -668,7 +669,7 @@ textarea::placeholder {
   display: flex;
   gap: 8px;
   margin-left: 5px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .diff-stats b {
   font-weight: 500;
@@ -709,7 +710,7 @@ textarea::placeholder {
   padding: 0 24px;
   gap: 15px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   border-bottom: 1px solid var(--border);
 }
 .diff-subbar > span {
@@ -724,7 +725,7 @@ textarea::placeholder {
   white-space: nowrap;
 }
 .diff-subbar .text-button {
-  font-size: 10px;
+  font-size: 11px;
 }
 .diff-subbar .separator {
   height: 11px;
@@ -751,7 +752,7 @@ textarea::placeholder {
   border-bottom: 1px solid var(--border);
   padding: 0 21px;
   font-family: "IBM Plex Mono", monospace;
-  font-size: 9px;
+  font-size: 10px;
   min-width: 100%;
 }
 .code-line {
@@ -759,7 +760,7 @@ textarea::placeholder {
   align-items: center;
   height: 23px;
   line-height: 23px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--code);
   font-family: "IBM Plex Mono", Consolas, monospace;
   min-width: max-content;
@@ -776,7 +777,7 @@ textarea::placeholder {
   text-align: right;
   flex-shrink: 0;
   color: var(--faint);
-  font-size: 9px;
+  font-size: 10px;
   user-select: none;
 }
 .line-sign {
@@ -810,7 +811,7 @@ textarea::placeholder {
   display: grid;
   grid-template-columns: 1fr 1fr;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   background: var(--sidebar);
 }
 .split-label span {
@@ -832,13 +833,13 @@ textarea::placeholder {
 }
 .composer-heading strong {
   font-weight: 600;
-  font-size: 11px;
+  font-size: 12px;
 }
 .composer-heading .text-button {
   gap: 8px;
 }
 .composer-heading > span {
-  font-size: 9px;
+  font-size: 10px;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -859,12 +860,12 @@ textarea::placeholder {
   width: 100%;
   height: 35px;
   padding: 0 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 .composer-fields.single input {
   height: 40px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .composer-fields textarea {
   border-top: 1px solid var(--border);
@@ -874,7 +875,7 @@ textarea::placeholder {
   resize: vertical;
   max-height: 110px;
   padding: 9px 12px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .composer-bottom {
   display: flex;
@@ -885,22 +886,22 @@ textarea::placeholder {
 }
 .composer-bottom .primary {
   padding: 8px 12px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .composer-bottom .primary > kbd {
   margin-left: 14px;
   opacity: 0.65;
   font: inherit;
-  font-size: 10px;
+  font-size: 11px;
 }
 .composer-hint {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .composer-hint .muted {
-  font-size: 9px;
+  font-size: 10px;
 }
 .composer.collapsed {
   padding-top: 9px;
@@ -915,7 +916,7 @@ textarea::placeholder {
 .compact-title {
   min-width: 0;
   flex: 1;
-  font-size: 11px;
+  font-size: 12px;
   padding: 6px 0;
 }
 .statusbar {
@@ -926,7 +927,7 @@ textarea::placeholder {
   justify-content: space-between;
   border-top: 1px solid var(--border);
   padding: 0 15px;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
 }
 .statusbar > span {
@@ -939,7 +940,7 @@ textarea::placeholder {
   align-items: center;
   gap: 5px;
   padding: 0;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
 }
 .footer-divider {
@@ -947,7 +948,7 @@ textarea::placeholder {
   color: var(--border);
 }
 .list-empty {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   padding: 10px 19px;
 }
@@ -1000,7 +1001,7 @@ textarea::placeholder {
   font-weight: 600;
 }
 .load-error code {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .load-error p {
@@ -1028,7 +1029,7 @@ textarea::placeholder {
   z-index: 20;
 }
 .dropdown small {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1px;
   color: var(--muted);
   display: block;
@@ -1042,7 +1043,7 @@ textarea::placeholder {
   text-align: left;
   padding: 9px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .dropdown button:hover {
   background: var(--hover);
@@ -1077,7 +1078,7 @@ textarea::placeholder {
   border: 1px solid var(--border);
   border-radius: 7px;
   box-shadow: 0 4px 20px #00000018;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   max-width: min(620px, calc(100vw - 80px));
   z-index: 40;
@@ -1099,7 +1100,7 @@ textarea::placeholder {
   border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
 .toast-action {
-  font-size: 11px;
+  font-size: 12px;
   padding: 4px 10px;
   margin-left: 4px;
   color: var(--accent);
@@ -1121,7 +1122,7 @@ textarea::placeholder {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--accent-soft);
-  font-size: 11px;
+  font-size: 12px;
 }
 .file-history-heading > svg {
   width: 15px;
@@ -1168,7 +1169,7 @@ textarea::placeholder {
   top: 13px;
 }
 .eyebrow {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1.5px;
   font-weight: 600;
   color: var(--muted);
@@ -1180,7 +1181,7 @@ textarea::placeholder {
   margin: 14px 0;
 }
 .modal p {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   line-height: 1.8;
 }
@@ -1197,7 +1198,7 @@ textarea::placeholder {
   padding: 14px;
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.7;
   border-radius: 6px;
   margin: 20px 0;
@@ -1210,7 +1211,7 @@ textarea::placeholder {
   background: var(--bg);
   border-radius: 5px;
   overflow: auto;
-  font-size: 11px;
+  font-size: 12px;
 }
 .modal-actions {
   display: flex;
@@ -1230,7 +1231,7 @@ textarea::placeholder {
   margin-top: 18px;
 }
 .setting-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -1248,7 +1249,7 @@ textarea::placeholder {
   justify-content: space-between;
   gap: 12px;
   margin-top: 12px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .project-on {
   display: inline-flex;
@@ -1259,7 +1260,7 @@ textarea::placeholder {
 }
 .modal p.setting-hint {
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
 }
 .sync-button {
@@ -1278,7 +1279,7 @@ textarea::placeholder {
   display: grid;
   grid-template-columns: 150px 1fr;
   align-items: center;
-  font-size: 12px;
+  font-size: 13px;
 }
 .shortcut-list dd {
   margin: 0;
@@ -1286,7 +1287,7 @@ textarea::placeholder {
 }
 .shortcut-list kbd {
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   border: 1px solid var(--border);
   border-bottom-width: 2px;
   border-radius: 4px;
@@ -1297,7 +1298,7 @@ textarea::placeholder {
   display: flex;
   width: 100%;
   text-align: left;
-  height: 64px;
+  height: 70px;
   padding: 0 14px 0 12px;
   gap: 10px;
 }
@@ -1314,10 +1315,13 @@ textarea::placeholder {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  padding-top: 13px;
+  padding-top: 12px;
+}
+.commit-text > * {
+  flex-shrink: 0;
 }
 .commit-row strong {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.5;
   overflow: hidden;
@@ -1372,12 +1376,12 @@ textarea::placeholder {
   fill: #5b7fa8;
 }
 .commit-row small {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
 }
 .branch-chip,
 .tag {
-  font-size: 8px;
+  font-size: 9px;
   padding: 2px 6px;
   background: var(--accent-soft);
   color: var(--accent);
@@ -1399,7 +1403,7 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .metadata code {
@@ -1413,7 +1417,7 @@ textarea::placeholder {
   margin-top: 15px;
 }
 .detail-actions .button {
-  font-size: 10px;
+  font-size: 11px;
   padding: 5px 9px;
 }
 .object-row {
@@ -1422,7 +1426,7 @@ textarea::placeholder {
   gap: 9px;
   padding: 11px 18px;
   width: 100%;
-  font-size: 11px;
+  font-size: 12px;
   text-align: left;
 }
 .object-row > span {
@@ -1469,7 +1473,7 @@ textarea::placeholder {
   overflow-wrap: anywhere;
 }
 .branch-heading p {
-  font-size: 10px;
+  font-size: 11px;
   margin: 8px 0 0;
   color: var(--accent);
 }
@@ -1493,7 +1497,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
-  font-size: 12px;
+  font-size: 13px;
 }
 .divergence {
   display: flex;
@@ -1514,7 +1518,7 @@ textarea::placeholder {
   font-weight: 550;
 }
 .divergence span {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .branch-diagram {
@@ -1525,7 +1529,7 @@ textarea::placeholder {
 }
 .card-note {
   padding: 13px 20px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   border-top: 1px solid var(--border);
 }
@@ -1536,7 +1540,7 @@ textarea::placeholder {
   margin-top: 25px;
 }
 .recent-heading h3 {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 .recent-commit {
@@ -1557,12 +1561,12 @@ textarea::placeholder {
   flex: 1;
 }
 .recent-commit strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 .recent-commit small,
 .recent-commit code {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 /* Stashes live at the bottom of the Changes list. */
@@ -1603,14 +1607,14 @@ textarea::placeholder {
   min-width: 0;
 }
 .stash-open strong {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .stash-open small {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .stash-actions {
@@ -1620,7 +1624,7 @@ textarea::placeholder {
   padding-right: 6px;
 }
 .stash-actions .text-button {
-  font-size: 10px;
+  font-size: 11px;
   padding: 4px 6px;
   border-radius: 4px;
 }
@@ -1673,16 +1677,16 @@ textarea::placeholder {
 @media (min-width: 1600px) {
   .code-line {
     height: 25px;
-    font-size: 12px;
+    font-size: 13px;
   }
   .file-row {
     min-height: 49px;
   }
   .file-label {
-    font-size: 12px;
+    font-size: 13px;
   }
   .file-label small {
-    font-size: 10px;
+    font-size: 11px;
   }
   .composer {
     padding-top: 19px;
@@ -1766,24 +1770,24 @@ textarea::placeholder {
 }
 .commit-description {
   white-space: pre-wrap;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   line-height: 1.6;
 }
 .file-label {
-  font-size: 12px;
+  font-size: 13px;
 }
 .file-label small {
-  font-size: 10px;
+  font-size: 11px;
 }
 .code-line {
-  font-size: 12px;
+  font-size: 13px;
 }
 .hunk-header {
-  font-size: 10px;
+  font-size: 11px;
 }
 .line-number {
-  font-size: 10px;
+  font-size: 11px;
 }
 .diff-title .file-heading strong {
   font-size: 13px;
@@ -1851,7 +1855,7 @@ textarea::placeholder {
 }
 .precise-diagram text {
   fill: var(--text);
-  font-size: 10px;
+  font-size: 11px;
   font-family: inherit;
 }
 .precise-diagram .feature-label {
@@ -1901,7 +1905,7 @@ textarea::placeholder {
   min-width: 0;
 }
 .repository-list strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 550;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1909,7 +1913,7 @@ textarea::placeholder {
 }
 .repository-list button small {
   padding: 0;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0;
   font-weight: 400;
   text-overflow: ellipsis;
@@ -1944,7 +1948,7 @@ textarea::placeholder {
 .setup-back {
   align-self: flex-start;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   gap: 9px;
 }
 .setup-content {
@@ -1966,7 +1970,7 @@ textarea::placeholder {
   gap: 7px;
   padding: 8px 12px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   border-radius: 5px;
 }
 .setup-tabs button.active {
@@ -1986,7 +1990,7 @@ textarea::placeholder {
   color: var(--accent);
 }
 .setup-description {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.8;
   color: var(--muted);
   margin: 0 0 27px;
@@ -1997,7 +2001,7 @@ textarea::placeholder {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 20px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 .setup-content input {
@@ -2005,11 +2009,11 @@ textarea::placeholder {
   border-radius: 5px;
   background: var(--surface);
   padding: 11px 12px;
-  font-size: 12px;
+  font-size: 13px;
   width: 100%;
 }
 .setup-content label small {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   font-weight: 400;
 }
@@ -2023,17 +2027,17 @@ textarea::placeholder {
   margin-top: 25px;
 }
 .setup-preview > span {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1.1px;
   color: var(--muted);
 }
 .setup-preview code {
-  font-size: 11px;
+  font-size: 12px;
   overflow-wrap: anywhere;
   color: var(--text);
 }
 .setup-demo {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   line-height: 1.6;
   margin: 12px 0;
@@ -2043,7 +2047,7 @@ textarea::placeholder {
   gap: 8px;
   align-items: center;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .setup-default svg {
   width: 14px;
@@ -2063,11 +2067,11 @@ textarea::placeholder {
   padding: 9px 14px;
 }
 .setup-error {
-  font-size: 12px;
+  font-size: 13px;
   color: #bb726b;
 }
 .setup-footer {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   margin-top: 20px;
 }
@@ -2094,7 +2098,7 @@ textarea::placeholder {
   position: absolute;
   left: 25px;
   top: 25px;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 1.5px;
   display: flex;
   align-items: center;
@@ -2122,7 +2126,7 @@ textarea::placeholder {
   margin: 0 0 13px;
 }
 .setup-art > p {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.8;
   text-align: center;
   opacity: 0.7;
@@ -2134,7 +2138,7 @@ textarea::placeholder {
   right: 25px;
   display: flex;
   justify-content: space-between;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 1px;
   opacity: 0.6;
 }
@@ -2211,7 +2215,7 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 550;
 }
 .commit-files .search {
@@ -2220,7 +2224,7 @@ textarea::placeholder {
   flex-shrink: 0;
 }
 .commit-files .search input {
-  font-size: 10px;
+  font-size: 11px;
 }
 .commit-file-scroll {
   flex: 1;
@@ -2236,7 +2240,7 @@ textarea::placeholder {
   padding: 11px 10px 7px;
   color: var(--muted);
   text-align: left;
-  font-size: 9px;
+  font-size: 10px;
 }
 .commit-folder svg {
   width: 11px;
@@ -2249,7 +2253,7 @@ textarea::placeholder {
   white-space: nowrap;
 }
 .commit-folder small {
-  font-size: 9px;
+  font-size: 10px;
 }
 .commit-file {
   display: flex;
@@ -2260,7 +2264,7 @@ textarea::placeholder {
   margin: 1px 6px;
   padding: 9px 10px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .commit-file .file-icon svg {
   width: 14px;
@@ -2284,7 +2288,7 @@ textarea::placeholder {
 .commit-file-summary {
   border-top: 1px solid var(--border);
   padding: 11px 12px;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -2312,7 +2316,7 @@ textarea::placeholder {
   overscroll-behavior: contain;
 }
 .commit-diff-pane .hunk-header {
-  font-size: 9px;
+  font-size: 10px;
 }
 .commit-diff-pane .hunk {
   min-width: 100%;
@@ -2337,7 +2341,7 @@ textarea::placeholder {
 }
 .commit-files-collapsed > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
 }
 .detail-header {
   flex-shrink: 0;
@@ -2380,7 +2384,7 @@ textarea::placeholder {
   max-width: 275px;
   min-width: 0;
   padding: 7px 9px;
-  font-size: 11px;
+  font-size: 12px;
   gap: 7px;
   border-radius: 5px 0 0 5px;
 }
@@ -2395,7 +2399,7 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
   pointer-events: none;
@@ -2433,7 +2437,7 @@ textarea::placeholder {
   flex: 1;
   min-width: 0;
   padding: 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 .branch-search input:focus-visible {
   outline: none;
@@ -2467,7 +2471,7 @@ textarea::placeholder {
 .branch-menu-note {
   margin: 0;
   padding: 6px 9px;
-  font-size: 10.5px;
+  font-size: 11.5px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -2487,7 +2491,7 @@ textarea::placeholder {
   min-width: 94px;
   border-left: 1px solid var(--border);
   border-radius: 0 5px 5px 0;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -2512,10 +2516,10 @@ textarea::placeholder {
 }
 .pr-trigger {
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .pr-trigger .count {
-  font-size: 9px;
+  font-size: 10px;
 }
 .top-actions .separator {
   margin: 0 1px;
@@ -2558,7 +2562,7 @@ textarea::placeholder {
   min-height: 42px;
 }
 .setup-description {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.65;
   margin: 0;
   max-width: 440px;
@@ -2586,7 +2590,7 @@ textarea::placeholder {
 }
 .path-field .button {
   padding: 0 12px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .found-repos {
   flex: 1;
@@ -2596,7 +2600,7 @@ textarea::placeholder {
   padding-top: 12px;
 }
 .found-heading {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1.1px;
   color: var(--muted);
   margin-bottom: 6px;
@@ -2627,11 +2631,11 @@ textarea::placeholder {
   min-width: 0;
 }
 .found-name strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 550;
 }
 .found-name small {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2643,7 +2647,7 @@ textarea::placeholder {
 }
 .found-meta em {
   font-style: normal;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   border: 1px solid var(--border);
   border-radius: 3px;
@@ -2654,7 +2658,7 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--accent);
   min-width: 58px;
   justify-content: flex-end;
@@ -2710,11 +2714,11 @@ textarea::placeholder {
   min-width: 0;
 }
 .github-card-text strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 550;
 }
 .github-card-text small {
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -2731,7 +2735,7 @@ textarea::placeholder {
   gap: 7px;
   height: 24px;
   margin-bottom: 8px;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1.1px;
   color: var(--muted);
 }
@@ -2797,14 +2801,14 @@ textarea::placeholder {
 }
 .github-updated {
   min-width: 78px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   text-align: right;
   white-space: nowrap;
 }
 .github-note {
   padding: 12px 10px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--muted);
 }
@@ -2875,7 +2879,7 @@ img.avatar {
   width: 34px;
   height: 34px;
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
 }
 .account .avatar svg {
   width: 17px;
@@ -2893,7 +2897,7 @@ img.avatar {
   font-weight: 550;
 }
 .account-name small {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .setup-content form label {
@@ -2926,13 +2930,13 @@ img.avatar {
 .setup-demo {
   margin: 11px 0 0;
   min-height: 32px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .setup-error {
   height: 30px;
   min-height: 30px;
   margin: 0;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 15px;
 }
 .setup-actions {
@@ -2973,7 +2977,7 @@ img.avatar {
     min-height: 37px;
   }
   .setup-description {
-    font-size: 11px;
+    font-size: 12px;
   }
   .setup-fields {
     height: 193px;
@@ -2997,7 +3001,7 @@ img.avatar {
     min-height: 25px;
   }
   .setup-back {
-    font-size: 11px;
+    font-size: 12px;
   }
   .setup-footer {
     margin-top: 8px;
@@ -3181,16 +3185,16 @@ img.avatar {
   gap: 8px;
 }
 .pr-list strong {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
   font-weight: 550;
 }
 .pr-list small {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
 }
 .pr-list em {
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
   color: var(--accent);
 }
@@ -3207,7 +3211,7 @@ img.avatar {
   margin: 13px 0;
 }
 .pr-detail p {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   line-height: 1.8;
 }
@@ -3216,7 +3220,7 @@ img.avatar {
   gap: 7px;
   align-items: center;
   flex-wrap: wrap;
-  font-size: 10px;
+  font-size: 11px;
   background: var(--bg);
   padding: 11px;
   border-radius: 5px;
@@ -3231,7 +3235,7 @@ img.avatar {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
   margin: 13px 0;
 }
 .pr-check > svg {
@@ -3243,7 +3247,7 @@ img.avatar {
   color: var(--muted);
 }
 .pr-detail .pr-explanation {
-  font-size: 10px;
+  font-size: 11px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
   margin-top: 23px;
@@ -3251,7 +3255,7 @@ img.avatar {
 .pr-footer {
   padding: 12px 22px;
   border-top: 1px solid var(--border);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -3282,7 +3286,7 @@ img.avatar {
     gap: 5px;
   }
   .commit-diff-pane .file-heading strong {
-    font-size: 11px;
+    font-size: 12px;
   }
   .commit-diff-pane .diff-title .row {
     gap: 3px;
@@ -3326,7 +3330,7 @@ img.avatar {
 }
 .preview-note-line {
   margin: 0 0 12px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .preview-modes {
@@ -3334,7 +3338,7 @@ img.avatar {
   margin-bottom: 14px;
 }
 .preview-modes button {
-  font-size: 11px;
+  font-size: 12px;
   padding: 4px 10px;
 }
 .image-pair {
@@ -3352,11 +3356,11 @@ img.avatar {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .image-panel figcaption span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 .image-panel figcaption span.resized {
   color: var(--accent);
@@ -3437,10 +3441,10 @@ img.avatar {
   color: var(--accent);
 }
 .card-subtitle {
-  font-size: 11px;
+  font-size: 12px;
 }
 .card-hint {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
   margin: -6px 0 14px;
 }
@@ -3453,7 +3457,7 @@ img.avatar {
   border: 1px solid #c0665e66;
   border-radius: 6px;
   background: var(--del);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .card-warning svg {
@@ -3480,14 +3484,14 @@ img.avatar {
 }
 .material-spheres figcaption {
   align-self: flex-end;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--faint);
 }
 .model-note {
   margin: 10px 0 0;
 }
 .card-preview.notice p {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
   margin: 0;
 }
@@ -3503,7 +3507,7 @@ img.avatar {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .change-row + .change-row {
   border-top: 1px solid var(--border);
@@ -3551,7 +3555,7 @@ img.avatar {
 }
 .scene-group h4 {
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 .scene-group h4 .muted {
@@ -3568,7 +3572,7 @@ img.avatar {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .scene-group li svg {
   width: 14px;
@@ -3597,11 +3601,11 @@ img.avatar {
   justify-content: space-between;
   align-items: baseline;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12px;
   margin-bottom: 8px;
 }
 .model-panel figcaption .muted {
-  font-size: 10px;
+  font-size: 11px;
 }
 .model-stage {
   position: relative;
@@ -3632,7 +3636,7 @@ img.avatar {
 }
 .model-stats {
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
 }
 .model-stats th {
   text-align: left;
@@ -3652,7 +3656,7 @@ img.avatar {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .model-clips .clip {
   display: flex;
@@ -3674,7 +3678,7 @@ img.avatar {
 }
 .model-clips .clip small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   margin-left: auto;
 }
 
@@ -3717,7 +3721,7 @@ img.avatar {
 }
 .merge-banner-text p {
   margin: 4px 0 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
   color: var(--text);
   max-width: 640px;
@@ -3725,7 +3729,7 @@ img.avatar {
 .merge-banner-text code {
   display: inline-block;
   margin-top: 6px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .merge-banner-actions {
@@ -3736,7 +3740,7 @@ img.avatar {
   margin-left: auto;
 }
 .merge-left {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   margin-right: 4px;
   white-space: nowrap;
@@ -3758,7 +3762,7 @@ img.avatar {
 .smart-merge-tip p {
   flex: 1;
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
   max-width: 600px;
 }
@@ -3798,7 +3802,7 @@ img.avatar {
 }
 .conflict-manual {
   margin: 12px 0 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
 }
 .conflict-manual .text-button {
@@ -3838,7 +3842,7 @@ img.avatar {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 .hint-card strong svg {
@@ -3851,7 +3855,7 @@ img.avatar {
 }
 .hint-card p {
   margin: 7px 0 11px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
 }
 .hint-card .row {
@@ -3873,7 +3877,7 @@ img.avatar {
 }
 .conflict-compare {
   margin: 12px 0 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 .file-heading > svg.title-conflict {
   width: 15px;
@@ -3891,7 +3895,7 @@ img.avatar {
   align-items: center;
   gap: 4px 12px;
   margin-top: 22px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .update-dialog h2 {
   display: flex;
@@ -3904,7 +3908,7 @@ img.avatar {
   color: var(--accent);
 }
 .update-dialog h3 {
-  font-size: 12px;
+  font-size: 13px;
   margin: 18px 0 6px;
 }
 .modal p.update-notes {
@@ -3939,7 +3943,7 @@ img.avatar {
 }
 .toast .button {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .toast .text-button {
   color: var(--muted);
@@ -3953,7 +3957,7 @@ img.avatar {
   background: var(--bg);
   color: var(--code);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -4032,19 +4036,19 @@ img.avatar {
   animation: spin 1s linear infinite;
 }
 .git-check-content > p.git-check-status {
-  font-size: 11px;
+  font-size: 12px;
   margin: 12px 0 0;
   min-height: 19px;
 }
 .git-check small {
   color: var(--faint);
-  font-size: 10px;
+  font-size: 11px;
   margin-top: 20px;
 }
 .identity-form label {
   display: flex;
   flex-direction: column;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   margin-top: 8px;
@@ -4069,7 +4073,7 @@ img.avatar {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .identity-row span {
   min-width: 0;
@@ -4098,7 +4102,7 @@ img.avatar {
 }
 /* Simple mode's sync button says what it will do; nothing to do reads as a calm state. */
 .sync-count {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 9px;
@@ -4109,7 +4113,7 @@ img.avatar {
   align-items: center;
   gap: 7px;
   padding: 7px 11px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -4117,4 +4121,64 @@ img.avatar {
   width: 14px;
   height: 14px;
   color: var(--accent);
+}
+
+/*
+ * Rivet draws its own title bar: the top bar moves the window, and Windows'
+ * caption buttons sit in the corner, so Windows can't tint a bar above the app.
+ */
+.window-controls {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 70;
+  display: flex;
+}
+.window-controls button {
+  width: 46px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+  font-size: 10px;
+  color: var(--text);
+  transition: background 0.1s;
+}
+.window-controls button:hover {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+.window-controls button:active {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+.window-controls .close:hover {
+  background: #c42b1c;
+  color: white;
+}
+.window-controls .close:active {
+  background: #c84031;
+  color: white;
+}
+/* Screens without the top bar move the window by a strip along the top. */
+.window-drag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 138px;
+  height: 32px;
+  z-index: 46;
+}
+.app.framed .topbar {
+  padding-right: 158px;
+}
+.app.framed .repository-setup {
+  padding-top: 34px;
+}
+/* A narrow diff keeps the file name and shows its file actions as icons. */
+.diff-title {
+  container-type: inline-size;
+}
+@container (max-width: 720px) {
+  .diff-title .file-action > span {
+    display: none;
+  }
 }

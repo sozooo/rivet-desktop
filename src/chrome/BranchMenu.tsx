@@ -87,7 +87,11 @@ export function BranchMenu({
         <ChevronDown size={13} />
       </button>
       {open && (
-        <div className="dropdown branch-menu" role="menu">
+        <div
+          className="dropdown branch-menu"
+          role="menu"
+          data-tauri-drag-region="false"
+        >
           {branches.local.length + server.length >= SEARCH_FROM && (
             <form
               className="branch-search"

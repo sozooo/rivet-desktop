@@ -127,7 +127,8 @@ export function TopBar({
         : [Check, t("top.status.upToDate")];
 
   return (
-    <header className="topbar">
+    // The top bar is the window's title bar: its empty parts move the window.
+    <header className="topbar" data-tauri-drag-region="deep">
       <div className="brand">
         <span className="brand-mark">r</span>
         <span>
@@ -183,7 +184,10 @@ export function TopBar({
           <ChevronDown size={13} />
         </button>
         {menu && (
-          <div className="dropdown repository-menu">
+          <div
+            className="dropdown repository-menu"
+            data-tauri-drag-region="false"
+          >
             <small>{t("top.repositories")}</small>
             <div className="repository-list">
               {repositories.map((r) => (

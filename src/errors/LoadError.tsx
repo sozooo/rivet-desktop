@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
+import { DragStrip } from "../chrome/WindowControls";
 import { useI18n } from "../i18n/i18n";
 import type { Repository } from "../repositories";
 import { explainError } from "./explain";
@@ -32,6 +33,7 @@ export function LoadError({
       : undefined;
   return (
     <div className="load-error">
+      <DragStrip />
       <AlertTriangle />
       <h2>{t("load.title", { name: repository.name })}</h2>
       <code>{repository.path}</code>

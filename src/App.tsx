@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  applyScale,
+  scaleShortcut,
+  stepScale,
+  type UiScale,
+} from "./chrome/appWindow";
+import { WindowControls } from "./chrome/WindowControls";
 import type { GitBackend } from "./git/backend";
 import { CliBackend } from "./git/cli/CliBackend";
 import { tauriRunner } from "./git/cli/tauriRunner";
@@ -32,6 +39,8 @@ export type Preferences = {
   setLanguage: (language: Language) => void;
   mode: UiMode;
   setMode: (mode: UiMode) => void;
+  scale: UiScale;
+  setScale: (scale: UiScale) => void;
 };
 
 function useSystemDark() {
@@ -77,6 +86,7 @@ export function App() {
   );
   // New installs start simple; developers switch to full in Settings.
   const [mode, setMode] = useStoredState<UiMode>("rivet.mode", "simple");
+  const [scale, setScale] = useStoredState<UiScale>("rivet.scale", "normal");
   const preferences: Preferences = {
     theme,
     setTheme,
@@ -84,7 +94,22 @@ export function App() {
     setLanguage,
     mode,
     setMode,
+    scale,
+    setScale,
   };
+  useEffect(() => {
+    applyScale(scale);
+  }, [scale]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const step = scaleShortcut(e);
+      if (step === null) return;
+      e.preventDefault();
+      setScale((current) => stepScale(current, step));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setScale]);
   const systemDark = useSystemDark();
   const dark = theme === "dark" || (theme === "system" && systemDark);
   // Each repository keeps its backend, and with it its working state, while you switch.
@@ -108,8 +133,13 @@ export function App() {
   }
 
   return (
-    <div className={`app ${dark ? "dark" : ""}`} lang={language}>
+    <div
+      className={`app ${dark ? "dark" : ""} ${platform.desktop ? "framed" : ""}`}
+      lang={language}
+    >
       <I18nProvider language={language} mode={mode}>
+        {/* Rivet draws its own title bar; its buttons stay reachable even after a crash. */}
+        {platform.desktop && <WindowControls />}
         <ErrorBoundary>
           <UpdatesProvider>
             <ToastProvider>

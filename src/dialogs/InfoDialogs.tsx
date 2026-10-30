@@ -108,7 +108,16 @@ export function SettingsDialog({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const { theme, setTheme, language, setLanguage, mode, setMode } = preferences;
+  const {
+    theme,
+    setTheme,
+    language,
+    setLanguage,
+    mode,
+    setMode,
+    scale,
+    setScale,
+  } = preferences;
   return (
     <Dialog
       eyebrow={t("settings.eyebrow")}
@@ -137,6 +146,17 @@ export function SettingsDialog({
           { value: "en", label: "English" },
         ]}
       />
+      <Choice
+        label={t("settings.scale")}
+        value={scale}
+        onChange={setScale}
+        options={[
+          { value: "normal", label: t("settings.scaleNormal") },
+          { value: "large", label: t("settings.scaleLarge") },
+          { value: "larger", label: t("settings.scaleLarger") },
+        ]}
+      />
+      <p className="setting-hint">{t("settings.scaleHint")}</p>
       <Choice
         label={t("settings.appearance")}
         value={theme}
@@ -241,6 +261,8 @@ function VersionLine() {
 
 const shortcuts: [string, Key][] = [
   ["Ctrl + Enter", "shortcuts.commit"],
+  ["Ctrl + =  /  Ctrl + −", "shortcuts.zoom"],
+  ["Ctrl + 0", "shortcuts.zoomReset"],
   ["Esc", "shortcuts.escape"],
   ["← →", "shortcuts.resize"],
   ["Tab / Enter / Space", "shortcuts.tab"],
