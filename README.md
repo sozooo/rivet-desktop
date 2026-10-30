@@ -14,7 +14,7 @@ Rivet uses Git for Windows if it's installed. If it isn't, Rivet downloads its o
 
 - **Two modes, two languages.** Simple mode (the default) speaks plainly and hides Git: you see what changed, "Save version", and one button that says what syncing will do. Full mode has every tool: staging single hunks, branches, history operations. Russian and English.
 - **Previews instead of raw text** for what artists change: images side by side, as a swipe or an overlay (PNG, JPG, TGA, PSD); FBX, OBJ and glTF models in 3D with their animations; Unity materials as property changes with color swatches and textures; scenes and prefabs as a readable list of object changes; `.meta` files as the import settings that changed. Text files show a normal diff.
-- **Unity-aware**: `.meta` files travel with their assets, Unity Smart Merge is one click away, and projects listed in Unity Hub or SourceGit can be added with one click.
+- **Unity-aware**: `.meta` files travel with their assets, Unity Smart Merge is one click away, and projects listed in Unity Hub or SourceGit can be added with one click. A repository Rivet creates for a Unity project gets Unity's `.gitignore`, and folders Unity makes for itself (`Library`, `Temp`, `Logs`…) never end up in a version: Rivet leaves them out and offers to fix the `.gitignore`, or to stop tracking them if they were committed before.
 - **Changes**: tick files or single hunks, or nothing to save everything. Put changes aside and bring them back later.
 - **History** with a commit graph. Undo the last save if it hasn't been sent yet, put any file back to an older version, and see every version of one file.
 - **Branches**: switch from the top bar, including branches that so far exist only on the server.
@@ -57,7 +57,9 @@ src/
 src-tauri/      Rust: runs git, reads files, finds repositories, keeps the GitHub token and the log
 ```
 
-The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`).
+The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`). `?gitignore=missing` shows a sample project whose Unity folders aren't ignored, and `?gitignore=committed` one that committed them.
+
+Unity's `.gitignore` is GitHub's template, vendored in `src/unity/Unity.gitignore` (its header names the commit) with a few Rivet additions at the end.
 
 ### Releasing
 
