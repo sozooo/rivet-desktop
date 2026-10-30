@@ -2,8 +2,10 @@ import { lazy, Suspense, useContext, useState, type ReactNode } from "react";
 import { CloudDownload, CloudOff, FileQuestion, Settings2 } from "lucide-react";
 import { looksBinary } from "../git/cli/parse";
 import { lfsPointer, type FileKind } from "../git/fileKinds";
+import type { GitProgress } from "../git/progress";
 import type { FileChange } from "../git/types";
 import { useI18n } from "../i18n/i18n";
+import { progressLabel, sizeSuffix } from "../sync/progressText";
 import { formatSize, PreviewContext, usePair, type Revisions } from "./data";
 import { ImageDiff } from "./ImageDiff";
 import { MaterialCard } from "./MaterialCard";
@@ -57,6 +59,7 @@ export function FilePreview({
   const { downloadLfs } = useContext(PreviewContext);
   const [downloads, setDownloads] = useState(0);
   const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState<GitProgress | null>(null);
   const pair = usePair(file, revisions, downloads);
   const loading = (
     <div className="preview muted preview-loading">{t("preview.loading")}</div>
@@ -72,19 +75,35 @@ export function FilePreview({
         hint={t("preview.lfsHint")}
         action={
           downloadLfs && (
-            <button
-              className="button lfs-download"
-              disabled={downloading}
-              onClick={async () => {
-                setDownloading(true);
-                await downloadLfs();
-                setDownloading(false);
-                setDownloads((n) => n + 1);
-              }}
-            >
-              <CloudDownload size={15} />
-              {t(downloading ? "lfs.downloading" : "lfs.download")}
-            </button>
+            <>
+              <button
+                className="button lfs-download"
+                disabled={downloading}
+                onClick={async () => {
+                  setDownloading(true);
+                  setProgress(null);
+                  await downloadLfs(setProgress);
+                  setDownloading(false);
+                  setProgress(null);
+                  setDownloads((n) => n + 1);
+                }}
+              >
+                <CloudDownload size={15} />
+                {downloading
+                  ? progressLabel(t("lfs.downloading"), progress, t)
+                  : t("lfs.download")}
+              </button>
+              {downloading && progress?.files && (
+                <p className="lfs-progress">
+                  {t("progress.files", {
+                    count: progress.files.total,
+                    done: progress.files.done,
+                    total: progress.files.total,
+                    size: sizeSuffix(progress.bytes, t, language),
+                  })}
+                </p>
+              )}
+            </>
           )
         }
       />

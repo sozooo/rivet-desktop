@@ -1,5 +1,5 @@
 // Test helpers: real git repositories in a temporary folder, driven from Node.
-import { spawnSync } from "node:child_process";
+import { spawn as start, spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import type { GitRunner } from "./runner";
+import type { GitResult, GitRunner, RunOptions } from "./runner";
 
 const root = mkdtempSync(join(tmpdir(), "rivet-test-"));
 // Keep the user's global and system git settings (signing, hooks, autocrlf) out of the tests.
@@ -58,6 +58,90 @@ const backgroundEnv = {
   GCM_INTERACTIVE: "never",
 };
 
+let progressFiles = 0;
+
+/**
+ * What src-tauri/src/progress.rs does: pass stderr on line by line (a line
+ * redrawn after \r is progress only), and follow git-lfs's progress file.
+ */
+function streamed(
+  cwd: string,
+  args: string[],
+  background: boolean,
+  onLine: NonNullable<RunOptions["onLine"]>,
+): Promise<GitResult> {
+  const progressFile = join(root, `lfs-progress-${progressFiles++}.log`);
+  return new Promise((resolve, reject) => {
+    const child = start(
+      "git",
+      ["-c", "core.quotepath=false", "-c", "color.ui=false", ...args],
+      {
+        cwd,
+        env: {
+          ...(background ? { ...env, ...backgroundEnv } : env),
+          GIT_LFS_PROGRESS: progressFile,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    const stdout: Buffer[] = [];
+    child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+    let line = "",
+      kept = "",
+      afterCr: string | null = null;
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk: string) => {
+      for (const char of chunk) {
+        if (afterCr !== null && char === "\n") {
+          kept += `${afterCr}\n`;
+          afterCr = null;
+          continue;
+        }
+        afterCr = null;
+        if (char !== "\n" && char !== "\r") {
+          line += char;
+          continue;
+        }
+        const text = line.trimEnd();
+        line = "";
+        if (char === "\n") kept += `${text}\n`;
+        else afterCr = text;
+        if (text) onLine("git", text);
+      }
+    });
+    let offset = 0,
+      partial = "";
+    const follow = () => {
+      try {
+        const data = readFileSync(progressFile);
+        partial += data.subarray(offset).toString("utf8");
+        offset = data.length;
+      } catch {
+        return;
+      }
+      const end = partial.lastIndexOf("\n");
+      if (end < 0) return;
+      for (const text of partial.slice(0, end).split("\n"))
+        if (text.trim()) onLine("lfs", text.trimEnd());
+      partial = partial.slice(end + 1);
+    };
+    const timer = setInterval(follow, 50);
+    child.on("error", (error) => {
+      clearInterval(timer);
+      reject(error);
+    });
+    child.on("close", (code) => {
+      clearInterval(timer);
+      follow();
+      resolve({
+        code: code ?? -1,
+        stdout: Buffer.concat(stdout).toString("utf8"),
+        stderr: kept + line,
+      });
+    });
+  });
+}
+
 export function nodeRunner(cwd: string): GitRunner {
   const spawn = (args: string[], stdin?: string, background = false) =>
     spawnSync(
@@ -72,6 +156,8 @@ export function nodeRunner(cwd: string): GitRunner {
     );
   return {
     async text(args, stdin, options) {
+      if (options?.onLine)
+        return streamed(cwd, args, !!options.background, options.onLine);
       const r = spawn(args, stdin, options?.background);
       return {
         code: r.status ?? -1,

@@ -18,7 +18,7 @@ Rivet uses Git for Windows if it's installed. If it isn't, Rivet downloads its o
 - **Changes**: tick files or single hunks, or nothing to save everything. Put changes aside and bring them back later.
 - **History** with a commit graph. Undo the last save if it hasn't been sent yet, put any file back to an older version, and see every version of one file.
 - **Branches**: switch from the top bar, including branches that so far exist only on the server.
-- **Sync** that says what will happen, and teammates' new work noticed in the background.
+- **Sync** that says what will happen and how far it got (big art files counted in megabytes, also when cloning), and teammates' new work noticed in the background.
 - **Merge conflicts** explained file by file: keep yours or take the server's, with previews of both.
 - **Git LFS** for large art files, set up with one button, and a warning before a file GitHub would refuse.
 - **GitHub sign-in** with a short code, then clone your repositories from a list.
@@ -60,6 +60,8 @@ src-tauri/      Rust: runs git, reads files, finds repositories, keeps the GitHu
 The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`). `?gitignore=missing` shows a sample project whose Unity folders aren't ignored, and `?gitignore=committed` one that committed them.
 
 Unity's `.gitignore` is GitHub's template, vendored in `src/unity/Unity.gitignore` (its header names the commit) with a few Rivet additions at the end.
+
+To watch transfers and their progress against scratch repositories, `node src/git/cli/lfsTestServer.ts 8899 2000000` runs a small Git LFS server that sends about 2 MB a second; point a repository at it with `.lfsconfig` (`[lfs] url = http://127.0.0.1:8899/`). git-lfs reports no progress for a plain folder remote, so the tests use this server too.
 
 ### Releasing
 

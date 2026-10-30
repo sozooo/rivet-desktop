@@ -1,4 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
+import type { ProgressSource } from "../progress";
 import type { GitResult, GitRunner } from "./runner";
 
 const join = (root: string, path: string) =>
@@ -8,13 +9,28 @@ const join = (root: string, path: string) =>
 
 export function tauriRunner(root: string): GitRunner {
   return {
-    text: (args, stdin, options) =>
-      invoke<GitResult>("git_text", {
+    text(args, stdin, options) {
+      const onLine = options?.onLine;
+      if (!onLine)
+        return invoke<GitResult>("git_text", {
+          cwd: root,
+          args,
+          stdin: stdin ?? null,
+          background: options?.background ?? false,
+        });
+      const channel = new Channel<{
+        source: ProgressSource;
+        lines: string[];
+      }>();
+      channel.onmessage = ({ source, lines }) =>
+        lines.forEach((line) => onLine(source, line));
+      return invoke<GitResult>("git_progress", {
         cwd: root,
         args,
-        stdin: stdin ?? null,
-        background: options?.background ?? false,
-      }),
+        background: options.background ?? false,
+        onProgress: channel,
+      });
+    },
     bytes: async (args) =>
       new Uint8Array(
         await invoke<ArrayBuffer>("git_bytes", { cwd: root, args }),

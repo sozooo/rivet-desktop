@@ -1,3 +1,4 @@
+import type { ProgressListener } from "./progress";
 import type {
   Commit,
   CommitMessage,
@@ -45,11 +46,17 @@ export interface GitBackend {
   createBranch(name: string): Promise<void>;
   switchBranch(name: string): Promise<void>;
 
-  /** `background`: nobody asked, so never ask for a password either. */
-  fetch(options?: { background?: boolean }): Promise<void>;
+  /**
+   * `background`: nobody asked, so never ask for a password either, and
+   * report no progress. `onProgress` hears how far a long transfer got.
+   */
+  fetch(options?: {
+    background?: boolean;
+    onProgress?: ProgressListener;
+  }): Promise<void>;
   /** Stopping on conflicts is not a failure: the snapshot then has an operation. */
-  pull(): Promise<void>;
-  push(): Promise<void>;
+  pull(options?: { onProgress?: ProgressListener }): Promise<void>;
+  push(options?: { onProgress?: ProgressListener }): Promise<void>;
 
   /** Settles a conflicted file with one side's version, or that side's deletion. */
   resolveConflict(path: string, side: Side): Promise<void>;
@@ -63,7 +70,7 @@ export interface GitBackend {
   /** Turns Git LFS on for the repository and sends files matching the patterns through it. */
   setupLfs(patterns: string[]): Promise<void>;
   /** Downloads LFS files that are only pointers so far. */
-  lfsPull(): Promise<void>;
+  lfsPull(options?: { onProgress?: ProgressListener }): Promise<void>;
   /** Lets git merge Unity scenes and prefabs with UnityYAMLMerge at `tool`. */
   setupSmartMerge(tool: string): Promise<void>;
 

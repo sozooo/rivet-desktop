@@ -1,6 +1,7 @@
 import type { GitBackend } from "../git/backend";
 import { branchLabel } from "../git/branches";
 import { shortSha } from "../git/paths";
+import type { ProgressListener } from "../git/progress";
 import type {
   Commit,
   FileChange,
@@ -60,8 +61,13 @@ export type Operation = {
     sanitize: (value: string) => string;
     problem: (value: string, c: OpContext) => Key | null;
   };
-  /** Absent for operations Rivet only explains for now. */
-  run?: (backend: GitBackend, c: OpContext, input: string) => Promise<unknown>;
+  /** Absent for operations Rivet only explains for now. Long ones report progress. */
+  run?: (
+    backend: GitBackend,
+    c: OpContext,
+    input: string,
+    onProgress?: ProgressListener,
+  ) => Promise<unknown>;
 };
 
 const definitions = {
@@ -107,7 +113,7 @@ const definitions = {
       how: t(c.sync.ahead ? "op.pull.merge" : "op.pull.forward"),
     }),
     command: (c) => `git pull --no-rebase origin ${c.branch}`,
-    run: (b) => b.pull(),
+    run: (b, _c, _input, onProgress) => b.pull({ onProgress }),
   },
   push: {
     params: (c) => ({
@@ -123,7 +129,7 @@ const definitions = {
             files: c.sync.tooLarge.map((f) => fileName(f.path)).join(", "),
           })
         : null,
-    run: (b) => b.push(),
+    run: (b, _c, _input, onProgress) => b.push({ onProgress }),
   },
   "abort-operation": {
     params: () => ({}),

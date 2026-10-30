@@ -6,6 +6,9 @@ import { errorSamples } from "./errors/samples";
 import { CliBackend } from "./git/cli/CliBackend";
 import type { GitResult } from "./git/cli/runner";
 import { tauriRunner } from "./git/cli/tauriRunner";
+import { clone } from "./git/cli/transfers";
+import { demoTransfers } from "./git/mock/simulate";
+import type { ProgressListener } from "./git/progress";
 
 /** A repository found on this computer that can be added in one click. */
 export type FoundRepository = {
@@ -34,7 +37,12 @@ export interface Platform {
   discoverRepositories(): Promise<FoundRepository[]>;
   /** The root of the repository containing `path`; rejects when there is none. */
   repositoryRoot(path: string): Promise<string>;
-  clone(url: string, destination: string): Promise<void>;
+  /** Downloads a repository, Git LFS files included, reporting how far it got. */
+  clone(
+    url: string,
+    destination: string,
+    onProgress?: ProgressListener,
+  ): Promise<void>;
   /** Creates a repository; in a Unity project, with Unity's .gitignore. */
   init(destination: string): Promise<void>;
   gitVersions(): Promise<GitVersions>;
@@ -98,7 +106,7 @@ const browserPlatform: Platform = {
   async repositoryRoot(path) {
     return path;
   },
-  async clone() {
+  async clone(_url, _destination, onProgress) {
     const sample = errorSamples.find(
       (s) => s.id === demoFlags.fail && s.at === "clone",
     );
@@ -106,6 +114,7 @@ const browserPlatform: Platform = {
       await new Promise((resolve) => setTimeout(resolve, 600));
       throw new Error(sample.stderr);
     }
+    if (onProgress) await demoTransfers.clone(onProgress);
   },
   async init() {},
   async gitVersions() {
@@ -191,9 +200,8 @@ const desktopPlatform: Platform = {
       );
     }
   },
-  async clone(url, destination) {
-    await git(".", ["clone", "--", url, destination]);
-  },
+  clone: (url, destination, onProgress) =>
+    clone(tauriRunner, url, destination, onProgress),
   async init(destination) {
     await git(".", ["init", "-b", "main", "--", destination]);
     // Unity's Library, Temp and the like must never get into the first version.

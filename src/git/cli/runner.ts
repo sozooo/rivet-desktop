@@ -1,7 +1,17 @@
+import type { ProgressSource } from "../progress";
+
 export type GitResult = { code: number; stdout: string; stderr: string };
 
-/** `background`: nobody is watching, so git fails instead of asking for a password. */
-export type RunOptions = { background?: boolean };
+export type RunOptions = {
+  /** Nobody is watching, so git fails instead of asking for a password. */
+  background?: boolean;
+  /**
+   * Streams progress while git runs: its stderr split at \r and \n, and the
+   * lines git-lfs writes to GIT_LFS_PROGRESS (at least the latest per file).
+   * Callers add --progress; git reports none to a pipe otherwise. No stdin.
+   */
+  onLine?: (source: ProgressSource, line: string) => void;
+};
 
 /** Runs git inside one repository. Tauri and the tests provide implementations. */
 export interface GitRunner {

@@ -13,10 +13,12 @@ import {
   X,
 } from "lucide-react";
 import { unresolved } from "../git/conflicts";
+import type { GitProgress } from "../git/progress";
 import type { RepoSnapshot } from "../git/types";
 import { useI18n } from "../i18n/i18n";
 import { setupModes, type Repository, type SetupMode } from "../repositories";
 import { setupModeMeta } from "../setup/modes";
+import { progressDetail } from "../sync/progressText";
 import { useDismiss } from "../ui/hooks";
 import { BranchMenu } from "./BranchMenu";
 import { SyncButton } from "./SyncButton";
@@ -35,6 +37,7 @@ export function TopBar({
   repository,
   repositories,
   working,
+  progress,
   checking,
   pullRequests,
   onFetch,
@@ -52,8 +55,10 @@ export function TopBar({
   snapshot: RepoSnapshot;
   repository: Repository;
   repositories: Repository[];
-  /** A long-running operation in progress, e.g. "Pull…". */
+  /** A long-running operation in progress, e.g. "Pull… 42%". */
   working: string | null;
+  /** How far it got, when git says. */
+  progress: GitProgress | null;
   /** The operation in progress is a check of the server. */
   checking: boolean;
   /** Open pull requests, or null when no hosting service is connected. */
@@ -72,7 +77,7 @@ export function TopBar({
   onPullRequests: () => void;
 }) {
   useMinuteTick();
-  const { t, mode, timeAgo } = useI18n();
+  const { t, mode, timeAgo, language } = useI18n();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useDismiss(menuRef, menu, () => setMenu(false));
@@ -83,6 +88,8 @@ export function TopBar({
   const merging = !!snapshot.operation || unresolved(snapshot.files).length > 0;
   // Simple mode shows sending and receiving on its sync button instead.
   const shownHere = !!working && (!simple || checking);
+  // The whole story, e.g. "Downloading LFS files: 3 of 10, 120 of 480 MB".
+  const detail = progress ? progressDetail(progress, t, language) : undefined;
 
   function syncSummary() {
     if (!sync.upstream) return t("top.sync.unpublished");
@@ -148,7 +155,7 @@ export function TopBar({
           />
           <button
             className="fetch-control"
-            title={syncSummary()}
+            title={shownHere && detail ? detail : syncSummary()}
             aria-label={t("top.checkRemote")}
             disabled={!!working || !sync.upstream}
             onClick={onFetch}
@@ -245,6 +252,8 @@ export function TopBar({
               sync={sync}
               merging={merging}
               working={checking ? null : working}
+              progress={progress}
+              detail={detail}
               onSync={onSync}
             />
           )

@@ -6,6 +6,7 @@ import {
   CloudUpload,
   RefreshCw,
 } from "lucide-react";
+import type { GitProgress } from "../git/progress";
 import type { SyncState } from "../git/types";
 import { useI18n } from "../i18n/i18n";
 
@@ -17,20 +18,32 @@ export function SyncButton({
   sync,
   merging,
   working,
+  progress,
+  detail,
   onSync,
 }: {
   sync: SyncState;
   merging: boolean;
-  /** What is being sent or received right now. */
+  /** What is being sent or received right now, e.g. "Getting… 42%". */
   working: string | null;
+  /** How far it got, drawn along the button's bottom edge. */
+  progress: GitProgress | null;
+  /** The whole story for the tooltip. */
+  detail?: string;
   onSync: () => void;
 }) {
   const { t } = useI18n();
   if (working)
     return (
-      <button className="button primary sync-button" disabled>
+      <button className="button primary sync-button" disabled title={detail}>
         <RefreshCw className="spinning" />
         {working}
+        {progress?.percent != null && (
+          <span
+            className="sync-progress"
+            style={{ width: `${progress.percent}%` }}
+          />
+        )}
       </button>
     );
   const action = !sync.upstream

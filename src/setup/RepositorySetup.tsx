@@ -11,6 +11,7 @@ import { DragStrip } from "../chrome/WindowControls";
 import { explainError } from "../errors/explain";
 import { appLog } from "../errors/log";
 import { ErrorMessage, useErrorAction } from "../errors/notice";
+import type { GitProgress } from "../git/progress";
 import { useAccount } from "../github/account";
 import { platform, type FoundRepository } from "../platform";
 import {
@@ -27,6 +28,7 @@ import {
   GitHubRepositoryList,
   GitHubSignInCard,
 } from "./GitHubRepositories";
+import { CloneProgress } from "./CloneProgress";
 import { setupModeMeta } from "./modes";
 import { SetupArt } from "./SetupArt";
 
@@ -64,6 +66,7 @@ export function RepositorySetup({
     /** What git or Windows said when cloning, creating or opening failed. */
     [failure, setFailure] = useState(""),
     [busy, setBusy] = useState(false),
+    [progress, setProgress] = useState<GitProgress | null>(null),
     [found, setFound] = useState<FoundRepository[]>([]),
     [pasteLink, setPasteLink] = useState(false);
   const form = useRef<HTMLFormElement>(null);
@@ -124,7 +127,10 @@ export function RepositorySetup({
           : destination;
       if (mode === "open" && isAdded(location))
         throw new Error(t("setup.error.duplicateRepository"));
-      if (mode === "clone") await platform.clone(url.trim(), location);
+      if (mode === "clone") {
+        setProgress(null);
+        await platform.clone(url.trim(), location, setProgress);
+      }
       if (mode === "create") await platform.init(location);
       onComplete({
         id: crypto.randomUUID(),
@@ -350,7 +356,9 @@ export function RepositorySetup({
                     : t("setup.note.browser")}
                 </p>
               )}
-              {failure ? (
+              {busy && mode === "clone" ? (
+                <CloneProgress progress={progress} />
+              ) : failure ? (
                 <SetupFailure
                   failure={failure}
                   fix={errorAction(explainError(failure), {

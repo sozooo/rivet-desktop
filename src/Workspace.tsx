@@ -20,6 +20,7 @@ import {
 import { PullRequests, openPullRequests } from "./dialogs/PullRequests";
 import type { GitBackend } from "./git/backend";
 import { unresolved } from "./git/conflicts";
+import type { GitProgress, ProgressListener } from "./git/progress";
 import type { RepoSnapshot } from "./git/types";
 import { groupWithMeta } from "./git/unity";
 import type { Repository, SetupMode } from "./repositories";
@@ -33,6 +34,7 @@ import { useIdentity } from "./onboarding/identity";
 import { platform } from "./platform";
 import { PreviewContext } from "./preview/data";
 import { useBackgroundFetch } from "./sync/backgroundFetch";
+import { progressLabel } from "./sync/progressText";
 import { useStoredState } from "./ui/hooks";
 import { SidebarContext } from "./ui/Panes";
 import { useNotify } from "./ui/Toast";
@@ -79,6 +81,10 @@ export function Workspace({
   const [loadError, setLoadError] = useState<string>();
   /** What a long-running git operation is doing, shown in the top bar. */
   const [working, setWorking] = useState<string | null>(null);
+  /** How far it got, when git says. */
+  const [progress, setProgress] = useState<GitProgress | null>(null);
+  /** Counts operations, so reports arriving after one ended are dropped. */
+  const reports = useRef(0);
   const [checking, setChecking] = useState(false);
   /** A file to show when another view sends the user to Changes or History. */
   const [focus, setFocus] = useState<{ changes?: string; history?: string }>(
@@ -157,6 +163,21 @@ export function Workspace({
     ],
   );
 
+  /** Shows a long operation in the top bar; returns where its progress goes. */
+  function startWorking(label: string): ProgressListener {
+    const operation = ++reports.current;
+    setWorking(label);
+    setProgress(null);
+    return (next) => {
+      if (reports.current === operation) setProgress(next);
+    };
+  }
+  function stopWorking() {
+    reports.current++;
+    setWorking(null);
+    setProgress(null);
+  }
+
   // Teammates' work shows up by itself, with one button to bring it in.
   useBackgroundFetch({
     backend,
@@ -185,9 +206,9 @@ export function Workspace({
     };
     if (uiMode === "full")
       return setDialog({ kind: "operation", id: "pull", context });
-    setWorking(t("incoming.taking"));
-    await act((b) => b.pull(), t(opKey("pull", "done")));
-    setWorking(null);
+    const onProgress = startWorking(t("incoming.taking"));
+    await act((b) => b.pull({ onProgress }), t(opKey("pull", "done")));
+    stopWorking();
   }
 
   useEffect(() => {
@@ -200,7 +221,8 @@ export function Workspace({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   const downloadLfs = useCallback(
-    () => act((b) => b.lfsPull(), t("lfs.downloaded")),
+    (onProgress?: ProgressListener) =>
+      act((b) => b.lfsPull({ onProgress }), t("lfs.downloaded")),
     [act, t],
   );
   // Previews read files through the backend and draw 3D views to match the theme.
@@ -231,12 +253,12 @@ export function Workspace({
 
   async function runOperation(id: OperationId, context: OpContext, input = "") {
     const op = operations[id];
-    setWorking(`${t(opKey(id, "title"))}…`);
+    const onProgress = startWorking(`${t(opKey(id, "title"))}…`);
     await act(
-      (b) => op.run!(b, context, input),
+      (b) => op.run!(b, context, input, onProgress),
       t(opKey(id, "done"), op.params(context, t, input)),
     );
-    setWorking(null);
+    stopWorking();
   }
 
   /** Nothing unsaved means nothing to lose or carry along, so no questions. */
@@ -266,10 +288,14 @@ export function Workspace({
   };
 
   async function fetchRemote() {
-    setWorking(t("top.working.check"));
+    const onProgress = startWorking(t("top.working.check"));
     setChecking(true);
-    const next = await act((b) => b.fetch(), undefined, fetchRemote);
-    setWorking(null);
+    const next = await act(
+      (b) => b.fetch({ onProgress }),
+      undefined,
+      fetchRemote,
+    );
+    stopWorking();
     setChecking(false);
     if (next)
       notify(
@@ -288,33 +314,36 @@ export function Workspace({
    */
   async function sync() {
     const before = latest.current?.sync;
-    setWorking(
-      t(
-        before?.upstream && before.behind
-          ? before.ahead
-            ? "top.working.sync"
-            : "top.working.pull"
-          : "top.working.push",
-      ),
-    );
+    const incoming = !!(before?.upstream && before.behind);
     let outcome = "sent" as "sent" | "stopped" | "too-large";
     const next = await act(
       async (b) => {
-        await b.fetch();
+        // The button says what happens right now: getting, then sending.
+        const getting = startWorking(
+          t(incoming ? "top.working.pull" : "top.working.check"),
+        );
+        await b.fetch({ onProgress: getting });
         let state = await b.snapshot();
         if (state.sync.behind) {
-          await b.pull();
+          await b.pull({
+            // The fetch brought the commits and showed it; what the pull
+            // adds is mostly art files, which go on the same label.
+            onProgress: incoming
+              ? (p) => (p.phase === "download" ? getting(p) : undefined)
+              : startWorking(t("top.working.pull")),
+          });
           state = await b.snapshot();
           if (state.operation || unresolved(state.files).length)
             return (outcome = "stopped");
         }
         if (state.sync.tooLarge?.length) return (outcome = "too-large");
-        if (state.sync.ahead || !state.sync.upstream) await b.push();
+        if (state.sync.ahead || !state.sync.upstream)
+          await b.push({ onProgress: startWorking(t("top.working.push")) });
       },
       undefined,
       sync,
     );
-    setWorking(null);
+    stopWorking();
     if (next && outcome === "sent") notify(t("sync.done"));
     if (next && outcome === "too-large")
       openOperation("push", { sync: next.sync });
@@ -329,7 +358,8 @@ export function Workspace({
         snapshot={snapshot}
         repository={repository}
         repositories={repositories}
-        working={working}
+        working={working && progressLabel(working, progress, t)}
+        progress={working ? progress : null}
         checking={checking}
         pullRequests={demo ? openPullRequests : null}
         onFetch={fetchRemote}
