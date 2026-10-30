@@ -43,7 +43,13 @@ import {
   type Status,
   type StatusEntry,
 } from "./parse";
+import {
+  ProgressTracker,
+  withoutProgress,
+  type ProgressListener,
+} from "../progress";
 import { GitError, type GitRunner, type RunOptions } from "./runner";
+import { pendingLfs, reportProgress } from "./transfers";
 
 /** Untracked text files larger than this are listed without their contents. */
 const MAX_UNTRACKED_TEXT = 512 * 1024;
@@ -147,12 +153,7 @@ export class CliBackend implements GitBackend {
 
   private async run(args: string[], stdin?: string, options?: RunOptions) {
     const result = await this.git.text(args, stdin, options);
-    if (result.code !== 0)
-      throw new GitError(
-        result.stderr.trim() || result.stdout.trim() || `git ${args[0]} failed`,
-        args,
-        result.code,
-      );
+    if (result.code !== 0) throw failure(args, result);
     return result.stdout;
   }
 
@@ -170,15 +171,11 @@ export class CliBackend implements GitBackend {
   }
 
   /** Runs a command that may stop on conflicts; stopping there is not a failure. */
-  private async runUntilConflict(args: string[]) {
-    const result = await this.git.text(args);
+  private async runUntilConflict(args: string[], options?: RunOptions) {
+    const result = await this.git.text(args, undefined, options);
     if (result.code === 0) return;
     if (await this.tryRun(["ls-files", "--unmerged", "-z"])) return;
-    throw new GitError(
-      result.stderr.trim() || result.stdout.trim() || `git ${args[0]} failed`,
-      args,
-      result.code,
-    );
+    throw failure(args, result);
   }
 
   async snapshot(): Promise<RepoSnapshot> {
@@ -810,8 +807,13 @@ export class CliBackend implements GitBackend {
     else await this.run(["switch", "--track", name]);
   }
 
-  async fetch(options?: { background?: boolean }) {
+  async fetch(options?: {
+    background?: boolean;
+    onProgress?: ProgressListener;
+  }) {
     const background = !!options?.background;
+    // Nobody watches a background fetch.
+    const onProgress = background ? undefined : options?.onProgress;
     await this.inTurn(() =>
       this.run(
         [
@@ -822,24 +824,44 @@ export class CliBackend implements GitBackend {
           "fetch",
           "--all",
           "--prune",
+          ...(onProgress ? ["--progress"] : []),
         ],
         undefined,
-        { background },
+        {
+          background,
+          ...reportProgress(new ProgressTracker("fetch"), onProgress),
+        },
       ),
     );
   }
 
-  async pull() {
+  async pull(options?: { onProgress?: ProgressListener }) {
+    const onProgress = options?.onProgress;
     await this.inTurn(() =>
-      this.runUntilConflict(["pull", "--no-rebase", "--no-edit"]),
+      this.runUntilConflict(
+        [
+          "pull",
+          "--no-rebase",
+          "--no-edit",
+          ...(onProgress ? ["--progress"] : []),
+        ],
+        reportProgress(new ProgressTracker("pull"), onProgress),
+      ),
     );
   }
 
-  async push() {
+  async push(options?: { onProgress?: ProgressListener }) {
+    const onProgress = options?.onProgress;
     await this.ensureLoaded();
     await this.inTurn(() =>
       this.run(
-        this.upstream ? ["push"] : ["push", "--set-upstream", "origin", "HEAD"],
+        [
+          "push",
+          ...(onProgress ? ["--progress"] : []),
+          ...(this.upstream ? [] : ["--set-upstream", "origin", "HEAD"]),
+        ],
+        undefined,
+        reportProgress(new ProgressTracker("push"), onProgress),
       ),
     );
   }
@@ -928,8 +950,18 @@ export class CliBackend implements GitBackend {
     if (moved.length) await this.run(["add", "--renormalize", "--", ...moved]);
   }
 
-  async lfsPull() {
-    await this.run(["lfs", "pull"]);
+  async lfsPull(options?: { onProgress?: ProgressListener }) {
+    const onProgress = options?.onProgress;
+    // Knowing the sizes ahead lets progress count bytes from the first file on.
+    const pending = onProgress ? await pendingLfs(this.git) : null;
+    await this.run(
+      ["lfs", "pull"],
+      undefined,
+      reportProgress(
+        new ProgressTracker("lfs", pending ?? undefined),
+        onProgress,
+      ),
+    );
   }
 
   async setupSmartMerge(tool: string) {
@@ -953,6 +985,19 @@ export class CliBackend implements GitBackend {
 
 const text = (bytes: Uint8Array | null) =>
   bytes ? new TextDecoder().decode(bytes) : null;
+
+/** git's own words for a failed command, without the progress lines around them. */
+const failure = (
+  args: string[],
+  result: { code: number; stdout: string; stderr: string },
+) =>
+  new GitError(
+    withoutProgress(result.stderr) ||
+      result.stdout.trim() ||
+      `git ${args[0]} failed`,
+    args,
+    result.code,
+  );
 
 /** A pathspec that matches only this path, even with [ ] or * in its name. */
 const literal = (path: string) => `:(literal)${path}`;

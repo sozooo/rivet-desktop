@@ -83,12 +83,8 @@ fn program() -> PathBuf {
     }
 }
 
-fn spawn(
-    cwd: &str,
-    args: &[String],
-    stdin: Option<String>,
-    background: bool,
-) -> Result<Output, String> {
+/// git with Rivet's settings, ready to start in `cwd`. `background`: see `run_with`.
+pub(crate) fn command(cwd: &str, args: &[String], background: bool) -> Result<Command, String> {
     // Windows reports a missing working folder like a missing program.
     if !Path::new(cwd).is_dir() {
         return Err(format!(
@@ -103,14 +99,7 @@ fn spawn(
         // Never wait on a terminal prompt nobody can see; credential managers use their own windows.
         .env("GIT_TERMINAL_PROMPT", "0")
         // Read-only commands must not fight Unity or other tools over index.lock.
-        .env("GIT_OPTIONAL_LOCKS", "0")
-        .stdin(if stdin.is_some() {
-            Stdio::piped()
-        } else {
-            Stdio::null()
-        })
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .env("GIT_OPTIONAL_LOCKS", "0");
     if background {
         // An empty GIT_ASKPASS also overrides core.askPass and SSH_ASKPASS.
         command
@@ -120,14 +109,34 @@ fn spawn(
     }
     #[cfg(windows)]
     command.creation_flags(CREATE_NO_WINDOW);
+    Ok(command)
+}
 
-    let mut child = command.spawn().map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            "Git is not installed or not on PATH. Install Git for Windows and restart Rivet.".into()
+/// Why git didn't start, in words for the error message.
+pub(crate) fn start_error(cwd: &str, error: std::io::Error) -> String {
+    if error.kind() == std::io::ErrorKind::NotFound {
+        "Git is not installed or not on PATH. Install Git for Windows and restart Rivet.".into()
+    } else {
+        format!("Could not start git in {cwd}: {error}")
+    }
+}
+
+fn spawn(
+    cwd: &str,
+    args: &[String],
+    stdin: Option<String>,
+    background: bool,
+) -> Result<Output, String> {
+    let mut command = command(cwd, args, background)?;
+    command
+        .stdin(if stdin.is_some() {
+            Stdio::piped()
         } else {
-            format!("Could not start git in {cwd}: {e}")
-        }
-    })?;
+            Stdio::null()
+        })
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command.spawn().map_err(|e| start_error(cwd, e))?;
     // Write stdin on its own thread so a large output can't deadlock against it.
     let writer = stdin.map(|input| {
         let mut pipe = child.stdin.take().expect("stdin is piped");

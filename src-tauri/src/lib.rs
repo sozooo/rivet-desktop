@@ -4,6 +4,7 @@ mod art;
 mod discover;
 mod git;
 mod private_git;
+mod progress;
 
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
@@ -86,6 +87,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             git_text,
             git_bytes,
+            progress::git_progress,
             read_worktree_file,
             modified_time,
             discover_repositories,

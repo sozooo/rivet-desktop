@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useI18n } from "../i18n/i18n";
 import type { GitBackend } from "../git/backend";
 import { fileName } from "../git/paths";
+import type { ProgressListener } from "../git/progress";
 import type { FileChange, Revision } from "../git/types";
 import { decodeImage } from "./decode";
 
@@ -15,7 +16,7 @@ export type Revisions = { before: Revision; after: Revision };
 export const PreviewContext = createContext<{
   backend: GitBackend | null;
   dark: boolean;
-  downloadLfs?: () => Promise<unknown>;
+  downloadLfs?: (onProgress?: ProgressListener) => Promise<unknown>;
 }>({ backend: null, dark: false });
 export const useBackend = () => useContext(PreviewContext).backend;
 export const useDark = () => useContext(PreviewContext).dark;

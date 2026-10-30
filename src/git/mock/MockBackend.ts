@@ -3,6 +3,7 @@ import { localName } from "../branches";
 import { isConflicted } from "../conflicts";
 import { SMART_MERGE_EXTENSIONS, tooLarge } from "../lfs";
 import { extension } from "../paths";
+import type { ProgressListener } from "../progress";
 import type {
   Commit,
   CommitMessage,
@@ -17,6 +18,7 @@ import type {
 } from "../types";
 import * as assets from "./assets";
 import * as fixtures from "./fixtures";
+import { demoTransfers } from "./simulate";
 
 type StoredStash = {
   message: string;
@@ -376,8 +378,13 @@ export class MockBackend implements GitBackend {
     this.current = name;
   }
 
-  async fetch() {
-    await wait(900);
+  async fetch(options?: {
+    background?: boolean;
+    onProgress?: ProgressListener;
+  }) {
+    if (options?.onProgress && !options.background)
+      await demoTransfers.fetch(options.onProgress);
+    else await wait(900);
     this.lastFetched = Date.now();
     // Whatever teammates pushed since the last check is waiting on the remote.
     while (this.arriving.length && this.nextArrival <= this.lastFetched) {
@@ -387,8 +394,9 @@ export class MockBackend implements GitBackend {
     }
   }
 
-  async pull() {
+  async pull(options?: { onProgress?: ProgressListener }) {
     if (!this.incoming.length) return;
+    if (options?.onProgress) await demoTransfers.pull(options.onProgress);
     if (!this.ahead) return this.mergeIncoming([]);
     // Both sides changed the same files: the merge stops for a decision.
     const merge = fixtures.mergeConflict();
@@ -429,9 +437,10 @@ export class MockBackend implements GitBackend {
     this.incoming = [];
   }
 
-  async push() {
+  async push(options?: { onProgress?: ProgressListener }) {
     if (!this.hasRemote) throw new Error("This repository has no remote yet.");
     if (this.operation) throw new Error("Finish or cancel the merge first.");
+    if (options?.onProgress) await demoTransfers.push(options.onProgress);
     this.ahead = 0;
     this.unpushedLarge = [];
   }
@@ -496,8 +505,9 @@ export class MockBackend implements GitBackend {
     );
   }
 
-  async lfsPull() {
-    await wait(1200);
+  async lfsPull(options?: { onProgress?: ProgressListener }) {
+    if (options?.onProgress) await demoTransfers.lfsPull(options.onProgress);
+    else await wait(1200);
     this.lfsDownloaded = true;
   }
 
