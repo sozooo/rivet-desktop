@@ -23,7 +23,7 @@ Rivet uses Git for Windows if it's installed. If it isn't, Rivet downloads its o
 - **Git LFS** for large art files, set up with one button, and a warning before a file GitHub would refuse.
 - **GitHub sign-in** with a short code, then clone your repositories from a list.
 - **Plain-language errors** with a suggested fix, and "Copy error report" in Settings to send to the developer.
-- **Interface size** (Normal, Large, Larger, or Ctrl + = / Ctrl + − / Ctrl + 0), light and dark themes, and Rivet's own window frame.
+- **Interface size** (Normal, Large, Larger, or Ctrl + = / Ctrl + − / Ctrl + 0), light and dark themes, and Rivet's own window frame with Windows 11 snap layouts. Rivet reopens where you left it, and starting it again brings the open window forward.
 
 ## Development
 

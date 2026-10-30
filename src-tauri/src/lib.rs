@@ -4,6 +4,7 @@ mod art;
 mod discover;
 mod git;
 mod private_git;
+mod window;
 
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
@@ -72,7 +73,21 @@ async fn discover_repositories() -> Vec<discover::FoundRepository> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Size, position and maximized state come back on the next start; Rivet
+    // always draws its own frame and shows its window.
+    let window_state = tauri_plugin_window_state::Builder::default()
+        .with_state_flags(
+            tauri_plugin_window_state::StateFlags::all()
+                - tauri_plugin_window_state::StateFlags::VISIBLE
+                - tauri_plugin_window_state::StateFlags::DECORATIONS,
+        )
+        .build();
     tauri::Builder::default()
+        // Registered first, so a second start hands over before anything else runs.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            window::focus_main(app)
+        }))
+        .plugin(window_state)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -97,7 +112,8 @@ pub fn run() {
             account::github_account_forget,
             applog::log_write,
             applog::diagnostics_report,
-            private_git::install_git
+            private_git::install_git,
+            window::show_snap_layouts
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rivet");

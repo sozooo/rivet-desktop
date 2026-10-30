@@ -25,3 +25,8 @@ tauri-plugin-opener = "2"
 regex = "1"
 sha2 = "0.10"
 zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_UI_Input_KeyboardAndMouse"] }

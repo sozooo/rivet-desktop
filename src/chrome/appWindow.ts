@@ -21,6 +21,11 @@ export function stepScale(current: UiScale, step: -1 | 0 | 1): UiScale {
 /** The smallest window the layout is made for at normal size (see tauri.conf.json). */
 const MIN_WIDTH = 920;
 const MIN_HEIGHT = 560;
+/** The minimum size in force; the window starts with the configured one. */
+let minimum = `${MIN_WIDTH}x${MIN_HEIGHT}`;
+/** A minimum waiting for a maximized window to be restored. */
+let pending: LogicalSize | null = null;
+let watching = false;
 
 /**
  * Zooms the whole page, like a browser's Ctrl + plus, so rows, buttons and
@@ -40,15 +45,35 @@ export async function applyScale(scale: UiScale) {
   const window = getCurrentWindow();
   const monitor = await currentMonitor();
   const area = monitor?.workArea.size.toLogical(monitor.scaleFactor);
-  const width = Math.min(MIN_WIDTH * zoom, area?.width ?? Infinity);
-  const height = Math.min(MIN_HEIGHT * zoom, area?.height ?? Infinity);
-  await window.setMinSize(new LogicalSize(width, height));
+  const width = Math.round(Math.min(MIN_WIDTH * zoom, area?.width ?? Infinity));
+  const height = Math.round(
+    Math.min(MIN_HEIGHT * zoom, area?.height ?? Infinity),
+  );
+  if (`${width}x${height}` === minimum) return;
+  minimum = `${width}x${height}`;
+  // Changing the minimum takes a maximized window out of maximized and forgets
+  // its normal size, so a maximized window gets it once it's restored.
+  pending = new LogicalSize(width, height);
+  if (!(await window.isMaximized())) return applyMinimum();
+  if (watching) return;
+  watching = true;
+  window.onResized(async () => {
+    if (pending && !(await window.isMaximized())) applyMinimum();
+  });
+}
+
+async function applyMinimum() {
+  const min = pending;
+  if (!min) return;
+  pending = null;
+  const window = getCurrentWindow();
+  await window.setMinSize(min);
   const size = (await window.innerSize()).toLogical(await window.scaleFactor());
-  if (size.width < width || size.height < height)
+  if (size.width < min.width || size.height < min.height)
     await window.setSize(
       new LogicalSize(
-        Math.max(size.width, width),
-        Math.max(size.height, height),
+        Math.max(size.width, min.width),
+        Math.max(size.height, min.height),
       ),
     );
 }

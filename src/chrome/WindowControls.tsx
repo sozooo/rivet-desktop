@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useI18n } from "../i18n/i18n";
 import { platform } from "../platform";
@@ -28,39 +29,52 @@ export function WindowControls() {
     };
   }, []);
 
+  // Resting on maximize opens Windows 11's snap layouts, as on a native button.
+  const snapTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const stopSnap = () => clearTimeout(snapTimer.current);
+  useEffect(() => stopSnap, []);
+
   const appWindow = getCurrentWindow();
-  const buttons = [
-    {
-      label: t("window.minimize"),
-      glyph: glyph.minimize,
-      run: () => appWindow.minimize(),
-    },
-    {
-      label: t(maximized ? "window.restore" : "window.maximize"),
-      glyph: maximized ? glyph.restore : glyph.maximize,
-      run: () => appWindow.toggleMaximize(),
-    },
-    {
-      label: t("window.close"),
-      glyph: glyph.close,
-      run: () => appWindow.close(),
-      close: true,
-    },
-  ];
+  const maximizeLabel = t(maximized ? "window.restore" : "window.maximize");
   return (
     <div className="window-controls">
-      {buttons.map((b) => (
-        <button
-          key={b.glyph}
-          className={b.close ? "close" : undefined}
-          title={b.label}
-          aria-label={b.label}
-          tabIndex={-1}
-          onClick={b.run}
-        >
-          {b.glyph}
-        </button>
-      ))}
+      <button
+        title={t("window.minimize")}
+        aria-label={t("window.minimize")}
+        tabIndex={-1}
+        onClick={() => appWindow.minimize()}
+      >
+        {glyph.minimize}
+      </button>
+      {/* No tooltip here: Windows shows its snap layouts instead. */}
+      <button
+        aria-label={maximizeLabel}
+        tabIndex={-1}
+        onClick={() => {
+          stopSnap();
+          appWindow.toggleMaximize();
+        }}
+        onMouseEnter={() => {
+          stopSnap();
+          snapTimer.current = setTimeout(() => {
+            // Win + Z acts on the active window, which must be Rivet.
+            if (document.hasFocus()) invoke("show_snap_layouts");
+          }, 600);
+        }}
+        onMouseLeave={stopSnap}
+        onMouseDown={stopSnap}
+      >
+        {maximized ? glyph.restore : glyph.maximize}
+      </button>
+      <button
+        className="close"
+        title={t("window.close")}
+        aria-label={t("window.close")}
+        tabIndex={-1}
+        onClick={() => appWindow.close()}
+      >
+        {glyph.close}
+      </button>
     </div>
   );
 }
