@@ -1,10 +1,10 @@
 // Publishes a new version of Rivet:
-//   npm run release -- 0.2.0 "What's new: …"
+//   npm run release -- 0.2.0 "What's new: …"   (or a file with the notes)
 // Sets the version everywhere, commits, tags v0.2.0 with the notes and pushes.
 // GitHub Actions then builds the installer and publishes the release that
 // installed copies of Rivet update from. The notes appear in the update dialog.
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const fail = (message) => {
   console.error(message);
@@ -19,9 +19,19 @@ const compare = (a, b) => {
 };
 
 const [version, ...noteWords] = process.argv.slice(2);
-const notes = noteWords.join(" ").trim();
+// npm runs scripts through cmd.exe on Windows, which drops everything after a
+// line break in an argument: notes with several lines come from a file, or
+// write "\n" where a line should break.
+const noteArg = noteWords.join(" ").trim();
+const notes = (
+  noteArg && existsSync(noteArg)
+    ? readFileSync(noteArg, "utf8")
+    : noteArg.replaceAll("\\n", "\n")
+).trim();
 if (!/^\d+\.\d+\.\d+$/.test(version ?? ""))
-  fail(`Usage: npm run release -- 0.2.0 "What's new"`);
+  fail(
+    `Usage: npm run release -- 0.2.0 "What's new" (or a file with the notes)`,
+  );
 // Releases and their notes are in English.
 if (/\p{Script=Cyrillic}/u.test(notes))
   fail("Write the release notes in English.");

@@ -69,4 +69,4 @@ To watch transfers and their progress against scratch repositories, `node src/gi
 npm run release -- 0.2.0 "What's new: …"
 ```
 
-This bumps the version, commits, tags `v0.2.0` with the notes (in English) and pushes; GitHub Actions builds the installer and publishes the release that installed copies update from. The workflow signs updates with the `TAURI_SIGNING_PRIVATE_KEY` repository secret; installed copies only trust that key, so keep `%USERPROFILE%\.tauri\rivet-updater.key` safe.
+Notes with several lines go in a file (`npm run release -- 0.2.0 notes.md`): npm drops everything after a line break in an argument on Windows. This bumps the version, commits, tags `v0.2.0` with the notes (in English) and pushes; GitHub Actions builds the installer and publishes the release that installed copies update from. The workflow signs updates with the `TAURI_SIGNING_PRIVATE_KEY` repository secret; installed copies only trust that key, so keep `%USERPROFILE%\.tauri\rivet-updater.key` safe.
