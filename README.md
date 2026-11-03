@@ -63,10 +63,4 @@ Unity's `.gitignore` is GitHub's template, vendored in `src/unity/Unity.gitignor
 
 To watch transfers and their progress against scratch repositories, `node src/git/cli/lfsTestServer.ts 8899 2000000` runs a small Git LFS server that sends about 2 MB a second; point a repository at it with `.lfsconfig` (`[lfs] url = http://127.0.0.1:8899/`). git-lfs reports no progress for a plain folder remote, so the tests use this server too.
 
-### Releasing
-
-```sh
-npm run release -- 0.2.0 "What's new: …"
-```
-
-Notes with several lines go in a file (`npm run release -- 0.2.0 notes.md`): npm drops everything after a line break in an argument on Windows. This bumps the version, commits, tags `v0.2.0` with the notes (in English) and pushes; GitHub Actions builds the installer and publishes the release that installed copies update from. The workflow signs updates with the `TAURI_SIGNING_PRIVATE_KEY` repository secret; installed copies only trust that key, so keep `%USERPROFILE%\.tauri\rivet-updater.key` safe.
+Publishing a version is described in [docs/releasing.md](docs/releasing.md).
