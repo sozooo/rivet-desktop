@@ -3,6 +3,10 @@
 //! lines git-lfs appends to the file named by GIT_LFS_PROGRESS, which is the
 //! only place it reports transfers when no terminal is watching. The UI parses
 //! both (`src/git/progress.ts`).
+//!
+//! A run started with a cancel id can be stopped with `git_cancel`: git and
+//! every program it started end at once, and the run reports `cancelled`
+//! rather than an error.
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -11,10 +15,12 @@ use std::io::{ErrorKind, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::time::{Duration, Instant};
 use tauri::ipc::Channel;
 
 use crate::git;
+use crate::process_tree::Tree;
 
 /// Lines from "git" (stderr) or "lfs" (the progress file).
 #[derive(Clone, Serialize)]
@@ -23,45 +29,136 @@ pub struct Lines {
     lines: Vec<String>,
 }
 
+/// What `git_progress` returns: git's output, or that it was cancelled.
+#[derive(Serialize)]
+pub struct Finished {
+    #[serde(flatten)]
+    output: git::TextOutput,
+    /// Stopped by `git_cancel` before git finished on its own.
+    cancelled: bool,
+}
+
 /// Like `git_text`, but sends progress lines while git runs. Callers add
 /// `--progress`, since git only reports progress to a terminal otherwise.
+/// `cancel_id`: a name, unique to this run, for `git_cancel`.
 #[tauri::command]
 pub async fn git_progress(
     cwd: String,
     args: Vec<String>,
     background: Option<bool>,
+    cancel_id: Option<String>,
     on_progress: Channel<Lines>,
-) -> Result<git::TextOutput, String> {
+) -> Result<Finished, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        run(
+        let stop = cancel_id.as_deref().map(Stop::register);
+        let result = run(
             &cwd,
             &args,
             background.unwrap_or(false),
+            stop.as_deref(),
             &|source, lines| {
                 let _ = on_progress.send(Lines { source, lines });
             },
-        )
+        );
+        if let Some(id) = &cancel_id {
+            Stop::unregister(id);
+        }
+        result
     })
     .await
     .map_err(|e| e.to_string())?
-    .map(git::TextOutput::from)
+    .map(|(output, cancelled)| Finished {
+        output: output.into(),
+        cancelled,
+    })
+}
+
+/// Stops the `git_progress` run with this cancel id, with everything git
+/// started. A cancel that arrives before its run has started stops it there.
+#[tauri::command]
+pub fn git_cancel(id: String) {
+    Stop::register(&id).cancel();
+}
+
+/// Runs that can be cancelled, by cancel id.
+static RUNNING: LazyLock<Mutex<HashMap<String, Arc<Stop>>>> = LazyLock::new(Default::default);
+
+/// A way to stop one run: the cancel request, and the process tree to kill.
+#[derive(Default)]
+pub struct Stop {
+    cancelled: AtomicBool,
+    tree: Mutex<Option<Arc<Tree>>>,
+}
+
+impl Stop {
+    /// The run's entry, made by whichever comes first: the run or its cancel.
+    /// (A cancel arriving after its run ended leaves a small entry behind; the
+    /// interface stops asking once a run has ended, so that stays rare.)
+    fn register(id: &str) -> Arc<Stop> {
+        let mut running = RUNNING.lock().unwrap_or_else(|e| e.into_inner());
+        running.entry(id.to_string()).or_default().clone()
+    }
+
+    fn unregister(id: &str) {
+        RUNNING.lock().unwrap_or_else(|e| e.into_inner()).remove(id);
+    }
+
+    pub fn cancel(&self) {
+        let tree = self.tree.lock().unwrap_or_else(|e| e.into_inner());
+        self.cancelled.store(true, Ordering::SeqCst);
+        if let Some(tree) = tree.as_ref() {
+            tree.kill();
+        }
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::SeqCst)
+    }
+
+    /// The tree to kill from now on; killed at once if a cancel came first.
+    fn attach(&self, tree: Arc<Tree>) {
+        let mut slot = self.tree.lock().unwrap_or_else(|e| e.into_inner());
+        if self.is_cancelled() {
+            tree.kill();
+        }
+        *slot = Some(tree);
+    }
 }
 
 type Sink<'a> = &'a (dyn Fn(&'static str, Vec<String>) + Sync);
 
 /// Runs git, passing progress to `send`, and logs it like any other command.
+/// Returns its output and whether `stop` cut it short.
 pub fn run(
     cwd: &str,
     args: &[String],
     background: bool,
+    stop: Option<&Stop>,
     send: Sink,
-) -> Result<git::Output, String> {
+) -> Result<(git::Output, bool), String> {
     let started = Instant::now();
-    let log = lfs_log_path();
-    let result = stream(cwd, args, background, &log, send);
-    let _ = fs::remove_file(&log);
+    let cancelled = || stop.is_some_and(Stop::is_cancelled);
+    let result = if cancelled() {
+        Ok(cancelled_output())
+    } else {
+        let log = lfs_log_path();
+        let result = stream(cwd, args, background, stop, &log, send);
+        let _ = fs::remove_file(&log);
+        result
+    };
+    // git may have finished on its own just before the cancel took effect.
+    let stopped = cancelled() && result.as_ref().is_ok_and(|output| output.code != 0);
+    let result = result.map(|output| if stopped { cancelled_output() } else { output });
     crate::applog::git(cwd, args, &result, started.elapsed());
-    result
+    result.map(|output| (output, stopped))
+}
+
+fn cancelled_output() -> git::Output {
+    git::Output {
+        code: -1,
+        stdout: Vec::new(),
+        stderr: "Cancelled.".into(),
+    }
 }
 
 /// A fresh file for git-lfs to append to, one per command.
@@ -75,6 +172,7 @@ fn stream(
     cwd: &str,
     args: &[String],
     background: bool,
+    stop: Option<&Stop>,
     lfs_log: &Path,
     send: Sink,
 ) -> Result<git::Output, String> {
@@ -85,7 +183,11 @@ fn stream(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let mut child = command.spawn().map_err(|e| git::start_error(cwd, e))?;
+    let (mut child, tree) = Tree::spawn(&mut command).map_err(|e| git::start_error(cwd, e))?;
+    let tree = Arc::new(tree);
+    if let Some(stop) = stop {
+        stop.attach(tree.clone());
+    }
     let mut stdout = child.stdout.take().expect("stdout is piped");
     let stderr = child.stderr.take().expect("stderr is piped");
     let finished = AtomicBool::new(false);
@@ -103,6 +205,11 @@ fn stream(
         let _ = tail.join();
         let stdout = output.join().unwrap_or_default();
         let status = status.map_err(|e| e.to_string())?;
+        // Killed helpers may hold files in the folder for a moment longer,
+        // and a cancelled clone's folder is removed next.
+        if stop.is_some_and(Stop::is_cancelled) {
+            tree.wait_empty(Duration::from_secs(5));
+        }
         Ok(git::Output {
             code: status.code().unwrap_or(-1),
             stdout,
@@ -333,13 +440,20 @@ mod tests {
             source.display().to_string().replace('\\', "/")
         );
         let args = ["clone", "--progress", &url, "copy"].map(String::from);
-        let output = run(root.to_str().unwrap(), &args, false, &|source, lines| {
-            received
-                .lock()
-                .unwrap()
-                .extend(lines.into_iter().map(|l| (source, l)));
-        })
+        let (output, cancelled) = run(
+            root.to_str().unwrap(),
+            &args,
+            false,
+            None,
+            &|source, lines| {
+                received
+                    .lock()
+                    .unwrap()
+                    .extend(lines.into_iter().map(|l| (source, l)));
+            },
+        )
         .unwrap();
+        assert!(!cancelled);
 
         assert_eq!(output.code, 0, "{}", output.stderr);
         let received = received.into_inner().unwrap();
@@ -353,5 +467,74 @@ mod tests {
         assert!(output.stderr.contains("Receiving objects: 100%"));
         assert!(root.join("copy").join("file49.txt").is_file());
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn cancelling_stops_git_and_everything_it_started() {
+        let root = std::env::temp_dir().join(format!("rivet-cancel-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let stop = Arc::new(Stop::default());
+        let canceller = {
+            let stop = stop.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(700));
+                stop.cancel();
+            })
+        };
+        let started = Instant::now();
+        // git runs the alias through sh, which runs sleep: three programs deep.
+        // sleep shares git's stderr, so the run only ends once sleep is gone too.
+        let args = ["-c", "alias.wait=!sleep 60", "wait"].map(String::from);
+        let (output, cancelled) = run(
+            root.to_str().unwrap(),
+            &args,
+            false,
+            Some(&stop),
+            &|_, _| {},
+        )
+        .unwrap();
+        canceller.join().unwrap();
+        assert!(cancelled);
+        assert_eq!(output.stderr, "Cancelled.");
+        assert!(
+            started.elapsed() < Duration::from_secs(20),
+            "{:?}",
+            started.elapsed()
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_cancel_that_comes_first_stops_the_run_before_it_starts() {
+        let stop = Stop::register("rivet-test-early-cancel");
+        git_cancel("rivet-test-early-cancel".into());
+        let args = ["-c", "alias.wait=!sleep 60", "wait"].map(String::from);
+        let started = Instant::now();
+        let (_, cancelled) = run(".", &args, false, Some(&stop), &|_, _| {}).unwrap();
+        Stop::unregister("rivet-test-early-cancel");
+        assert!(cancelled);
+        assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[test]
+    fn programs_git_starts_through_sh_still_run() {
+        // Hooks and aliases run through MSYS's sh, which asks to leave the job.
+        let stop = Stop::default();
+        let args = ["-c", "alias.hello=!sh -c 'sleep 0; echo hello'", "hello"].map(String::from);
+        let (output, cancelled) = run(".", &args, false, Some(&stop), &|_, _| {}).unwrap();
+        assert!(!cancelled);
+        assert_eq!(output.code, 0, "{}", output.stderr);
+        assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "hello");
+    }
+
+    #[test]
+    fn a_run_that_finished_is_not_reported_as_cancelled() {
+        let stop = Stop::default();
+        let args = ["--version"].map(String::from);
+        let (output, cancelled) = run(".", &args, false, Some(&stop), &|_, _| {}).unwrap();
+        stop.cancel();
+        assert!(!cancelled);
+        assert_eq!(output.code, 0);
     }
 }

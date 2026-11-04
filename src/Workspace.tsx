@@ -18,7 +18,8 @@ import {
   type OperationId,
 } from "./dialogs/operations";
 import { PullRequests, openPullRequests } from "./dialogs/PullRequests";
-import type { GitBackend } from "./git/backend";
+import type { GitBackend, TransferOptions } from "./git/backend";
+import { CancelHandle, isCancelled } from "./git/cancel";
 import { unresolved } from "./git/conflicts";
 import type { GitProgress, ProgressListener } from "./git/progress";
 import type { RepoSnapshot } from "./git/types";
@@ -35,7 +36,7 @@ import { platform } from "./platform";
 import { PreviewContext } from "./preview/data";
 import { useBackgroundFetch } from "./sync/backgroundFetch";
 import { progressLabel } from "./sync/progressText";
-import { useStoredState } from "./ui/hooks";
+import { useCancelAvailable, useStoredState } from "./ui/hooks";
 import { SidebarContext } from "./ui/Panes";
 import { useNotify } from "./ui/Toast";
 import { useFadeSwitch } from "./ui/useFadeSwitch";
@@ -85,6 +86,9 @@ export function Workspace({
   const [progress, setProgress] = useState<GitProgress | null>(null);
   /** Counts operations, so reports arriving after one ended are dropped. */
   const reports = useRef(0);
+  /** Stops the operation under way, offered only while that is safe. */
+  const [cancel, setCancel] = useState<CancelHandle | null>(null);
+  const cancellable = useCancelAvailable(cancel);
   const [checking, setChecking] = useState(false);
   /** A file to show when another view sends the user to Changes or History. */
   const [focus, setFocus] = useState<{ changes?: string; history?: string }>(
@@ -136,6 +140,11 @@ export function Workspace({
         } else if (success) notify(success);
         return next;
       } catch (error) {
+        // Stopped on request: nothing went wrong, and nothing is lost.
+        if (isCancelled(error)) {
+          notify(t("cancel.done"));
+          return refresh().then(() => null);
+        }
         // Without a name and email nothing can be saved: ask, then go on as if nothing happened.
         if (
           explainError(errorText(error))?.action === "identity" &&
@@ -176,6 +185,13 @@ export function Workspace({
     reports.current++;
     setWorking(null);
     setProgress(null);
+    setCancel(null);
+  }
+  /** A cancel handle for the operation starting now; the top bar offers it. */
+  function startCancel() {
+    const handle = new CancelHandle();
+    setCancel(handle);
+    return handle;
   }
 
   // Teammates' work shows up by itself, with one button to bring it in.
@@ -207,7 +223,8 @@ export function Workspace({
     if (uiMode === "full")
       return setDialog({ kind: "operation", id: "pull", context });
     const onProgress = startWorking(t("incoming.taking"));
-    await act((b) => b.pull({ onProgress }), t(opKey("pull", "done")));
+    const cancel = startCancel();
+    await act((b) => b.pull({ onProgress, cancel }), t(opKey("pull", "done")));
     stopWorking();
   }
 
@@ -221,8 +238,8 @@ export function Workspace({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   const downloadLfs = useCallback(
-    (onProgress?: ProgressListener) =>
-      act((b) => b.lfsPull({ onProgress }), t("lfs.downloaded")),
+    (transfer?: TransferOptions) =>
+      act((b) => b.lfsPull(transfer), t("lfs.downloaded")),
     [act, t],
   );
   // Previews read files through the backend and draw 3D views to match the theme.
@@ -261,8 +278,9 @@ export function Workspace({
   async function runOperation(id: OperationId, context: OpContext, input = "") {
     const op = operations[id];
     const onProgress = startWorking(`${t(opKey(id, "title"))}…`);
+    const cancel = startCancel();
     await act(
-      (b) => op.run!(b, context, input, onProgress),
+      (b) => op.run!(b, context, input, { onProgress, cancel }),
       t(opKey(id, "done"), op.params(context, t, input)),
     );
     stopWorking();
@@ -296,9 +314,10 @@ export function Workspace({
 
   async function fetchRemote() {
     const onProgress = startWorking(t("top.working.check"));
+    const cancel = startCancel();
     setChecking(true);
     const next = await act(
-      (b) => b.fetch({ onProgress }),
+      (b) => b.fetch({ onProgress, cancel }),
       undefined,
       fetchRemote,
     );
@@ -323,13 +342,15 @@ export function Workspace({
     const before = latest.current?.sync;
     const incoming = !!(before?.upstream && before.behind);
     let outcome = "sent" as "sent" | "stopped" | "too-large";
+    // One handle for every step: getting and sending can be stopped, merging can't.
+    const cancel = startCancel();
     const next = await act(
       async (b) => {
         // The button says what happens right now: getting, then sending.
         const getting = startWorking(
           t(incoming ? "top.working.pull" : "top.working.check"),
         );
-        await b.fetch({ onProgress: getting });
+        await b.fetch({ onProgress: getting, cancel });
         let state = await b.snapshot();
         if (state.sync.behind) {
           await b.pull({
@@ -338,6 +359,7 @@ export function Workspace({
             onProgress: incoming
               ? (p) => (p.phase === "download" ? getting(p) : undefined)
               : startWorking(t("top.working.pull")),
+            cancel,
           });
           state = await b.snapshot();
           if (state.operation || unresolved(state.files).length)
@@ -345,7 +367,10 @@ export function Workspace({
         }
         if (state.sync.tooLarge?.length) return (outcome = "too-large");
         if (state.sync.ahead || !state.sync.upstream)
-          await b.push({ onProgress: startWorking(t("top.working.push")) });
+          await b.push({
+            onProgress: startWorking(t("top.working.push")),
+            cancel,
+          });
       },
       undefined,
       sync,
@@ -368,6 +393,7 @@ export function Workspace({
         working={working && progressLabel(working, progress, t)}
         progress={working ? progress : null}
         checking={checking}
+        onCancel={cancellable ? () => cancel?.cancel() : undefined}
         pullRequests={demo ? openPullRequests : null}
         onFetch={fetchRemote}
         onSync={sync}

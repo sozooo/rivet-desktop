@@ -1,10 +1,9 @@
 import { demoFlags } from "../../demoFlags";
-import type { GitBackend } from "../backend";
+import type { GitBackend, TransferOptions } from "../backend";
 import { localName } from "../branches";
 import { isConflicted } from "../conflicts";
 import { SMART_MERGE_EXTENSIONS, tooLarge } from "../lfs";
 import { extension } from "../paths";
-import type { ProgressListener } from "../progress";
 import type {
   Commit,
   CommitMessage,
@@ -398,12 +397,9 @@ export class MockBackend implements GitBackend {
     this.current = name;
   }
 
-  async fetch(options?: {
-    background?: boolean;
-    onProgress?: ProgressListener;
-  }) {
-    if (options?.onProgress && !options.background)
-      await demoTransfers.fetch(options.onProgress);
+  async fetch(options?: TransferOptions & { background?: boolean }) {
+    if ((options?.onProgress || options?.cancel) && !options.background)
+      await demoTransfers.fetch(options);
     else await wait(900);
     this.lastFetched = Date.now();
     // Whatever teammates pushed since the last check is waiting on the remote.
@@ -414,9 +410,11 @@ export class MockBackend implements GitBackend {
     }
   }
 
-  async pull(options?: { onProgress?: ProgressListener }) {
+  async pull(options?: TransferOptions) {
     if (!this.incoming.length) return;
-    if (options?.onProgress) await demoTransfers.pull(options.onProgress);
+    // Cancelled while downloading, nothing below happens.
+    if (options?.onProgress || options?.cancel)
+      await demoTransfers.pull(options);
     if (!this.ahead) return this.mergeIncoming([]);
     // Both sides changed the same files: the merge stops for a decision.
     const merge = fixtures.mergeConflict();
@@ -457,10 +455,11 @@ export class MockBackend implements GitBackend {
     this.incoming = [];
   }
 
-  async push(options?: { onProgress?: ProgressListener }) {
+  async push(options?: TransferOptions) {
     if (!this.hasRemote) throw new Error("This repository has no remote yet.");
     if (this.operation) throw new Error("Finish or cancel the merge first.");
-    if (options?.onProgress) await demoTransfers.push(options.onProgress);
+    if (options?.onProgress || options?.cancel)
+      await demoTransfers.push(options);
     this.ahead = 0;
     this.unpushedLarge = [];
   }
@@ -525,8 +524,9 @@ export class MockBackend implements GitBackend {
     );
   }
 
-  async lfsPull(options?: { onProgress?: ProgressListener }) {
-    if (options?.onProgress) await demoTransfers.lfsPull(options.onProgress);
+  async lfsPull(options?: TransferOptions) {
+    if (options?.onProgress || options?.cancel)
+      await demoTransfers.lfsPull(options);
     else await wait(1200);
     this.lfsDownloaded = true;
   }

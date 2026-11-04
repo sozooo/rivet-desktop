@@ -1,5 +1,6 @@
-import type { GitBackend } from "../backend";
+import type { GitBackend, TransferOptions } from "../backend";
 import { localName } from "../branches";
+import { during } from "../cancel";
 import { conflictStatus } from "../conflicts";
 import { lfsPointer, type LfsPointer } from "../fileKinds";
 import {
@@ -957,43 +958,48 @@ export class CliBackend implements GitBackend {
     else await this.run(["switch", "--track", name]);
   }
 
-  async fetch(options?: {
-    background?: boolean;
-    onProgress?: ProgressListener;
-  }) {
+  async fetch(options?: TransferOptions & { background?: boolean }) {
     const background = !!options?.background;
     // Nobody watches a background fetch.
     const onProgress = background ? undefined : options?.onProgress;
-    await this.inTurn(() =>
-      this.run(
-        [
-          // Housekeeping can take minutes on a big project; leave it to fetches someone asked for.
-          ...(background
-            ? ["-c", "gc.auto=0", "-c", "maintenance.auto=false"]
-            : []),
-          "fetch",
-          "--all",
-          "--prune",
-          ...(onProgress ? ["--progress"] : []),
-        ],
-        undefined,
-        {
-          background,
-          ...reportProgress(new ProgressTracker("fetch"), onProgress),
-        },
+    await during(options?.cancel, (signal) =>
+      this.inTurn(() =>
+        this.run(
+          [
+            // Housekeeping can take minutes on a big project; leave it to fetches someone asked for.
+            ...(background
+              ? ["-c", "gc.auto=0", "-c", "maintenance.auto=false"]
+              : []),
+            "fetch",
+            "--all",
+            "--prune",
+            ...(onProgress ? ["--progress"] : []),
+          ],
+          undefined,
+          {
+            background,
+            signal,
+            ...reportProgress(new ProgressTracker("fetch"), onProgress),
+          },
+        ),
       ),
     );
   }
 
-  async pull(options?: { onProgress?: ProgressListener }) {
-    const onProgress = options?.onProgress;
+  async pull(options?: TransferOptions) {
+    const { onProgress, cancel } = options ?? {};
     await this.ensureLoaded();
     const upstream = this.upstream;
-    await this.inTurn(async () => {
-      const tracker = new ProgressTracker("pull");
-      if (onProgress && upstream)
-        await this.fetchLfs(upstream, tracker, onProgress);
-      await this.runUntilConflict(
+    const tracker = new ProgressTracker("pull");
+    // Downloading can stop half-way and leave everything as it was.
+    if (upstream && (onProgress || cancel))
+      await during(cancel, (signal) =>
+        this.inTurn(() => this.download(upstream, tracker, onProgress, signal)),
+      );
+    // Merging can't: from here on the pull runs to the end.
+    cancel?.throwIfCancelled();
+    await this.inTurn(() =>
+      this.runUntilConflict(
         [
           "pull",
           "--no-rebase",
@@ -1001,47 +1007,58 @@ export class CliBackend implements GitBackend {
           ...(onProgress ? ["--progress"] : []),
         ],
         reportProgress(tracker, onProgress),
-      );
-    });
+      ),
+    );
   }
 
   /**
-   * Downloads the Git LFS files `ref` has and this computer doesn't. Inside a
-   * merge git-lfs only says when each file is done, so a pull fetches them
-   * first, byte by byte; the merge then finds them here. Failing is fine:
-   * the merge downloads what is missing, as it always has.
+   * What a pull merges, brought here first: the upstream's new commits, then
+   * the Git LFS files they have and this computer doesn't. Inside a merge
+   * git-lfs only says when each file is done, so this counts them byte by
+   * byte, and the merge finds them here. The LFS step failing is fine: the
+   * merge downloads what is missing, as it always has.
    */
-  private async fetchLfs(
-    ref: string,
+  private async download(
+    upstream: string,
     tracker: ProgressTracker,
-    onProgress: ProgressListener,
+    onProgress?: ProgressListener,
+    signal?: AbortSignal,
   ) {
-    const pending = await pendingLfs(this.git, ref);
-    if (!pending?.files) return;
-    tracker.expect(pending);
     const remote =
       (
         await this.tryRun(["config", "--get", `branch.${this.branch}.remote`])
       ).trim() || "origin";
-    await this.git.text(
-      ["lfs", "fetch", remote, ref],
+    const options = { signal, ...reportProgress(tracker, onProgress) };
+    await this.run(
+      ["fetch", remote, ...(onProgress ? ["--progress"] : [])],
       undefined,
-      reportProgress(tracker, onProgress),
+      options,
     );
+    const pending = await pendingLfs(this.git, upstream);
+    if (!pending?.files) return;
+    tracker.expect(pending);
+    await this.git.text(["lfs", "fetch", remote, upstream], undefined, options);
   }
 
-  async push(options?: { onProgress?: ProgressListener }) {
+  async push(options?: TransferOptions) {
     const onProgress = options?.onProgress;
     await this.ensureLoaded();
-    await this.inTurn(() =>
-      this.run(
-        [
-          "push",
-          ...(onProgress ? ["--progress"] : []),
-          ...(this.upstream ? [] : ["--set-upstream", "origin", "HEAD"]),
-        ],
-        undefined,
-        reportProgress(new ProgressTracker("push"), onProgress),
+    // A push stopped half-way leaves the server's branch as it was; art
+    // already uploaded to Git LFS waits there for the next push.
+    await during(options?.cancel, (signal) =>
+      this.inTurn(() =>
+        this.run(
+          [
+            "push",
+            ...(onProgress ? ["--progress"] : []),
+            ...(this.upstream ? [] : ["--set-upstream", "origin", "HEAD"]),
+          ],
+          undefined,
+          {
+            signal,
+            ...reportProgress(new ProgressTracker("push"), onProgress),
+          },
+        ),
       ),
     );
   }
@@ -1130,17 +1147,19 @@ export class CliBackend implements GitBackend {
     if (moved.length) await this.run(["add", "--renormalize", "--", ...moved]);
   }
 
-  async lfsPull(options?: { onProgress?: ProgressListener }) {
+  async lfsPull(options?: TransferOptions) {
     const onProgress = options?.onProgress;
     // Knowing the sizes ahead lets progress count bytes from the first file on.
     const pending = onProgress ? await pendingLfs(this.git) : null;
-    await this.run(
-      ["lfs", "pull"],
-      undefined,
-      reportProgress(
-        new ProgressTracker("lfs", pending ?? undefined),
-        onProgress,
-      ),
+    // Each file is written whole once it has arrived: stopping keeps those.
+    await during(options?.cancel, (signal) =>
+      this.run(["lfs", "pull"], undefined, {
+        signal,
+        ...reportProgress(
+          new ProgressTracker("lfs", pending ?? undefined),
+          onProgress,
+        ),
+      }),
     );
   }
 

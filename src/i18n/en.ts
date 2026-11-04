@@ -77,6 +77,10 @@ export const en = {
   "top.working.check": "Checking…",
   "top.working.pull": "Getting…",
   "top.working.push": "Sending…",
+  "cancel.action": "Cancel",
+  "cancel.title": "Stop this now; nothing is lost",
+  "cancel.done": "Cancelled. The repository is as it was.",
+  "cancel.done@simple": "Stopped. Nothing is lost.",
   "progress.percent": "{label} {percent}%",
   "progress.download": "Downloading LFS files…",
   "progress.download@simple": "Downloading files…",
@@ -190,6 +194,20 @@ export const en = {
   "setup.submit.createPreview": "Create preview",
   "setup.cloning": "Downloading…",
   "setup.working": "Working…",
+  "setup.cancelled": "Cloning cancelled. You can start again at any time.",
+  "setup.cancelled@simple": "Stopped. You can start again at any time.",
+  "setup.incomplete":
+    "The repository is cloned, but some of its LFS files aren't downloaded yet.",
+  "setup.incomplete@simple":
+    "The project is here, but some of its files aren't downloaded yet.",
+  "setup.incomplete.earlier":
+    "This repository is already cloned into this folder, but some of its LFS files are missing.",
+  "setup.incomplete.earlier@simple":
+    "This project is already in this folder, but not all of its files are.",
+  "setup.incomplete.error": "The download stopped with an error:",
+  "setup.resume": "Resume download",
+  "setup.resume@simple": "Download the rest",
+  "setup.openIncomplete": "Open without them",
   "setup.error.nameLocation": "Enter a name and a location.",
   "setup.error.url": "Enter an HTTPS or SSH link to the repository.",
   "setup.error.folderName":

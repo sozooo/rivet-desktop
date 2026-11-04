@@ -1,6 +1,8 @@
 // Test helpers: real git repositories in a temporary folder, driven from Node.
 import { spawn as start, spawnSync } from "node:child_process";
+import { CancelledError } from "../cancel";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -11,6 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { GitResult, GitRunner, RunOptions } from "./runner";
+import type { CloneFolders } from "./transfers";
 
 const root = mkdtempSync(join(tmpdir(), "rivet-test-"));
 // Keep the user's global and system git settings (signing, hooks, autocrlf) out of the tests.
@@ -63,14 +66,17 @@ let progressFiles = 0;
 /**
  * What src-tauri/src/progress.rs does: pass stderr on line by line (a line
  * redrawn after \r is progress only), and follow git-lfs's progress file.
+ * An abort stops git with everything it started, as process_tree.rs does.
  */
 function streamed(
   cwd: string,
   args: string[],
   background: boolean,
   onLine: NonNullable<RunOptions["onLine"]>,
+  signal?: AbortSignal,
 ): Promise<GitResult> {
   const progressFile = join(root, `lfs-progress-${progressFiles++}.log`);
+  if (signal?.aborted) return Promise.reject(new CancelledError());
   return new Promise((resolve, reject) => {
     const child = start(
       "git",
@@ -82,8 +88,17 @@ function streamed(
           GIT_LFS_PROGRESS: progressFile,
         },
         stdio: ["ignore", "pipe", "pipe"],
+        // Its own process group, so a cancel reaches its helpers too.
+        detached: process.platform !== "win32",
       },
     );
+    const kill = () => {
+      if (child.exitCode !== null || !child.pid) return;
+      if (process.platform === "win32")
+        spawnSync("taskkill", ["/T", "/F", "/PID", String(child.pid)]);
+      else process.kill(-child.pid, "SIGKILL");
+    };
+    signal?.addEventListener("abort", kill);
     const stdout: Buffer[] = [];
     child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
     let line = "",
@@ -128,11 +143,15 @@ function streamed(
     const timer = setInterval(follow, 50);
     child.on("error", (error) => {
       clearInterval(timer);
+      signal?.removeEventListener("abort", kill);
       reject(error);
     });
     child.on("close", (code) => {
       clearInterval(timer);
+      signal?.removeEventListener("abort", kill);
       follow();
+      // git may have finished on its own just before the cancel.
+      if (signal?.aborted && code !== 0) return reject(new CancelledError());
       resolve({
         code: code ?? -1,
         stdout: Buffer.concat(stdout).toString("utf8"),
@@ -156,8 +175,14 @@ export function nodeRunner(cwd: string): GitRunner {
     );
   return {
     async text(args, stdin, options) {
-      if (options?.onLine)
-        return streamed(cwd, args, !!options.background, options.onLine);
+      if (options?.onLine || options?.signal)
+        return streamed(
+          cwd,
+          args,
+          !!options.background,
+          options.onLine ?? (() => {}),
+          options.signal,
+        );
       const r = spawn(args, stdin, options?.background);
       return {
         code: r.status ?? -1,
@@ -199,6 +224,38 @@ export function nodeRunner(cwd: string): GitRunner {
   };
 }
 
+/**
+ * What src-tauri/src/clone_folder.rs does: makes the folder and any missing
+ * parents, and removes only what it made.
+ */
+export function nodeFolders(): CloneFolders {
+  const made = new Map<string, string>();
+  return {
+    async create(path) {
+      if (existsSync(path)) return false;
+      let outermost = path;
+      while (!existsSync(dirname(outermost))) outermost = dirname(outermost);
+      mkdirSync(path, { recursive: true });
+      made.set(path, outermost);
+      return true;
+    },
+    async finish(path, discard) {
+      const outermost = made.get(path);
+      made.delete(path);
+      if (outermost && discard)
+        rmSync(outermost, { recursive: true, force: true, maxRetries: 10 });
+    },
+  };
+}
+
+/** An empty folder that isn't a repository. */
+export function makeDir(name = "dir") {
+  const dir = join(root, `${name}-${counter++}`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 export function cleanup() {
-  rmSync(root, { recursive: true, force: true });
+  // git killed by a cancel may let go of its files a moment later.
+  rmSync(root, { recursive: true, force: true, maxRetries: 10 });
 }

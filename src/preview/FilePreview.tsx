@@ -1,11 +1,19 @@
 import { lazy, Suspense, useContext, useState, type ReactNode } from "react";
-import { CloudDownload, CloudOff, FileQuestion, Settings2 } from "lucide-react";
+import {
+  CloudDownload,
+  CloudOff,
+  FileQuestion,
+  Settings2,
+  X,
+} from "lucide-react";
+import { CancelHandle } from "../git/cancel";
 import { looksBinary } from "../git/cli/parse";
 import { lfsPointer, type FileKind } from "../git/fileKinds";
 import type { GitProgress } from "../git/progress";
 import type { FileChange } from "../git/types";
 import { useI18n } from "../i18n/i18n";
 import { progressLabel, sizeSuffix } from "../sync/progressText";
+import { useCancelAvailable } from "../ui/hooks";
 import { formatSize, PreviewContext, usePair, type Revisions } from "./data";
 import { ImageDiff } from "./ImageDiff";
 import { MaterialCard } from "./MaterialCard";
@@ -60,6 +68,8 @@ export function FilePreview({
   const [downloads, setDownloads] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState<GitProgress | null>(null);
+  const [cancel, setCancel] = useState<CancelHandle | null>(null);
+  const cancellable = useCancelAvailable(cancel);
   const pair = usePair(file, revisions, downloads);
   const loading = (
     <div className="preview muted preview-loading">{t("preview.loading")}</div>
@@ -80,11 +90,17 @@ export function FilePreview({
                 className="button lfs-download"
                 disabled={downloading}
                 onClick={async () => {
+                  const handle = new CancelHandle();
                   setDownloading(true);
                   setProgress(null);
-                  await downloadLfs(setProgress);
+                  setCancel(handle);
+                  await downloadLfs({
+                    onProgress: setProgress,
+                    cancel: handle,
+                  });
                   setDownloading(false);
                   setProgress(null);
+                  setCancel(null);
                   setDownloads((n) => n + 1);
                 }}
               >
@@ -93,6 +109,16 @@ export function FilePreview({
                   ? progressLabel(t("lfs.downloading"), progress, t)
                   : t("lfs.download")}
               </button>
+              {downloading && cancellable && (
+                <button
+                  className="button lfs-cancel"
+                  title={t("cancel.title")}
+                  onClick={() => cancel?.cancel()}
+                >
+                  <X size={15} />
+                  {t("cancel.action")}
+                </button>
+              )}
               {downloading && progress?.files && (
                 <p className="lfs-progress">
                   {t("progress.files", {

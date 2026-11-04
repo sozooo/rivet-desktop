@@ -1,8 +1,6 @@
-import {
-  ProgressTracker,
-  type ProgressCommand,
-  type ProgressListener,
-} from "../progress";
+import type { TransferOptions } from "../backend";
+import { CancelledError, during } from "../cancel";
+import { ProgressTracker, type ProgressListener } from "../progress";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -27,22 +25,23 @@ const TICK = 80;
 
 /**
  * Writes the lines git and git-lfs would, through a real ProgressTracker, so
- * the demo shows progress just like the desktop app.
+ * the demo shows progress just like the desktop app. An abort stops it
+ * between two lines, as killing git would.
  */
 async function simulate(
-  command: ProgressCommand,
+  tracker: ProgressTracker,
   steps: Step[],
-  onProgress: ProgressListener,
-  expected?: { files: number; bytes: number },
+  onProgress?: ProgressListener,
+  signal?: AbortSignal,
 ) {
-  const tracker = new ProgressTracker(command, expected);
   const feed = (source: "git" | "lfs", line: string) => {
     const progress = tracker.line(source, line);
-    if (progress) onProgress(progress);
+    if (progress) onProgress?.(progress);
   };
   for (const step of steps) {
     const ticks = Math.max(1, Math.round(step.ms / TICK));
     for (let tick = 1; tick <= ticks; tick++) {
+      if (signal?.aborted) throw new CancelledError();
       const share = tick / ticks;
       if ("git" in step) {
         const count = Math.round(step.total * share);
@@ -89,58 +88,97 @@ const ART = [
 const INCOMING_ART = ART.slice(1, 3);
 const OUTGOING_ART = [ART[0], ART[3]];
 
-/** What the demo shows for each long operation, in a few seconds. */
+/**
+ * What the demo shows for each long operation, in a few seconds. Steps that
+ * the desktop app can cancel can be cancelled here too, through `transfer`.
+ */
 export const demoTransfers = {
-  clone: (onProgress: ProgressListener) =>
-    simulate(
-      "clone",
-      [
-        { git: "Counting objects", total: 4210, remote: true, ms: 300 },
-        { git: "Compressing objects", total: 2918, remote: true, ms: 300 },
-        { git: "Receiving objects", total: 4210, megabytes: 18.4, ms: 2400 },
-        { git: "Resolving deltas", total: 1730, ms: 600 },
-        { git: "Updating files", total: 3112, ms: 500 },
-        { lfs: "download", files: ART, ms: 3800 },
-      ],
-      onProgress,
-      expect(ART),
+  /**
+   * Getting the project, which can be cancelled; resolves to its art
+   * download, which can be too, but then leaves a project that opens.
+   */
+  async clone({ onProgress, cancel }: TransferOptions) {
+    const tracker = new ProgressTracker("clone", expect(ART));
+    await during(cancel, (signal) =>
+      simulate(
+        tracker,
+        [
+          { git: "Counting objects", total: 4210, remote: true, ms: 300 },
+          { git: "Compressing objects", total: 2918, remote: true, ms: 300 },
+          { git: "Receiving objects", total: 4210, megabytes: 18.4, ms: 2400 },
+          { git: "Resolving deltas", total: 1730, ms: 600 },
+          { git: "Updating files", total: 3112, ms: 500 },
+        ],
+        onProgress,
+        signal,
+      ),
+    );
+    return () =>
+      during(cancel, (signal) =>
+        simulate(
+          tracker,
+          [{ lfs: "download", files: ART, ms: 3800 }],
+          onProgress,
+          signal,
+        ),
+      );
+  },
+  fetch: ({ onProgress, cancel }: TransferOptions) =>
+    during(cancel, (signal) =>
+      simulate(
+        new ProgressTracker("fetch"),
+        [
+          { git: "Counting objects", total: 48, remote: true, ms: 200 },
+          { git: "Compressing objects", total: 31, remote: true, ms: 200 },
+          { git: "Receiving objects", total: 48, megabytes: 2.6, ms: 900 },
+          { git: "Resolving deltas", total: 17, ms: 300 },
+        ],
+        onProgress,
+        signal,
+      ),
     ),
-  fetch: (onProgress: ProgressListener) =>
-    simulate(
-      "fetch",
-      [
-        { git: "Counting objects", total: 48, remote: true, ms: 200 },
-        { git: "Compressing objects", total: 31, remote: true, ms: 200 },
-        { git: "Receiving objects", total: 48, megabytes: 2.6, ms: 900 },
-        { git: "Resolving deltas", total: 17, ms: 300 },
-      ],
+  /** As in the desktop app: downloading can be cancelled, the merge after can't. */
+  async pull({ onProgress, cancel }: TransferOptions) {
+    const tracker = new ProgressTracker("pull", expect(INCOMING_ART));
+    await during(cancel, (signal) =>
+      simulate(
+        tracker,
+        [
+          { git: "Receiving objects", total: 26, megabytes: 1.1, ms: 500 },
+          { lfs: "download", files: INCOMING_ART, ms: 2200 },
+        ],
+        onProgress,
+        signal,
+      ),
+    );
+    cancel?.throwIfCancelled();
+    await simulate(
+      tracker,
+      [{ git: "Updating files", total: 26, ms: 700 }],
       onProgress,
+    );
+  },
+  push: ({ onProgress, cancel }: TransferOptions) =>
+    during(cancel, (signal) =>
+      simulate(
+        new ProgressTracker("push"),
+        [
+          { lfs: "upload", files: OUTGOING_ART, ms: 2600 },
+          { git: "Counting objects", total: 21, ms: 200 },
+          { git: "Compressing objects", total: 12, ms: 200 },
+          { git: "Writing objects", total: 14, megabytes: 0.4, ms: 900 },
+        ],
+        onProgress,
+        signal,
+      ),
     ),
-  pull: (onProgress: ProgressListener) =>
-    simulate(
-      "pull",
-      [
-        { git: "Updating files", total: 26, ms: 500 },
-        { lfs: "download", files: INCOMING_ART, ms: 2200 },
-      ],
-      onProgress,
-    ),
-  push: (onProgress: ProgressListener) =>
-    simulate(
-      "push",
-      [
-        { lfs: "upload", files: OUTGOING_ART, ms: 2600 },
-        { git: "Counting objects", total: 21, ms: 200 },
-        { git: "Compressing objects", total: 12, ms: 200 },
-        { git: "Writing objects", total: 14, megabytes: 0.4, ms: 900 },
-      ],
-      onProgress,
-    ),
-  lfsPull: (onProgress: ProgressListener) =>
-    simulate(
-      "lfs",
-      [{ lfs: "download", files: INCOMING_ART, ms: 2600 }],
-      onProgress,
-      expect(INCOMING_ART),
+  lfsPull: ({ onProgress, cancel }: TransferOptions) =>
+    during(cancel, (signal) =>
+      simulate(
+        new ProgressTracker("lfs", expect(INCOMING_ART)),
+        [{ lfs: "download", files: INCOMING_ART, ms: 2600 }],
+        onProgress,
+        signal,
+      ),
     ),
 };

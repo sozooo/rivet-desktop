@@ -39,6 +39,7 @@ export function TopBar({
   progress,
   checking,
   pullRequests,
+  onCancel,
   onFetch,
   onSync,
   onBranches,
@@ -62,6 +63,8 @@ export function TopBar({
   checking: boolean;
   /** Open pull requests, or null when no hosting service is connected. */
   pullRequests: number | null;
+  /** Stops the operation in progress; absent while that isn't safe. */
+  onCancel?: () => void;
   onFetch: () => void;
   /** Simple mode's one button: fetch, pull and push as needed. */
   onSync: () => void;
@@ -148,6 +151,16 @@ export function TopBar({
                     : t("top.neverChecked")}
             </span>
           </button>
+          {shownHere && onCancel && (
+            <button
+              className="fetch-cancel"
+              title={t("cancel.title")}
+              aria-label={t("cancel.action")}
+              onClick={onCancel}
+            >
+              <X />
+            </button>
+          )}
         </div>
       </div>
       <div className="repo-wrap" ref={menuRef}>
@@ -225,6 +238,7 @@ export function TopBar({
             progress={progress}
             detail={detail}
             onSync={onSync}
+            onCancel={onCancel}
           />
         ) : (
           <>

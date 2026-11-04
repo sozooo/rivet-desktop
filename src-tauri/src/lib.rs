@@ -1,9 +1,11 @@
 mod account;
 mod applog;
 mod art;
+mod clone_folder;
 mod discover;
 mod git;
 mod private_git;
+mod process_tree;
 mod progress;
 mod window;
 
@@ -103,6 +105,9 @@ pub fn run() {
             git_text,
             git_bytes,
             progress::git_progress,
+            progress::git_cancel,
+            clone_folder::clone_folder_create,
+            clone_folder::clone_folder_finish,
             read_worktree_file,
             modified_time,
             discover_repositories,

@@ -4276,3 +4276,56 @@ img.avatar {
   -webkit-user-select: text;
   user-select: text;
 }
+/* Cancelling long transfers: beside the top bar's working label, the sync
+   button, the clone on the setup screen and an LFS download. */
+.fetch-control:has(+ .fetch-cancel) {
+  border-radius: 0;
+}
+.fetch-cancel {
+  display: flex;
+  align-items: center;
+  padding: 7px 8px;
+  border-left: 1px solid var(--border);
+  border-radius: 0 5px 5px 0;
+  color: var(--muted);
+}
+.fetch-cancel:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.fetch-cancel svg,
+.sync-cancel svg {
+  width: 13px;
+  height: 13px;
+}
+.lfs-cancel {
+  margin: 14px 0 0 8px;
+}
+/* Holds the setup fields while a half-downloaded project is settled. */
+.setup-lock {
+  display: contents;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.setup-error.setup-notice {
+  color: var(--text);
+}
+.setup-incomplete {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 8px;
+  font-size: var(--text-small);
+  line-height: 16px;
+}
+.setup-incomplete p {
+  margin: 0;
+}
+.setup-incomplete .error-message {
+  height: auto;
+}
+.sync-cancel {
+  padding-block: 8px;
+}
