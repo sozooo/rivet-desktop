@@ -118,15 +118,44 @@ textarea::placeholder {
   --warn: #ddb46a;
   --warn-soft: #3a3324;
 }
+/*
+ * Two rows: the title row says where you are (the app and the project) and
+ * holds the window's buttons; the toolbar says what to do (branch, syncing).
+ */
 .topbar {
-  height: 68px;
   flex-shrink: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   border-bottom: 1px solid var(--border);
-  padding: 0 20px;
-  gap: 17px;
   position: relative;
+}
+.titlebar {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+.titlebar .brand {
+  gap: 7px;
+  font-size: 17px;
+  letter-spacing: -0.5px;
+  margin-right: 0;
+}
+.titlebar .brand-mark {
+  width: 19px;
+  height: 21px;
+  font-size: 21px;
+  line-height: 19px;
+  border-radius: 5px 5px 5px 2px;
+}
+.toolbar {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 0 20px;
 }
 .brand {
   display: flex;
@@ -187,6 +216,20 @@ textarea::placeholder {
 }
 .repo-selector > svg:first-child {
   color: var(--muted);
+}
+.titlebar .repo-selector {
+  gap: 8px;
+  padding: 3px 10px;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+.titlebar .repo-selector:hover,
+.titlebar .repo-selector[aria-expanded="true"] {
+  background: var(--hover);
+}
+.titlebar .repository-menu {
+  top: calc(100% + 6px);
 }
 .top-actions {
   margin-left: auto;
@@ -1711,18 +1754,18 @@ textarea::placeholder {
   .branch-selector {
     max-width: 180px;
   }
-  .topbar {
-    gap: 9px;
+  .titlebar,
+  .toolbar {
     padding: 0 14px;
+  }
+  .toolbar {
+    gap: 9px;
   }
   .top-actions {
     gap: 8px;
   }
   .top-actions .muted {
     display: none;
-  }
-  .repo-wrap {
-    left: 55%;
   }
   .composer-heading > span {
     max-width: 240px;
@@ -2365,9 +2408,6 @@ textarea::placeholder {
  * Branch and fetch share one control, on the same line as every other control.
  * The sync status hangs beneath it, so it doesn't push the control up.
  */
-.topbar .brand {
-  margin-right: 8px;
-}
 .branch-sync {
   position: relative;
   z-index: 6;
@@ -2491,14 +2531,8 @@ textarea::placeholder {
   width: 13px;
   height: 13px;
 }
-.topbar .repo-wrap {
-  position: relative;
-  left: auto;
-  transform: none;
-  margin: 0 auto;
-}
 .top-actions {
-  margin-left: 0;
+  margin-left: auto;
   gap: 10px;
   flex-shrink: 0;
 }
@@ -3254,9 +3288,6 @@ img.avatar {
   .fetch-control {
     min-width: 86px;
     padding: 7px;
-  }
-  .topbar .brand {
-    margin-right: 0;
   }
   .pr-trigger > span:not(.count) {
     display: none;
@@ -4174,14 +4205,12 @@ img.avatar {
 }
 
 /*
- * Rivet draws its own title bar. Windows' caption buttons sit low in the
- * top-right corner, at Windows' own size whatever the interface size
- * (--window-zoom undoes the page zoom). The top bar's row is centred with as
- * much room above it as the buttons take, so the sync button keeps the right
- * edge under them and the row doesn't crowd the work area.
+ * Rivet draws its own title bar: Windows' caption buttons fill the title
+ * row's height in its right corner, at Windows' own size whatever the
+ * interface size (--window-zoom undoes the page zoom).
  */
 .app.framed {
-  --caption: calc(22px / var(--window-zoom, 1));
+  --caption: calc(36px / var(--window-zoom, 1));
 }
 .window-controls {
   position: fixed;
@@ -4192,8 +4221,8 @@ img.avatar {
   zoom: calc(1 / var(--window-zoom, 1));
 }
 .window-controls button {
-  width: 40px;
-  height: 22px;
+  width: 46px;
+  height: 36px;
   display: grid;
   place-items: center;
   font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
@@ -4224,8 +4253,8 @@ img.avatar {
   height: var(--caption);
   z-index: 46;
 }
-.app.framed .topbar {
-  height: calc(var(--caption) * 2 + 40px);
+.app.framed .titlebar {
+  padding-right: calc(138px / var(--window-zoom, 1) + 12px);
 }
 .app.framed .repository-setup {
   padding-top: calc(var(--caption) + 6px);

@@ -116,195 +116,201 @@ export function TopBar({
   return (
     // The top bar is the window's title bar: its empty parts move the window.
     <header className="topbar" data-tauri-drag-region="deep">
-      <div className="brand">
-        <span className="brand-mark">r</span>
-        <span>
-          rivet<span className="brand-dot">.</span>
-        </span>
-      </div>
-      <div className="branch-sync">
-        <div className="branch-fetch-group">
-          <BranchMenu
-            branches={branches}
-            blocked={
-              merging ? t("top.syncMerging") : working ? t("top.busy") : null
-            }
-            onSwitch={onSwitchBranch}
-            onNewBranch={onNewBranch}
-            onAllBranches={onBranches}
-          />
+      {/* Where you are: the app and the project. */}
+      <div className="titlebar">
+        <div className="brand">
+          <span className="brand-mark">r</span>
+          <span>
+            rivet<span className="brand-dot">.</span>
+          </span>
+        </div>
+        <div className="repo-wrap" ref={menuRef}>
           <button
-            className="fetch-control"
-            title={shownHere && detail ? detail : syncSummary()}
-            aria-label={t("top.checkRemote")}
-            disabled={!!working || !sync.upstream}
-            onClick={onFetch}
+            className="repo-selector"
+            aria-expanded={menu}
+            onClick={() => setMenu(!menu)}
           >
-            <RefreshCw className={shownHere ? "spinning" : ""} />
-            <span>
-              {shownHere
-                ? working
-                : !sync.upstream
-                  ? t("top.noRemote")
-                  : sync.lastFetched
-                    ? timeAgo(sync.lastFetched)
-                    : t("top.neverChecked")}
-            </span>
+            <FolderGit2 />
+            {repository.name}
+            <ChevronDown size={13} />
           </button>
-          {shownHere && onCancel && (
-            <button
-              className="fetch-cancel"
-              title={t("cancel.title")}
-              aria-label={t("cancel.action")}
-              onClick={onCancel}
+          {menu && (
+            <div
+              className="dropdown repository-menu"
+              data-tauri-drag-region="false"
             >
-              <X />
-            </button>
+              <small>{t("top.repositories")}</small>
+              <div className="repository-list">
+                {repositories.map((r) => (
+                  <div className="repository-item" key={r.id}>
+                    <button
+                      onClick={() => {
+                        setMenu(false);
+                        onSwitchRepository(r.id);
+                      }}
+                    >
+                      <FolderGit2 />
+                      <span>
+                        <strong>{r.name}</strong>
+                        <small>{r.path}</small>
+                      </span>
+                      {repository.id === r.id && <Check />}
+                    </button>
+                    <button
+                      className="icon-button repository-remove"
+                      title={t("top.removeRepository", { name: r.name })}
+                      aria-label={t("top.removeRepositoryLabel", {
+                        name: r.name,
+                      })}
+                      onClick={() => onRemoveRepository(r.id)}
+                    >
+                      <X />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="repository-menu-actions">
+                {setupModes.map((setupMode) => {
+                  const { menu: label, Icon } = setupModeMeta[setupMode];
+                  return (
+                    <button
+                      key={setupMode}
+                      onClick={() => {
+                        setMenu(false);
+                        onSetup(setupMode);
+                      }}
+                    >
+                      <Icon />
+                      {t(label)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       </div>
-      <div className="repo-wrap" ref={menuRef}>
-        <button
-          className="repo-selector"
-          aria-expanded={menu}
-          onClick={() => setMenu(!menu)}
-        >
-          <FolderGit2 />
-          {repository.name}
-          <ChevronDown size={13} />
-        </button>
-        {menu && (
-          <div
-            className="dropdown repository-menu"
-            data-tauri-drag-region="false"
-          >
-            <small>{t("top.repositories")}</small>
-            <div className="repository-list">
-              {repositories.map((r) => (
-                <div className="repository-item" key={r.id}>
-                  <button
-                    onClick={() => {
-                      setMenu(false);
-                      onSwitchRepository(r.id);
-                    }}
-                  >
-                    <FolderGit2 />
-                    <span>
-                      <strong>{r.name}</strong>
-                      <small>{r.path}</small>
-                    </span>
-                    {repository.id === r.id && <Check />}
-                  </button>
-                  <button
-                    className="icon-button repository-remove"
-                    title={t("top.removeRepository", { name: r.name })}
-                    aria-label={t("top.removeRepositoryLabel", {
-                      name: r.name,
-                    })}
-                    onClick={() => onRemoveRepository(r.id)}
-                  >
-                    <X />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="repository-menu-actions">
-              {setupModes.map((setupMode) => {
-                const { menu: label, Icon } = setupModeMeta[setupMode];
-                return (
-                  <button
-                    key={setupMode}
-                    onClick={() => {
-                      setMenu(false);
-                      onSetup(setupMode);
-                    }}
-                  >
-                    <Icon />
-                    {t(label)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="top-actions">
-        {simple ? (
-          <SyncButton
-            sync={sync}
-            hasRemote={hasRemote}
-            merging={merging}
-            working={checking ? null : working}
-            progress={progress}
-            detail={detail}
-            onSync={onSync}
-            onCancel={onCancel}
-          />
-        ) : (
-          <>
-            {pullRequests !== null && (
+      {/* What to do: the branch and syncing. */}
+      <div className="toolbar">
+        <div className="branch-sync">
+          <div className="branch-fetch-group">
+            <BranchMenu
+              branches={branches}
+              blocked={
+                merging ? t("top.syncMerging") : working ? t("top.busy") : null
+              }
+              onSwitch={onSwitchBranch}
+              onNewBranch={onNewBranch}
+              onAllBranches={onBranches}
+            />
+            <button
+              className="fetch-control"
+              title={shownHere && detail ? detail : syncSummary()}
+              aria-label={t("top.checkRemote")}
+              disabled={!!working || !sync.upstream}
+              onClick={onFetch}
+            >
+              <RefreshCw className={shownHere ? "spinning" : ""} />
+              <span>
+                {shownHere
+                  ? working
+                  : !sync.upstream
+                    ? t("top.noRemote")
+                    : sync.lastFetched
+                      ? timeAgo(sync.lastFetched)
+                      : t("top.neverChecked")}
+              </span>
+            </button>
+            {shownHere && onCancel && (
               <button
-                className="text-button pr-trigger"
-                onClick={onPullRequests}
-                title={t("top.pullRequestsTitle")}
+                className="fetch-cancel"
+                title={t("cancel.title")}
+                aria-label={t("cancel.action")}
+                onClick={onCancel}
               >
-                <GitPullRequest />
-                <span>{t("top.pullRequests")}</span>
-                <span className="count">{pullRequests}</span>
+                <X />
               </button>
             )}
-            <button
-              className="button"
-              disabled={!sync.behind || !!working || merging}
-              onClick={onPull}
-              title={
-                merging
-                  ? t("top.syncMerging")
-                  : sync.behind
-                    ? t("top.pullTitle", {
-                        count: sync.behind,
-                        upstream: sync.upstream ?? "",
-                        branch: branches.current,
-                      })
-                    : t("top.nothingToPull")
-              }
-            >
-              <ArrowDown />
-              {t("top.pull")}
-              {sync.behind ? ` ${sync.behind}` : ""}
-            </button>
-            <button
-              className="button push"
-              disabled={(!sync.ahead && !publish) || !!working || merging}
-              onClick={onPush}
-              title={
-                merging
-                  ? t("top.syncMerging")
-                  : publish
-                    ? t("top.publishTitle", { branch: branches.current })
-                    : sync.ahead
-                      ? t("top.pushTitle", {
-                          count: sync.ahead,
+          </div>
+        </div>
+        <div className="top-actions">
+          {simple ? (
+            <SyncButton
+              sync={sync}
+              hasRemote={hasRemote}
+              merging={merging}
+              working={checking ? null : working}
+              progress={progress}
+              detail={detail}
+              onSync={onSync}
+              onCancel={onCancel}
+            />
+          ) : (
+            <>
+              {pullRequests !== null && (
+                <button
+                  className="text-button pr-trigger"
+                  onClick={onPullRequests}
+                  title={t("top.pullRequestsTitle")}
+                >
+                  <GitPullRequest />
+                  <span>{t("top.pullRequests")}</span>
+                  <span className="count">{pullRequests}</span>
+                </button>
+              )}
+              <button
+                className="button"
+                disabled={!sync.behind || !!working || merging}
+                onClick={onPull}
+                title={
+                  merging
+                    ? t("top.syncMerging")
+                    : sync.behind
+                      ? t("top.pullTitle", {
+                          count: sync.behind,
                           upstream: sync.upstream ?? "",
+                          branch: branches.current,
                         })
-                      : t("top.nothingToPush")
-              }
-            >
-              {publish ? <CloudUpload /> : <ArrowUp />}
-              {t(publish ? "top.publish" : "top.push")}
-              {sync.ahead && !publish ? ` ${sync.ahead}` : ""}
-            </button>
-            <span className="separator" />
-            <button
-              className="icon-button"
-              title={t("top.newBranch")}
-              aria-label={t("top.newBranch")}
-              onClick={onNewBranch}
-            >
-              <Plus />
-            </button>
-          </>
-        )}
+                      : t("top.nothingToPull")
+                }
+              >
+                <ArrowDown />
+                {t("top.pull")}
+                {sync.behind ? ` ${sync.behind}` : ""}
+              </button>
+              <button
+                className="button push"
+                disabled={(!sync.ahead && !publish) || !!working || merging}
+                onClick={onPush}
+                title={
+                  merging
+                    ? t("top.syncMerging")
+                    : publish
+                      ? t("top.publishTitle", { branch: branches.current })
+                      : sync.ahead
+                        ? t("top.pushTitle", {
+                            count: sync.ahead,
+                            upstream: sync.upstream ?? "",
+                          })
+                        : t("top.nothingToPush")
+                }
+              >
+                {publish ? <CloudUpload /> : <ArrowUp />}
+                {t(publish ? "top.publish" : "top.push")}
+                {sync.ahead && !publish ? ` ${sync.ahead}` : ""}
+              </button>
+              <span className="separator" />
+              <button
+                className="icon-button"
+                title={t("top.newBranch")}
+                aria-label={t("top.newBranch")}
+                onClick={onNewBranch}
+              >
+                <Plus />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
