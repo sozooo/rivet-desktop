@@ -55,22 +55,12 @@ export const en = {
   },
   "top.nothingToPush": "Nothing to push",
   "top.newBranch": "New branch",
-  "top.status.local": "Only on this computer",
-  "top.status.unpublished": "This branch isn't on the server yet",
-  "top.status.upToDate": "You're up to date",
-  "top.status.incoming": {
-    one: "{count} incoming commit",
-    other: "{count} incoming commits",
-  },
-  "top.status.incoming@simple": {
-    one: "{count} new version from others",
-    other: "{count} new versions from others",
-  },
-  "top.status.toPublish": "{count} to publish",
-  "top.status.toPublish@simple": {
-    one: "{count} version not sent yet",
-    other: "{count} versions not sent yet",
-  },
+  "top.local": "Only on this computer",
+  "top.localTitle":
+    "This project has no server yet, so there's nothing to sync.",
+  "top.publish": "Publish",
+  "top.publishTitle":
+    "Put {branch} on the server so others can see it (git push -u)",
   "top.busy": "Wait until Rivet finishes",
 
   "branchMenu.search": "Find a branch",
@@ -478,6 +468,7 @@ export const en = {
   "diff.unified": "Unified diff",
   "diff.split": "Side-by-side diff",
   "diff.actions": "File actions",
+  "diff.reveal": "Show in folder",
   "diff.copyPath": "Copy path",
   "diff.discard": "Discard changes…",
   "diff.discard@simple": "Undo my changes…",
@@ -563,6 +554,11 @@ export const en = {
     other: "Publish {count} commits from {branch} to {upstream}.",
   },
   "op.push.confirm": "Push",
+  "op.publish.title": "Publish branch",
+  "op.publish.describe":
+    "Put {branch} on the server. Others will see it and can switch to it; Push and Pull then work for it.",
+  "op.publish.confirm": "Publish",
+  "op.publish.done": "{branch} is on the server now.",
   "op.push.done": "Pushed. The remote is up to date.",
   "op.discard-file.title": "Discard changes",
   "op.discard-file.title@simple": "Undo my changes",

@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Columns2,
   Copy,
+  FolderOpen,
   MoreHorizontal,
   RotateCcw,
   ScanEye,
@@ -14,7 +15,7 @@ import { fileKind } from "../git/fileKinds";
 import { dirName, fileName, lineStats } from "../git/paths";
 import type { FileChange } from "../git/types";
 import { useI18n } from "../i18n/i18n";
-import { SideLabels, type Revisions } from "../preview/data";
+import { PreviewContext, SideLabels, type Revisions } from "../preview/data";
 import { FilePreview } from "../preview/FilePreview";
 import { FileIcon, StatusIcon } from "../ui/FileIcon";
 import { useDismiss, useStoredState } from "../ui/hooks";
@@ -55,6 +56,7 @@ export function DiffView({
   const notify = useNotify();
   const { t, mode } = useI18n();
   const sides = useContext(SideLabels);
+  const { reveal } = useContext(PreviewContext);
   // Simple mode keeps one plain view: no layout or whitespace switches.
   const advanced = mode === "full";
   const kind = file ? fileKind(file) : "code";
@@ -143,6 +145,19 @@ export function DiffView({
                 <Copy />
                 {t("diff.copyPath")}
               </button>
+              {reveal && (
+                <button
+                  onClick={() => {
+                    setMenu(false);
+                    reveal(file.path).catch((error) =>
+                      notify(String(error), "error"),
+                    );
+                  }}
+                >
+                  <FolderOpen />
+                  {t("diff.reveal")}
+                </button>
+              )}
               {onDiscard && (
                 <button
                   className="danger-text"

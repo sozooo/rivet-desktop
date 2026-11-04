@@ -131,6 +131,19 @@ const definitions = {
         : null,
     run: (b, _c, _input, onProgress) => b.push({ onProgress }),
   },
+  /** Push for a branch the server doesn't have yet. */
+  publish: {
+    params: (c) => ({ branch: c.branch }),
+    command: (c) => `git push -u origin ${c.branch}`,
+    warning: (c, t) =>
+      c.sync.tooLarge?.length
+        ? t("op.push.tooLarge", {
+            count: c.sync.tooLarge.length,
+            files: c.sync.tooLarge.map((f) => fileName(f.path)).join(", "),
+          })
+        : null,
+    run: (b, _c, _input, onProgress) => b.push({ onProgress }),
+  },
   "abort-operation": {
     params: () => ({}),
     command: (c) => `git ${c.operation ?? "merge"} --abort`,

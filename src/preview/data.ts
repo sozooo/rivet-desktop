@@ -17,6 +17,8 @@ export const PreviewContext = createContext<{
   backend: GitBackend | null;
   dark: boolean;
   downloadLfs?: (onProgress?: ProgressListener) => Promise<unknown>;
+  /** Opens Explorer at a file of this repository; absent in the demo. */
+  reveal?: (path: string) => Promise<void>;
 }>({ backend: null, dark: false });
 export const useBackend = () => useContext(PreviewContext).backend;
 export const useDark = () => useContext(PreviewContext).dark;

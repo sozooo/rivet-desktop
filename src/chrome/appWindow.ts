@@ -42,6 +42,8 @@ export async function applyScale(scale: UiScale) {
     return;
   }
   await getCurrentWebview().setZoom(zoom);
+  // The window's own buttons and caption strip stay at Windows' size.
+  document.documentElement.style.setProperty("--window-zoom", String(zoom));
   const window = getCurrentWindow();
   const monitor = await currentMonitor();
   const area = monitor?.workArea.size.toLogical(monitor.scaleFactor);

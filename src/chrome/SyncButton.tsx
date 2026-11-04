@@ -4,6 +4,7 @@ import {
   ArrowUp,
   Check,
   CloudUpload,
+  Laptop,
   RefreshCw,
 } from "lucide-react";
 import type { GitProgress } from "../git/progress";
@@ -16,6 +17,7 @@ import { useI18n } from "../i18n/i18n";
  */
 export function SyncButton({
   sync,
+  hasRemote,
   merging,
   working,
   progress,
@@ -23,6 +25,8 @@ export function SyncButton({
   onSync,
 }: {
   sync: SyncState;
+  /** False for a project that lives only on this computer. */
+  hasRemote: boolean;
   merging: boolean;
   /** What is being sent or received right now, e.g. "Getting… 42%". */
   working: string | null;
@@ -33,6 +37,13 @@ export function SyncButton({
   onSync: () => void;
 }) {
   const { t } = useI18n();
+  if (!hasRemote)
+    return (
+      <span className="sync-done" title={t("top.localTitle")}>
+        <Laptop />
+        {t("top.local")}
+      </span>
+    );
   if (working)
     return (
       <button className="button primary sync-button" disabled title={detail}>

@@ -226,9 +226,16 @@ export function Workspace({
     [act, t],
   );
   // Previews read files through the backend and draw 3D views to match the theme.
+  const reveal = useMemo(
+    () =>
+      platform.desktop && repository.kind !== "demo"
+        ? (path: string) => platform.revealFile(repository.path, path)
+        : undefined,
+    [repository],
+  );
   const preview = useMemo(
-    () => ({ backend, dark, downloadLfs }),
-    [backend, dark, downloadLfs],
+    () => ({ backend, dark, downloadLfs, reveal }),
+    [backend, dark, downloadLfs, reveal],
   );
 
   if (!snapshot)
@@ -370,7 +377,9 @@ export function Workspace({
         onRemoveRepository={onRemoveRepository}
         onSetup={setSetup}
         onPull={() => openOperation("pull")}
-        onPush={() => openOperation("push")}
+        onPush={() =>
+          openOperation(snapshot.sync.upstream ? "push" : "publish")
+        }
         onNewBranch={() => openOperation("new-branch")}
         onPullRequests={() => setDialog({ kind: "pull-requests" })}
       />

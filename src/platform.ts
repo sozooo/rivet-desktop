@@ -1,6 +1,6 @@
 import { Channel, invoke, isTauri } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { demoFlags } from "./demoFlags";
 import { errorSamples } from "./errors/samples";
 import { CliBackend } from "./git/cli/CliBackend";
@@ -58,6 +58,8 @@ export interface Platform {
   trustFolder(path: string): Promise<void>;
   /** Opens a page in the default browser. */
   openWebPage(url: string): Promise<void>;
+  /** Shows a repository file in Explorer, or its folder when the file is gone. */
+  revealFile(root: string, path: string): Promise<void>;
 }
 
 /** The browser demo pretends, following the switches in its address. */
@@ -147,6 +149,7 @@ const browserPlatform: Platform = {
     demoIdentity = identity;
   },
   async trustFolder() {},
+  async revealFile() {},
   async openWebPage(url) {
     window.open(url, "_blank", "noopener");
   },
@@ -237,6 +240,14 @@ const desktopPlatform: Platform = {
     await git(".", ["config", "--global", "--add", "safe.directory", path]);
   },
   openWebPage: (url) => openUrl(url),
+  async revealFile(root, path) {
+    const full = [root.replace(/[\\/]+$/, ""), ...path.split("/")].join("\\");
+    const exists = await invoke<number | null>("modified_time", { path: full });
+    // A deleted file can't be shown, so its folder is.
+    await revealItemInDir(
+      exists === null ? full.slice(0, full.lastIndexOf("\\")) : full,
+    );
+  },
 };
 
 export const platform: Platform = isTauri() ? desktopPlatform : browserPlatform;

@@ -7,7 +7,6 @@ import {
   CloudUpload,
   FolderGit2,
   GitPullRequest,
-  Laptop,
   Plus,
   RefreshCw,
   X,
@@ -108,30 +107,8 @@ export function TopBar({
     return `${checked} ${parts.length ? parts.join(", ") + "." : t("top.sync.upToDate")} ${t("top.sync.clickToCheck")}`;
   }
 
-  const pending = !!(
-    sync.behind ||
-    sync.ahead ||
-    (hasRemote && !sync.upstream)
-  );
-  const [StatusIcon, status] = !hasRemote
-    ? [Laptop, t("top.status.local")]
-    : !sync.upstream
-      ? [CloudUpload, t("top.status.unpublished")]
-      : pending
-        ? [
-            sync.behind ? ArrowDown : ArrowUp,
-            [
-              sync.behind
-                ? t("top.status.incoming", { count: sync.behind })
-                : "",
-              sync.ahead
-                ? t("top.status.toPublish", { count: sync.ahead })
-                : "",
-            ]
-              .filter(Boolean)
-              .join(" · "),
-          ]
-        : [Check, t("top.status.upToDate")];
+  // A branch the server doesn't have yet is published by Push.
+  const publish = hasRemote && !sync.upstream;
 
   return (
     // The top bar is the window's title bar: its empty parts move the window.
@@ -172,13 +149,6 @@ export function TopBar({
             </span>
           </button>
         </div>
-        <span
-          className={`sync-status ${pending ? "pending" : ""}`}
-          aria-live="polite"
-        >
-          <StatusIcon />
-          {status}
-        </span>
       </div>
       <div className="repo-wrap" ref={menuRef}>
         <button
@@ -247,16 +217,15 @@ export function TopBar({
       </div>
       <div className="top-actions">
         {simple ? (
-          hasRemote && (
-            <SyncButton
-              sync={sync}
-              merging={merging}
-              working={checking ? null : working}
-              progress={progress}
-              detail={detail}
-              onSync={onSync}
-            />
-          )
+          <SyncButton
+            sync={sync}
+            hasRemote={hasRemote}
+            merging={merging}
+            working={checking ? null : working}
+            progress={progress}
+            detail={detail}
+            onSync={onSync}
+          />
         ) : (
           <>
             {pullRequests !== null && (
@@ -292,22 +261,24 @@ export function TopBar({
             </button>
             <button
               className="button push"
-              disabled={!sync.ahead || !sync.upstream || !!working || merging}
+              disabled={(!sync.ahead && !publish) || !!working || merging}
               onClick={onPush}
               title={
                 merging
                   ? t("top.syncMerging")
-                  : sync.ahead
-                    ? t("top.pushTitle", {
-                        count: sync.ahead,
-                        upstream: sync.upstream ?? "",
-                      })
-                    : t("top.nothingToPush")
+                  : publish
+                    ? t("top.publishTitle", { branch: branches.current })
+                    : sync.ahead
+                      ? t("top.pushTitle", {
+                          count: sync.ahead,
+                          upstream: sync.upstream ?? "",
+                        })
+                      : t("top.nothingToPush")
               }
             >
-              <ArrowUp />
-              {t("top.push")}
-              {sync.ahead ? ` ${sync.ahead}` : ""}
+              {publish ? <CloudUpload /> : <ArrowUp />}
+              {t(publish ? "top.publish" : "top.push")}
+              {sync.ahead && !publish ? ` ${sync.ahead}` : ""}
             </button>
             <span className="separator" />
             <button
