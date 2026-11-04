@@ -3,6 +3,7 @@ mod applog;
 mod art;
 mod discover;
 mod git;
+mod open_apps;
 mod private_git;
 mod progress;
 mod window;
@@ -106,6 +107,7 @@ pub fn run() {
             read_worktree_file,
             modified_time,
             discover_repositories,
+            open_apps::open_apps,
             art::file_sizes,
             art::write_worktree_file,
             art::unity_merge_tools,
