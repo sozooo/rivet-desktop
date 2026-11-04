@@ -9,6 +9,7 @@ import { tauriRunner } from "./git/cli/tauriRunner";
 import { clone } from "./git/cli/transfers";
 import { demoTransfers } from "./git/mock/simulate";
 import type { ProgressListener } from "./git/progress";
+import { demoOpenApps, type OpenApps } from "./openApps/openApps";
 
 /** A repository found on this computer that can be added in one click. */
 export type FoundRepository = {
@@ -58,6 +59,8 @@ export interface Platform {
   trustFolder(path: string): Promise<void>;
   /** Opens a page in the default browser. */
   openWebPage(url: string): Promise<void>;
+  /** What Unity and Blender have open inside a repository (Windows; quick). */
+  openApps(root: string): Promise<OpenApps>;
 }
 
 /** The browser demo pretends, following the switches in its address. */
@@ -150,6 +153,9 @@ const browserPlatform: Platform = {
   async openWebPage(url) {
     window.open(url, "_blank", "noopener");
   },
+  async openApps() {
+    return demoOpenApps(demoFlags.open);
+  },
 };
 
 /** Runs git outside any repository (clone, init) or in a folder being checked. */
@@ -237,6 +243,7 @@ const desktopPlatform: Platform = {
     await git(".", ["config", "--global", "--add", "safe.directory", path]);
   },
   openWebPage: (url) => openUrl(url),
+  openApps: (root) => invoke("open_apps", { root }),
 };
 
 export const platform: Platform = isTauri() ? desktopPlatform : browserPlatform;

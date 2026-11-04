@@ -1,6 +1,7 @@
 import type { OpContext, OperationId } from "../dialogs/operations";
 import type { GitBackend } from "../git/backend";
 import type { RepoSnapshot } from "../git/types";
+import type { Rewrites } from "../openApps/openApps";
 import type { Repository } from "../repositories";
 
 /** What every view gets from the workspace for the open repository. */
@@ -20,6 +21,11 @@ export type RepoApi = {
   openOperation: (id: OperationId, context?: Partial<OpContext>) => void;
   /** Gets others' work and sends ours: simple mode's one button. */
   sync: () => Promise<void>;
+  /**
+   * Call before rewriting files on disk: when Unity or Blender has some of
+   * them open, asks the user to save first. Resolves whether to go ahead.
+   */
+  askBeforeRewrite: (rewrites: Rewrites) => Promise<boolean>;
   /** Opens Changes, on one file's row when given (an asset's path stands for its .meta too). */
   showChanges: (path?: string) => void;
   /** Opens History on the commits that changed one file. */

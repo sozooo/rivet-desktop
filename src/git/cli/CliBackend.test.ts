@@ -285,6 +285,14 @@ describe("CliBackend on a real repository", () => {
     snapshot = await backend.snapshot();
     expect(snapshot.sync).toMatchObject({ ahead: 1, behind: 1 });
     expect(snapshot.sync.lastFetched).toBeGreaterThan(0);
+    // What the pull will write: only the teammate's files. Switching compares both ways.
+    expect(await backend.changedPaths("@{upstream}", true)).toEqual([
+      "Teammate.cs",
+    ]);
+    expect((await backend.changedPaths("origin/main")).sort()).toEqual([
+      "Mine.cs",
+      "Teammate.cs",
+    ]);
 
     await backend.pull();
     snapshot = await backend.snapshot();

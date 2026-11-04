@@ -6,11 +6,13 @@ import type {
   Commit,
   FileChange,
   OperationKind,
+  RepoSnapshot,
   StashEntry,
   SyncState,
   UnityGenerated,
 } from "../git/types";
 import { fileName } from "../git/paths";
+import { pullRewrites } from "../openApps/openApps";
 import { generatedNames } from "../unity/gitignore";
 import type { Key, Params } from "../i18n/i18n";
 import { restoreDraft } from "../views/changes/draft";
@@ -61,6 +63,15 @@ export type Operation = {
     sanitize: (value: string) => string;
     problem: (value: string, c: OpContext) => Key | null;
   };
+  /**
+   * Files the operation rewrites on disk, for warning about ones open in Unity
+   * or Blender first; null when any file may change. Asked only when one is open.
+   */
+  rewrites?: (
+    backend: GitBackend,
+    c: OpContext,
+    snapshot: RepoSnapshot,
+  ) => Promise<string[] | null>;
   /** Absent for operations Rivet only explains for now. Long ones report progress. */
   run?: (
     backend: GitBackend,
@@ -87,6 +98,7 @@ const definitions = {
             target: branchLabel(c.target ?? "", c.branches),
           })
         : null,
+    rewrites: async (b, c) => (await b.changedPaths?.(c.target!)) ?? null,
     run: (b, c) => b.switchBranch(c.target!),
   },
   "new-branch": {
@@ -113,6 +125,7 @@ const definitions = {
       how: t(c.sync.ahead ? "op.pull.merge" : "op.pull.forward"),
     }),
     command: (c) => `git pull --no-rebase origin ${c.branch}`,
+    rewrites: pullRewrites,
     run: (b, _c, _input, onProgress) => b.pull({ onProgress }),
   },
   push: {
@@ -135,6 +148,7 @@ const definitions = {
     params: () => ({}),
     command: (c) => `git ${c.operation ?? "merge"} --abort`,
     danger: true,
+    rewrites: async (_b, _c, s) => s.files.map((f) => f.path),
     run: (b) => b.abortOperation(),
   },
   "discard-file": {
@@ -144,6 +158,7 @@ const definitions = {
         ? `git rm --force -- ${c.file.path}`
         : `git restore --source=HEAD --staged --worktree -- ${c.file?.path}`,
     danger: true,
+    rewrites: async (_b, c) => [c.file!.path, ...(c.extraPaths ?? [])],
     run: async (b, c) => {
       for (const path of [c.file!.path, ...(c.extraPaths ?? [])])
         await b.discard(path);
@@ -171,6 +186,7 @@ const definitions = {
         )
         .join("\n"),
     danger: true,
+    rewrites: async (_b, c) => (c.restore ?? []).map((r) => r.path),
     run: async (b, c) => {
       for (const { path, revision } of c.restore ?? [])
         await b.restoreFile(path, revision);

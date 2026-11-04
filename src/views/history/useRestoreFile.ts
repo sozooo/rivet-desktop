@@ -12,7 +12,7 @@ const asset = (path: string) => path.replace(/\.meta$/, "");
  * commit. Asks first when that would throw away unsaved changes.
  */
 export function useRestoreFile(repo: RepoApi) {
-  const { snapshot, act, openOperation, showChanges } = repo;
+  const { snapshot, act, openOperation, showChanges, askBeforeRewrite } = repo;
   const { t } = useI18n();
   const notify = useNotify();
   return async (file: FileChange, commit: Commit, files: FileChange[]) => {
@@ -37,6 +37,7 @@ export function useRestoreFile(repo: RepoApi) {
     if (snapshot.files.some(touches))
       return openOperation("restore-file", context);
 
+    if (!(await askBeforeRewrite(restore.map((r) => r.path)))) return;
     const op = operations["restore-file"];
     const next = await act((b) => op.run!(b, context, ""));
     if (!next) return;

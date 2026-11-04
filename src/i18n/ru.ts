@@ -587,6 +587,22 @@ export const ru: Record<keyof typeof en, Message> = {
     "Rivet пока не умеет это делать. Команда ниже делает то же самое в терминале.",
   "dialog.showCommand": "Показать команду Git",
 
+  "openApps.title": "Файлы открыты в других программах",
+  "openApps.title@simple": "Сначала сохраните работу",
+  "openApps.describe":
+    "Операция перезапишет на диске файлы, открытые в этих программах. Если потом сохранить их там, вернётся старая версия.",
+  "openApps.describe@simple":
+    "Rivet сейчас заменит файлы, которые открыты в других программах. Если потом сохранить там старую копию, новые изменения пропадут.",
+  "openApps.unity":
+    "Unity открыт с этим проектом — сначала сохраните сцену (Ctrl+S).",
+  "openApps.unityProject":
+    "Unity открыт с проектом {project} — сначала сохраните сцену (Ctrl+S).",
+  "openApps.blender":
+    "В Blender открыт {name} — закройте его, а потом откройте заново.",
+  "openApps.blenderUnsaved":
+    "В Blender открыт {name} — сохраните и закройте его.",
+  "openApps.continue": "Продолжить",
+
   "op.switch-branch.title": "Перейти на ветку",
   "op.switch-branch.describe":
     "Перейти с {branch} на {target}. Файлы рабочей копии станут такими, как в {target}.",

@@ -727,6 +727,18 @@ export class CliBackend implements GitBackend {
     return { base, ahead: ahead || 0, behind: behind || 0 };
   }
 
+  async changedPaths(to: string, merge = false) {
+    const out = await this.run([
+      "diff",
+      "--name-only",
+      "--no-renames",
+      "-z",
+      ...(merge ? [`HEAD...${to}`] : ["HEAD", to]),
+      "--",
+    ]);
+    return out.split("\0").filter(Boolean);
+  }
+
   async readFile(path: string, revision: Revision) {
     const bytes = await this.readBlob(path, revision);
     // Commits hold only pointers to LFS files; the files themselves are in .git/lfs.
