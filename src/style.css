@@ -4174,13 +4174,14 @@ img.avatar {
 }
 
 /*
- * Rivet draws its own title bar. Windows' caption buttons sit in a thin strip
- * across the top, at Windows' own size whatever the interface size
- * (--window-zoom undoes the page zoom), and the top bar's row sits under it,
- * so the sync button keeps the right edge.
+ * Rivet draws its own title bar. Windows' caption buttons sit low in the
+ * top-right corner, at Windows' own size whatever the interface size
+ * (--window-zoom undoes the page zoom). The top bar's row is centred with as
+ * much room above it as the buttons take, so the sync button keeps the right
+ * edge under them and the row doesn't crowd the work area.
  */
 .app.framed {
-  --caption: calc(28px / var(--window-zoom, 1));
+  --caption: calc(22px / var(--window-zoom, 1));
 }
 .window-controls {
   position: fixed;
@@ -4192,7 +4193,7 @@ img.avatar {
 }
 .window-controls button {
   width: 40px;
-  height: 28px;
+  height: 22px;
   display: grid;
   place-items: center;
   font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
@@ -4224,8 +4225,7 @@ img.avatar {
   z-index: 46;
 }
 .app.framed .topbar {
-  height: calc(var(--caption) + 46px);
-  padding-top: var(--caption);
+  height: calc(var(--caption) * 2 + 40px);
 }
 .app.framed .repository-setup {
   padding-top: calc(var(--caption) + 6px);
