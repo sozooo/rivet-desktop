@@ -20,6 +20,7 @@ Rivet uses Git for Windows if it's installed. If it isn't, Rivet downloads its o
 - **Branches**: switch from the top bar, including branches that so far exist only on the server.
 - **Sync** that says what will happen and how far it got (big art files counted in megabytes, also when cloning), and teammates' new work noticed in the background. Downloads and sending can be cancelled while that is safe (not once a pull is merging), and nothing is lost.
 - **Cloning that never leaves a mess**: a clone cancelled or failed half-way removes the folder it made, and when only the art download broke, the project opens anyway and "Download the rest" picks up where it stopped.
+- **Open in Unity or Blender**: before Rivet brings in or puts back files, it checks whether Unity has the project open or Blender has one of those `.blend` files open, and says to save (and close Blender) first, so the next Ctrl+S doesn't save the old version over the new one. Unity is open when it holds `Temp/UnityLockfile`; Blender's open file comes from its window title.
 - **Merge conflicts** explained file by file: keep yours or take the server's, with previews of both.
 - **Git LFS** for large art files, set up with one button, and a warning before a file GitHub would refuse.
 - **GitHub sign-in** with a short code, then clone your repositories from a list.
@@ -54,11 +55,12 @@ src/
   onboarding/   Git check and download, name and email
   errors/       Plain-language errors, error log, crash screen
   github/       GitHub sign-in and repository list
+  openApps/     Asking first when Unity or Blender has files open that an action rewrites
   i18n/         Russian and English texts
 src-tauri/      Rust: runs git, reads files, finds repositories, keeps the GitHub token and the log
 ```
 
-The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`). `?gitignore=missing` shows a sample project whose Unity folders aren't ignored, and `?gitignore=committed` one that committed them.
+The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`). `?gitignore=missing` shows a sample project whose Unity folders aren't ignored, and `?gitignore=committed` one that committed them. `?open=unity,blender` (or just one of them) pretends Unity has the project open and Blender has `Art/Tree.blend` open with unsaved changes, so syncing, switching branches or discarding a scene asks to save first.
 
 Unity's `.gitignore` is GitHub's template, vendored in `src/unity/Unity.gitignore` (its header names the commit) with a few Rivet additions at the end.
 

@@ -33,6 +33,11 @@ export interface GitBackend {
   commitFiles(sha: string): Promise<FileChange[]>;
   stashFiles(index: number): Promise<FileChange[]>;
   compareBranch(branch: string, base: string): Promise<Divergence>;
+  /**
+   * Files that differ between HEAD and `to`: what switching to it rewrites. With
+   * `merge`, only what `to` changed since the two parted: what a pull brings.
+   */
+  changedPaths?(to: string, merge?: boolean): Promise<string[]>;
   /** Raw bytes of a file at a revision, or null when it does not exist there. */
   readFile(path: string, revision: Revision): Promise<Uint8Array | null>;
   /** The asset a Unity GUID belongs to (found through its .meta file), if any. */

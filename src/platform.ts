@@ -14,6 +14,8 @@ import {
   type CloneFolders,
 } from "./git/cli/transfers";
 import { demoTransfers } from "./git/mock/simulate";
+import type { ProgressListener } from "./git/progress";
+import { demoOpenApps, type OpenApps } from "./openApps/openApps";
 
 /** A repository found on this computer that can be added in one click. */
 export type FoundRepository = {
@@ -73,6 +75,8 @@ export interface Platform {
   openWebPage(url: string): Promise<void>;
   /** Shows a repository file in Explorer, or its folder when the file is gone. */
   revealFile(root: string, path: string): Promise<void>;
+  /** What Unity and Blender have open inside a repository (Windows; quick). */
+  openApps(root: string): Promise<OpenApps>;
 }
 
 /** The browser demo pretends, following the switches in its address. */
@@ -174,6 +178,9 @@ const browserPlatform: Platform = {
   async revealFile() {},
   async openWebPage(url) {
     window.open(url, "_blank", "noopener");
+  },
+  async openApps() {
+    return demoOpenApps(demoFlags.open);
   },
 };
 
@@ -278,6 +285,7 @@ const desktopPlatform: Platform = {
       exists === null ? full.slice(0, full.lastIndexOf("\\")) : full,
     );
   },
+  openApps: (root) => invoke("open_apps", { root }),
 };
 
 export const platform: Platform = isTauri() ? desktopPlatform : browserPlatform;

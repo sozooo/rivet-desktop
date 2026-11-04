@@ -4,6 +4,7 @@ mod art;
 mod clone_folder;
 mod discover;
 mod git;
+mod open_apps;
 mod private_git;
 mod process_tree;
 mod progress;
@@ -111,6 +112,7 @@ pub fn run() {
             read_worktree_file,
             modified_time,
             discover_repositories,
+            open_apps::open_apps,
             art::file_sizes,
             art::write_worktree_file,
             art::unity_merge_tools,

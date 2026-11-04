@@ -44,7 +44,7 @@ export function ChangesView({
   /** The row to show first. */
   initialPath?: string;
 }) {
-  const { snapshot, act, openOperation } = repo;
+  const { snapshot, act, openOperation, askBeforeRewrite } = repo;
   const { files, stashes, operation } = snapshot;
   const { t, mode } = useI18n();
   const stashName = useStashName();
@@ -89,9 +89,17 @@ export function ChangesView({
   const visible = groups.filter(matches);
   const stash = stashes.find((s) => s.date === viewingStash);
 
-  const restore = (index: number) => {
+  const restore = async (index: number) => {
+    const stashed = async () =>
+      (await repo.backend.stashFiles(index)).map((f) => f.path);
+    if (!(await askBeforeRewrite(stashed))) return;
     setViewingStash(null);
     act((b) => b.stashPop(index), t("changes.restored"));
+  };
+  // Putting changes aside puts those files back as they were saved.
+  const stashAll = async () => {
+    if (await askBeforeRewrite(files.map((f) => f.path)))
+      act((b) => b.stash(), t("changes.stashed"));
   };
   const remove = (s: StashEntry) =>
     openOperation("drop-stash", { stash: s, stashName: stashName(s) });
@@ -221,7 +229,7 @@ export function ChangesView({
                 className="text-button"
                 disabled={!files.length}
                 title={t("changes.stashAllTitle")}
-                onClick={() => act((b) => b.stash(), t("changes.stashed"))}
+                onClick={stashAll}
               >
                 <Archive size={12} /> {t("changes.stashAll")}
               </button>

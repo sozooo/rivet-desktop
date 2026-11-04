@@ -31,6 +31,8 @@ tauri-plugin-window-state = "2"
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = [
     "Win32_UI_Input_KeyboardAndMouse",
+    # Finding Blender's windows (open_apps.rs).
+    "Win32_UI_WindowsAndMessaging",
     # Cancelling a git command stops everything it started (process_tree.rs).
     "Win32_Foundation",
     "Win32_Security",

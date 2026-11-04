@@ -10,6 +10,7 @@ import { NavRail, type Mode } from "./chrome/NavRail";
 import { StatusBar } from "./chrome/StatusBar";
 import { TopBar } from "./chrome/TopBar";
 import { SettingsDialog, ShortcutsDialog } from "./dialogs/InfoDialogs";
+import { OpenAppsDialog } from "./dialogs/OpenAppsDialog";
 import { OperationDialog } from "./dialogs/OperationDialog";
 import {
   opKey,
@@ -32,6 +33,13 @@ import { LoadError } from "./errors/LoadError";
 import { useShowError } from "./errors/notice";
 import { useI18n } from "./i18n/i18n";
 import { useIdentity } from "./onboarding/identity";
+import {
+  confirmRewrite,
+  incomingPaths,
+  pullRewrites,
+  type OpenAppWarning,
+  type Rewrites,
+} from "./openApps/openApps";
 import { platform } from "./platform";
 import { PreviewContext } from "./preview/data";
 import { useBackgroundFetch } from "./sync/backgroundFetch";
@@ -49,6 +57,7 @@ import type { RepoApi } from "./views/repoApi";
 
 type Dialog =
   | { kind: "operation"; id: OperationId; context: OpContext }
+  | { kind: "open-apps"; warnings: OpenAppWarning[] }
   | { kind: "settings" | "shortcuts" | "pull-requests" | "update" };
 
 export function Workspace({
@@ -172,6 +181,28 @@ export function Workspace({
     ],
   );
 
+  /** Answers the open-programs question while it is on screen. */
+  const answerOpenApps = useRef<((go: boolean) => void) | null>(null);
+  /**
+   * Before Rivet rewrites files on disk: when Unity or Blender has some of
+   * them open, says what to save or close first. Resolves whether to go ahead.
+   */
+  function askBeforeRewrite(rewrites: Rewrites) {
+    return confirmRewrite(
+      () => platform.openApps(repository.path),
+      rewrites,
+      (warnings) =>
+        new Promise<boolean>((resolve) => {
+          answerOpenApps.current = (go) => {
+            answerOpenApps.current = null;
+            setDialog(null);
+            resolve(go);
+          };
+          setDialog({ kind: "open-apps", warnings });
+        }),
+    );
+  }
+
   /** Shows a long operation in the top bar; returns where its progress goes. */
   function startWorking(label: string): ProgressListener {
     const operation = ++reports.current;
@@ -223,14 +254,20 @@ export function Workspace({
     if (uiMode === "full")
       return setDialog({ kind: "operation", id: "pull", context });
     const onProgress = startWorking(t("incoming.taking"));
-    const cancel = startCancel();
-    await act((b) => b.pull({ onProgress, cancel }), t(opKey("pull", "done")));
+    if (await askBeforeRewrite(() => pullRewrites(backend))) {
+      const cancel = startCancel();
+      await act(
+        (b) => b.pull({ onProgress, cancel }),
+        t(opKey("pull", "done")),
+      );
+    }
     stopWorking();
   }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      if (answerOpenApps.current) return answerOpenApps.current(false);
       setDialog(null);
       setSetup(null);
     };
@@ -278,6 +315,14 @@ export function Workspace({
   async function runOperation(id: OperationId, context: OpContext, input = "") {
     const op = operations[id];
     const onProgress = startWorking(`${t(opKey(id, "title"))}…`);
+    const rewrites = op.rewrites;
+    if (
+      rewrites &&
+      !(await askBeforeRewrite(() =>
+        rewrites(backend, context, latest.current ?? snapshot!),
+      ))
+    )
+      return stopWorking();
     const cancel = startCancel();
     await act(
       (b) => op.run!(b, context, input, { onProgress, cancel }),
@@ -302,6 +347,7 @@ export function Workspace({
     act,
     openOperation,
     sync,
+    askBeforeRewrite,
     showChanges: (path) => {
       setFocus({ changes: path });
       setMode("Changes");
@@ -341,7 +387,7 @@ export function Workspace({
   async function sync() {
     const before = latest.current?.sync;
     const incoming = !!(before?.upstream && before.behind);
-    let outcome = "sent" as "sent" | "stopped" | "too-large";
+    let outcome = "sent" as "sent" | "stopped" | "too-large" | "cancelled";
     // One handle for every step: getting and sending can be stopped, merging can't.
     const cancel = startCancel();
     const next = await act(
@@ -353,6 +399,8 @@ export function Workspace({
         await b.fetch({ onProgress: getting, cancel });
         let state = await b.snapshot();
         if (state.sync.behind) {
+          if (!(await askBeforeRewrite(() => incomingPaths(b))))
+            return (outcome = "cancelled");
           await b.pull({
             // The fetch brought the commits and showed it; what the pull
             // adds is mostly art files, which go on the same label.
@@ -485,6 +533,12 @@ export function Workspace({
             setDialog(null);
             runOperation(dialog.id, dialog.context, input);
           }}
+        />
+      )}
+      {dialog?.kind === "open-apps" && (
+        <OpenAppsDialog
+          warnings={dialog.warnings}
+          onAnswer={(go) => answerOpenApps.current?.(go)}
         />
       )}
       {dialog?.kind === "settings" && (

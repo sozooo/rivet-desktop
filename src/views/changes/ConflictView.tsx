@@ -70,13 +70,17 @@ export function ConflictView({
   const conflict = file.conflict!;
   const chosen = conflict.resolution;
 
-  const settle = (side: Side | "manual") =>
-    act(async (b) => {
+  const settle = async (side: Side | "manual") => {
+    // The server's version replaces the file on disk.
+    const paths = conflicted.map((f) => f.path);
+    if (side === "theirs" && !(await repo.askBeforeRewrite(paths))) return;
+    return act(async (b) => {
       for (const f of conflicted)
         await (side === "manual"
           ? b.markResolved(f.path)
           : b.resolveConflict(f.path, side));
     });
+  };
   const choice = (side: Side, label: string) => (
     <button
       className={`button conflict-choice ${chosen === side ? "chosen" : ""}`}

@@ -531,6 +531,21 @@ export const en = {
     "Rivet can't do this yet. The Git command below does it from a terminal.",
   "dialog.showCommand": "Show Git command",
 
+  "openApps.title": "Files are open in other programs",
+  "openApps.title@simple": "Save your work first",
+  "openApps.describe":
+    "This rewrites files on disk that these programs have open. Saving them there afterwards would bring the old version back.",
+  "openApps.describe@simple":
+    "Rivet is about to replace files that are open in other programs. If the old copy is saved there later, the new changes are lost.",
+  "openApps.unity":
+    "Unity has this project open: save your scene first (Ctrl+S).",
+  "openApps.unityProject":
+    "Unity has {project} open: save your scene first (Ctrl+S).",
+  "openApps.blender":
+    "{name} is open in Blender: close it, and open it again afterwards.",
+  "openApps.blenderUnsaved": "{name} is open in Blender: save and close it.",
+  "openApps.continue": "Continue",
+
   "op.switch-branch.title": "Switch branch",
   "op.switch-branch.describe":
     "Switch from {branch} to {target}. Files in the working tree change to match {target}.",

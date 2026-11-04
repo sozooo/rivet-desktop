@@ -4329,3 +4329,28 @@ img.avatar {
 .sync-cancel {
   padding-block: 8px;
 }
+/* Programs that have files open which an action is about to rewrite. */
+.open-apps {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.open-apps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--warn-soft);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+.open-apps svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--warn);
+}
