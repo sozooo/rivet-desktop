@@ -6,7 +6,12 @@
 //   node src/git/cli/lfsTestServer.ts 8899 2000000
 // listens on port 8899 and sends about 2 MB per second; point a repository at
 // it with `.lfsconfig`: [lfs] url = http://127.0.0.1:8899/
-import { createServer, type Server } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import type { AddressInfo } from "node:net";
 import { pathToFileURL } from "node:url";
 
@@ -25,7 +30,11 @@ export function startLfsServer(
 ): Promise<LfsServer> {
   const objects = new Map<string, Buffer>();
   const json = "application/vnd.git-lfs+json";
-  const server: Server = createServer(async (request, response) => {
+  const server: Server = createServer((request, response) => {
+    // A client that went away mid-upload (a cancelled push) just ends here.
+    serve(request, response).catch(() => response.destroy());
+  });
+  const serve = async (request: IncomingMessage, response: ServerResponse) => {
     const url = new URL(request.url ?? "/", "http://localhost");
     const body = async () => {
       const chunks: Buffer[] = [];
@@ -94,7 +103,7 @@ export function startLfsServer(
     }
     response.writeHead(404, { "Content-Type": json });
     response.end(JSON.stringify({ message: "Not found" }));
-  });
+  };
   return new Promise((resolve) =>
     server.listen(port, "127.0.0.1", () =>
       resolve({

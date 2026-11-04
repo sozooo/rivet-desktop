@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { CancelHandle, CancelledError } from "../cancel";
 import { unresolved } from "../conflicts";
 import { lfsPatterns, needsLfs, tooLarge } from "../lfs";
 import { MockBackend } from "./MockBackend";
+import { demoTransfers } from "./simulate";
 
 const message = { summary: "Change things", description: "" };
 
@@ -189,6 +191,51 @@ describe("MockBackend safety nets", () => {
     expect(await text("worktree")).toBe(await text(first));
     expect(await text("HEAD")).not.toBe(await text("worktree"));
   });
+
+  it("cancels the demo's downloads and sending like the desktop app", async () => {
+    const git = new MockBackend("sample");
+    const before = (await git.snapshot()).sync;
+    let cancel = new CancelHandle();
+    await expect(
+      git.pull({
+        cancel,
+        onProgress: (p) => p.phase === "download" && cancel.cancel(),
+      }),
+    ).rejects.toBeInstanceOf(CancelledError);
+    let after = await git.snapshot();
+    expect(after.sync.behind).toBe(before.behind);
+    expect(after.operation).toBeNull();
+
+    cancel = new CancelHandle();
+    await expect(
+      git.push({ cancel, onProgress: () => cancel.cancel() }),
+    ).rejects.toBeInstanceOf(CancelledError);
+    after = await git.snapshot();
+    expect(after.sync.ahead).toBe(before.ahead);
+  }, 20_000);
+
+  it("can't cancel the demo pull once it merges", async () => {
+    const git = new MockBackend("sample");
+    const cancel = new CancelHandle();
+    cancel.subscribe(() => !cancel.available && cancel.cancel());
+    await git.pull({ cancel, onProgress: () => {} });
+    expect(cancel.cancelled).toBe(false);
+    expect((await git.snapshot()).operation?.kind).toBe("merge");
+  }, 20_000);
+
+  it("stops the demo clone's art download after the project arrived", async () => {
+    const cancel = new CancelHandle();
+    const phases: string[] = [];
+    const art = await demoTransfers.clone({
+      cancel,
+      onProgress: (p) => phases.push(p.phase),
+    });
+    expect(phases).toContain("checkout");
+    const stopped = art();
+    setTimeout(() => cancel.cancel(), 200);
+    await expect(stopped).rejects.toBeInstanceOf(CancelledError);
+    expect(phases).toContain("download");
+  }, 20_000);
 
   it("finds a teammate's push on the next fetch", async () => {
     const git = new MockBackend("sample");

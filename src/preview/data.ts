@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useI18n } from "../i18n/i18n";
-import type { GitBackend } from "../git/backend";
+import type { GitBackend, TransferOptions } from "../git/backend";
 import { fileName } from "../git/paths";
-import type { ProgressListener } from "../git/progress";
 import type { FileChange, Revision } from "../git/types";
 import { decodeImage } from "./decode";
 
@@ -16,7 +15,7 @@ export type Revisions = { before: Revision; after: Revision };
 export const PreviewContext = createContext<{
   backend: GitBackend | null;
   dark: boolean;
-  downloadLfs?: (onProgress?: ProgressListener) => Promise<unknown>;
+  downloadLfs?: (transfer?: TransferOptions) => Promise<unknown>;
   /** Opens Explorer at a file of this repository; absent in the demo. */
   reveal?: (path: string) => Promise<void>;
 }>({ backend: null, dark: false });

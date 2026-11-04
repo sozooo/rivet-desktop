@@ -11,6 +11,11 @@ export type RunOptions = {
    * Callers add --progress; git reports none to a pipe otherwise. No stdin.
    */
   onLine?: (source: ProgressSource, line: string) => void;
+  /**
+   * Aborting stops git and every program it started; the run then rejects
+   * with CancelledError, unless git had finished already. No stdin.
+   */
+  signal?: AbortSignal;
 };
 
 /** Runs git inside one repository. Tauri and the tests provide implementations. */

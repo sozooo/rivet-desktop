@@ -6,7 +6,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { GitProgress } from "../progress";
 import { CliBackend } from "./CliBackend";
 import { startLfsServer, type LfsServer } from "./lfsTestServer";
-import { cleanup, git, makeRepo, nodeRunner, write } from "./testRepo";
+import {
+  cleanup,
+  git,
+  makeRepo,
+  nodeFolders,
+  nodeRunner,
+  write,
+} from "./testRepo";
 import { clone } from "./transfers";
 
 const MiB = 1024 * 1024;
@@ -69,8 +76,14 @@ describe("transfers with progress", () => {
 
     const destination = join(scratch, "copy");
     const cloned: GitProgress[] = [];
-    await clone(nodeRunner, pathToFileURL(remote).href, destination, (p) =>
-      cloned.push(p),
+    await clone(
+      nodeRunner,
+      nodeFolders(),
+      pathToFileURL(remote).href,
+      destination,
+      {
+        onProgress: (p) => cloned.push(p),
+      },
     );
     expect(cloned.some((p) => p.phase === "receive")).toBe(true);
     const downloads = cloned.filter((p) => p.phase === "download");

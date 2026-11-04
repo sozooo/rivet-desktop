@@ -3,12 +3,17 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { demoFlags } from "./demoFlags";
 import { errorSamples } from "./errors/samples";
+import type { TransferOptions } from "./git/backend";
 import { CliBackend } from "./git/cli/CliBackend";
 import type { GitResult } from "./git/cli/runner";
 import { tauriRunner } from "./git/cli/tauriRunner";
-import { clone } from "./git/cli/transfers";
+import {
+  clone,
+  IncompleteClone,
+  resumeClone,
+  type CloneFolders,
+} from "./git/cli/transfers";
 import { demoTransfers } from "./git/mock/simulate";
-import type { ProgressListener } from "./git/progress";
 
 /** A repository found on this computer that can be added in one click. */
 export type FoundRepository = {
@@ -37,12 +42,20 @@ export interface Platform {
   discoverRepositories(): Promise<FoundRepository[]>;
   /** The root of the repository containing `path`; rejects when there is none. */
   repositoryRoot(path: string): Promise<string>;
-  /** Downloads a repository, Git LFS files included, reporting how far it got. */
+  /**
+   * Downloads a repository, Git LFS files included, reporting how far it got.
+   * Stopped or failed before git finished, it leaves no folder behind (if it
+   * made it). Once the project can be opened, a broken or stopped LFS
+   * download rejects with IncompleteClone, as does an earlier attempt's
+   * project found in the folder: `resumeClone` downloads the rest.
+   */
   clone(
     url: string,
     destination: string,
-    onProgress?: ProgressListener,
+    transfer?: TransferOptions,
   ): Promise<void>;
+  /** Downloads the Git LFS files a clone didn't get to. */
+  resumeClone(destination: string, transfer?: TransferOptions): Promise<void>;
   /** Creates a repository; in a Unity project, with Unity's .gitignore. */
   init(destination: string): Promise<void>;
   gitVersions(): Promise<GitVersions>;
@@ -108,7 +121,7 @@ const browserPlatform: Platform = {
   async repositoryRoot(path) {
     return path;
   },
-  async clone(_url, _destination, onProgress) {
+  async clone(_url, destination, transfer) {
     const sample = errorSamples.find(
       (s) => s.id === demoFlags.fail && s.at === "clone",
     );
@@ -116,7 +129,16 @@ const browserPlatform: Platform = {
       await new Promise((resolve) => setTimeout(resolve, 600));
       throw new Error(sample.stderr);
     }
-    if (onProgress) await demoTransfers.clone(onProgress);
+    // Stopping during the art download leaves a project that can be opened.
+    const art = await demoTransfers.clone(transfer ?? {});
+    try {
+      await art();
+    } catch (error) {
+      throw new IncompleteClone(destination, error);
+    }
+  },
+  async resumeClone(_destination, transfer) {
+    await demoTransfers.lfsPull(transfer ?? {});
   },
   async init() {},
   async gitVersions() {
@@ -181,6 +203,12 @@ async function configValue(key: string) {
 
 const toWindowsPath = (path: string) => path.replace(/\//g, "\\");
 
+const cloneFolders: CloneFolders = {
+  create: (path) => invoke<boolean>("clone_folder_create", { path }),
+  finish: (path, discard) =>
+    invoke<void>("clone_folder_finish", { path, discard }),
+};
+
 const desktopPlatform: Platform = {
   desktop: true,
   async pickFolder() {
@@ -203,8 +231,10 @@ const desktopPlatform: Platform = {
       );
     }
   },
-  clone: (url, destination, onProgress) =>
-    clone(tauriRunner, url, destination, onProgress),
+  clone: (url, destination, transfer) =>
+    clone(tauriRunner, cloneFolders, url, destination, transfer),
+  resumeClone: (destination, transfer) =>
+    resumeClone(tauriRunner(destination), transfer),
   async init(destination) {
     await git(".", ["init", "-b", "main", "--", destination]);
     // Unity's Library, Temp and the like must never get into the first version.

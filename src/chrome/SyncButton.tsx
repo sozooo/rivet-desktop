@@ -6,6 +6,7 @@ import {
   CloudUpload,
   Laptop,
   RefreshCw,
+  X,
 } from "lucide-react";
 import type { GitProgress } from "../git/progress";
 import type { SyncState } from "../git/types";
@@ -23,6 +24,7 @@ export function SyncButton({
   progress,
   detail,
   onSync,
+  onCancel,
 }: {
   sync: SyncState;
   /** False for a project that lives only on this computer. */
@@ -35,6 +37,8 @@ export function SyncButton({
   /** The whole story for the tooltip. */
   detail?: string;
   onSync: () => void;
+  /** Stops what is being sent or received; absent while that isn't safe. */
+  onCancel?: () => void;
 }) {
   const { t } = useI18n();
   if (!hasRemote)
@@ -46,16 +50,28 @@ export function SyncButton({
     );
   if (working)
     return (
-      <button className="button primary sync-button" disabled title={detail}>
-        <RefreshCw className="spinning" />
-        {working}
-        {progress?.percent != null && (
-          <span
-            className="sync-progress"
-            style={{ width: `${progress.percent}%` }}
-          />
+      <>
+        <button className="button primary sync-button" disabled title={detail}>
+          <RefreshCw className="spinning" />
+          {working}
+          {progress?.percent != null && (
+            <span
+              className="sync-progress"
+              style={{ width: `${progress.percent}%` }}
+            />
+          )}
+        </button>
+        {onCancel && (
+          <button
+            className="button sync-cancel"
+            title={t("cancel.title")}
+            onClick={onCancel}
+          >
+            <X />
+            {t("cancel.action")}
+          </button>
         )}
-      </button>
+      </>
     );
   const action = !sync.upstream
     ? "publish"

@@ -90,6 +90,10 @@ export const ru: Record<keyof typeof en, Message> = {
   "top.working.check": "Проверяю…",
   "top.working.pull": "Забираю…",
   "top.working.push": "Отправляю…",
+  "cancel.action": "Отменить",
+  "cancel.title": "Остановить сейчас — ничего не потеряется",
+  "cancel.done": "Отменено. Репозиторий остался как был.",
+  "cancel.done@simple": "Остановлено. Ничего не потеряно.",
   "progress.percent": "{label} {percent}%",
   "progress.download": "Скачиваю файлы LFS…",
   "progress.download@simple": "Скачиваю файлы…",
@@ -210,6 +214,21 @@ export const ru: Record<keyof typeof en, Message> = {
   "setup.submit.createPreview": "Создать демо",
   "setup.cloning": "Скачиваю…",
   "setup.working": "Минутку…",
+  "setup.cancelled":
+    "Клонирование отменено. Можно начать заново в любой момент.",
+  "setup.cancelled@simple": "Остановлено. Можно начать заново в любой момент.",
+  "setup.incomplete":
+    "Репозиторий склонирован, но часть файлов LFS ещё не скачана.",
+  "setup.incomplete@simple":
+    "Проект уже здесь, но часть файлов ещё не скачалась.",
+  "setup.incomplete.earlier":
+    "Этот репозиторий уже склонирован в эту папку, но части файлов LFS не хватает.",
+  "setup.incomplete.earlier@simple":
+    "Этот проект уже есть в этой папке, но скачан не целиком.",
+  "setup.incomplete.error": "Скачивание прервалось с ошибкой:",
+  "setup.resume": "Докачать",
+  "setup.resume@simple": "Докачать",
+  "setup.openIncomplete": "Открыть без них",
   "setup.error.nameLocation": "Укажите название и папку.",
   "setup.error.url": "Укажите ссылку на репозиторий: HTTPS или SSH.",
   "setup.error.folderName":

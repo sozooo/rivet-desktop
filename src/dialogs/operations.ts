@@ -1,7 +1,6 @@
-import type { GitBackend } from "../git/backend";
+import type { GitBackend, TransferOptions } from "../git/backend";
 import { branchLabel } from "../git/branches";
 import { shortSha } from "../git/paths";
-import type { ProgressListener } from "../git/progress";
 import type {
   Commit,
   FileChange,
@@ -61,12 +60,15 @@ export type Operation = {
     sanitize: (value: string) => string;
     problem: (value: string, c: OpContext) => Key | null;
   };
-  /** Absent for operations Rivet only explains for now. Long ones report progress. */
+  /**
+   * Absent for operations Rivet only explains for now. Long ones report
+   * progress and can be cancelled while that is safe.
+   */
   run?: (
     backend: GitBackend,
     c: OpContext,
     input: string,
-    onProgress?: ProgressListener,
+    transfer?: TransferOptions,
   ) => Promise<unknown>;
 };
 
@@ -113,7 +115,7 @@ const definitions = {
       how: t(c.sync.ahead ? "op.pull.merge" : "op.pull.forward"),
     }),
     command: (c) => `git pull --no-rebase origin ${c.branch}`,
-    run: (b, _c, _input, onProgress) => b.pull({ onProgress }),
+    run: (b, _c, _input, transfer) => b.pull(transfer),
   },
   push: {
     params: (c) => ({
@@ -129,7 +131,7 @@ const definitions = {
             files: c.sync.tooLarge.map((f) => fileName(f.path)).join(", "),
           })
         : null,
-    run: (b, _c, _input, onProgress) => b.push({ onProgress }),
+    run: (b, _c, _input, transfer) => b.push(transfer),
   },
   /** Push for a branch the server doesn't have yet. */
   publish: {
@@ -142,7 +144,7 @@ const definitions = {
             files: c.sync.tooLarge.map((f) => fileName(f.path)).join(", "),
           })
         : null,
-    run: (b, _c, _input, onProgress) => b.push({ onProgress }),
+    run: (b, _c, _input, transfer) => b.push(transfer),
   },
   "abort-operation": {
     params: () => ({}),

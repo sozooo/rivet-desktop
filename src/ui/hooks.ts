@@ -1,4 +1,11 @@
-import { useEffect, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+} from "react";
+import type { CancelHandle } from "../git/cancel";
 
 /** State that survives reloads, kept in localStorage under `key`. */
 export function useStoredState<T>(key: string, initial: T) {
@@ -60,3 +67,12 @@ export const initials = (name: string) =>
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+/** Whether `handle` offers cancelling right now; re-renders when that changes. */
+export function useCancelAvailable(handle: CancelHandle | null | undefined) {
+  const subscribe = useCallback(
+    (changed: () => void) => handle?.subscribe(changed) ?? (() => {}),
+    [handle],
+  );
+  return useSyncExternalStore(subscribe, () => handle?.available ?? false);
+}

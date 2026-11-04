@@ -18,7 +18,8 @@ Rivet uses Git for Windows if it's installed. If it isn't, Rivet downloads its o
 - **Changes**: tick files or single hunks, or nothing to save everything. Put changes aside and bring them back later, and open any file's folder in Explorer.
 - **History** with a commit graph. Undo the last save if it hasn't been sent yet, put any file back to an older version, and see every version of one file.
 - **Branches**: switch from the top bar, including branches that so far exist only on the server.
-- **Sync** that says what will happen and how far it got (big art files counted in megabytes, also when cloning), and teammates' new work noticed in the background.
+- **Sync** that says what will happen and how far it got (big art files counted in megabytes, also when cloning), and teammates' new work noticed in the background. Downloads and sending can be cancelled while that is safe (not once a pull is merging), and nothing is lost.
+- **Cloning that never leaves a mess**: a clone cancelled or failed half-way removes the folder it made, and when only the art download broke, the project opens anyway and "Download the rest" picks up where it stopped.
 - **Merge conflicts** explained file by file: keep yours or take the server's, with previews of both.
 - **Git LFS** for large art files, set up with one button, and a warning before a file GitHub would refuse.
 - **GitHub sign-in** with a short code, then clone your repositories from a list.
@@ -61,6 +62,6 @@ The browser demo can show screens that are hard to reach on purpose; add switche
 
 Unity's `.gitignore` is GitHub's template, vendored in `src/unity/Unity.gitignore` (its header names the commit) with a few Rivet additions at the end.
 
-To watch transfers and their progress against scratch repositories, `node src/git/cli/lfsTestServer.ts 8899 2000000` runs a small Git LFS server that sends about 2 MB a second; point a repository at it with `.lfsconfig` (`[lfs] url = http://127.0.0.1:8899/`). git-lfs reports no progress for a plain folder remote, so the tests use this server too.
+To watch transfers and their progress against scratch repositories, `node src/git/cli/lfsTestServer.ts 8899 2000000` runs a small Git LFS server that sends about 2 MB a second; point a repository at it with `.lfsconfig` (`[lfs] url = http://127.0.0.1:8899/`). git-lfs reports no progress for a plain folder remote, so the tests use this server too. `node src/git/cli/gitHttpTestServer.ts 8898 D:\scratch\remotes 1500000` serves the bare repositories in a folder over smart HTTP at about 1.5 MB a second (`http://127.0.0.1:8898/name.git`, which the setup screen accepts), so clones, fetches and pushes take long enough to cancel; the cancelling tests use it.
 
 Publishing a version is described in [docs/releasing.md](docs/releasing.md).
