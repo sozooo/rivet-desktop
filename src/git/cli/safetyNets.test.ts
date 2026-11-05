@@ -3,7 +3,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { CliBackend } from "./CliBackend";
-import { cleanup, git, makeRepo, nodeRunner, write } from "./testRepo";
+import {
+  cleanup,
+  git,
+  makeRepo,
+  nodeRunner,
+  write,
+  writeScript,
+} from "./testRepo";
 
 afterAll(cleanup);
 
@@ -202,7 +209,7 @@ describe("background fetch", () => {
       git(dir, "remote", "add", "origin", `http://127.0.0.1:${port}/game.git`);
       // A password window, as far as git knows: it notes that it was asked.
       const asked = join(dir, "asked");
-      write(dir, "askpass.sh", `#!/bin/sh\necho "$1" >> "${asked}"\n`);
+      writeScript(dir, "askpass.sh", `#!/bin/sh\necho "$1" >> "${asked}"\n`);
       git(dir, "config", "core.askPass", join(dir, "askpass.sh"));
 
       await expect(backend.fetch({ background: true })).rejects.toThrow(

@@ -2,6 +2,7 @@
 import { spawn as start, spawnSync } from "node:child_process";
 import { CancelledError } from "../cancel";
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -85,6 +86,15 @@ export function write(dir: string, path: string, content: string | Uint8Array) {
   const full = join(dir, path);
   mkdirSync(dirname(full), { recursive: true });
   writeFileSync(full, content);
+}
+
+/**
+ * A shell script git runs (a hook, a password window). Git for Windows runs
+ * any, but elsewhere git skips a script that isn't marked runnable.
+ */
+export function writeScript(dir: string, path: string, content: string) {
+  write(dir, path, content);
+  chmodSync(join(dir, path), 0o755);
 }
 
 /** What src-tauri/src/git.rs adds for background runs. */

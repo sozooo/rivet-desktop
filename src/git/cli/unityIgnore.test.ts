@@ -3,7 +3,14 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { UNITY_GITIGNORE } from "../../unity/gitignore";
 import { CliBackend } from "./CliBackend";
-import { cleanup, git, makeRepo, nodeRunner, write } from "./testRepo";
+import {
+  cleanup,
+  git,
+  makeRepo,
+  nodeRunner,
+  write,
+  writeScript,
+} from "./testRepo";
 
 afterAll(cleanup);
 
@@ -247,7 +254,7 @@ describe("Unity's generated files in a repository", () => {
     write(dir, "Assets/Notes.txt", "notes\n");
     git(dir, "add", "Assets/Notes.txt");
     // A hook that refuses every commit.
-    write(
+    writeScript(
       dir,
       ".git/hooks/pre-commit",
       "#!/bin/sh\necho refused >&2\nexit 1\n",
