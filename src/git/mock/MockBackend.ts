@@ -12,6 +12,7 @@ import type {
   FileVersion,
   Operation,
   Person,
+  RecentFile,
   RepoSnapshot,
   Revision,
   Side,
@@ -25,6 +26,7 @@ import {
   gitignoreChange,
   untrackCommit,
 } from "./generated";
+import { bulkFiles, projectFiles, withMetaFiles } from "./projectFiles";
 import { demoTransfers } from "./simulate";
 
 type StoredStash = {
@@ -84,6 +86,10 @@ export class MockBackend implements GitBackend {
   private restored = new Map<string, Revision>();
   /** Unity's generated files no .gitignore leaves out; only with `?gitignore=`. */
   private generated: UnityGenerated | undefined;
+  /** Files in the project that no commit in the sample history touches. */
+  private untouched: string[];
+  /** `?files=<n>`: that many more, for trying search on a big project. */
+  private bulk: string[];
 
   /**
    * "empty" is a repository Rivet just created for a Unity project, with only
@@ -116,6 +122,8 @@ export class MockBackend implements GitBackend {
     // The sample keeps Photoshop files in LFS, but not the rest of its art.
     this.lfsPatterns = sample ? ["*.psd"] : [];
     this.smartMerge = sample ? false : undefined;
+    this.untouched = sample ? projectFiles() : [];
+    this.bulk = sample ? bulkFiles(demoFlags.files) : [];
   }
 
   async snapshot(): Promise<RepoSnapshot> {
@@ -179,7 +187,36 @@ export class MockBackend implements GitBackend {
       const file = this.changesAt(index).find((f) => f.path === path);
       if (file) versions.push({ commit, path, status: file.status });
     });
+    // The rest of the project came with the first commit.
+    const first = this.commits[this.commits.length - 1];
+    if (!versions.length && first && (await this.trackedFiles()).includes(path))
+      versions.push({ commit: first, path, status: "added" });
     return clone(versions);
+  }
+
+  async trackedFiles() {
+    const live = new Set(this.untouched);
+    // Oldest first, so what a later commit deleted stays deleted.
+    for (let index = this.commits.length - 1; index >= 0; index--)
+      for (const file of this.changesAt(index))
+        if (file.status === "deleted") live.delete(file.path);
+        else live.add(file.path);
+    return [...withMetaFiles(live), ...this.bulk];
+  }
+
+  async recentFiles(commits: number) {
+    const seen = new Map<string, RecentFile>();
+    this.commits.slice(0, commits).forEach((commit, index) => {
+      for (const file of this.changesAt(index))
+        if (!seen.has(file.path))
+          seen.set(file.path, {
+            path: file.path,
+            sha: commit.sha,
+            date: commit.date,
+            deleted: file.status === "deleted",
+          });
+    });
+    return [...seen.values()];
   }
 
   async stashFiles(index: number) {

@@ -73,6 +73,16 @@ export type CommitMessage = { summary: string; description: string };
 /** A commit that changed one file, and the file's path and status in it. */
 export type FileVersion = { commit: Commit; path: string; status: FileStatus };
 
+/** A file one of the latest commits changed, as of the newest of them. */
+export type RecentFile = {
+  path: string;
+  /** The newest commit that changed it, and when that was (Unix ms). */
+  sha: string;
+  date: number;
+  /** That commit deleted it. */
+  deleted: boolean;
+};
+
 export type StashEntry = {
   index: number;
   message: string;

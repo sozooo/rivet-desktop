@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Copy,
   GitCommitHorizontal,
@@ -68,11 +68,14 @@ export function HistoryView({
   repo,
   phase,
   initialFile,
+  initialCommit,
 }: {
   repo: RepoApi;
   phase: string;
   /** Start on the commits that changed this file. */
   initialFile?: string;
+  /** Start on this commit. */
+  initialCommit?: string;
 }) {
   const { snapshot, backend, openOperation } = repo;
   const { commits, branches } = snapshot;
@@ -80,11 +83,18 @@ export function HistoryView({
   const { t, mode, timeAgo, language } = useI18n();
   const restoreFile = useRestoreFile(repo);
   const [query, setQuery] = useState("");
-  const [sha, setSha] = useState<string>();
+  const [sha, setSha] = useState(initialCommit);
   const [path, setPath] = useState<string | undefined>(initialFile);
   /** Only the commits that changed this file, when set. */
   const [filePath, setFilePath] = useState(initialFile);
   const graph = useMemo(() => layoutGraph(commits), [commits]);
+  // Sent here for one commit: bring its row into view.
+  useEffect(() => {
+    if (initialCommit)
+      document
+        .querySelector(".commit-row.selected")
+        ?.scrollIntoView({ block: "center" });
+  }, [initialCommit]);
   const versions = useAsync(
     () =>
       filePath
