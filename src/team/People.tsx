@@ -50,7 +50,6 @@ export function MemberAvatar({
       url={account?.avatarUrl}
       seed={member.key}
       title={title}
-      className={member.you ? "you" : undefined}
     />
   );
 }

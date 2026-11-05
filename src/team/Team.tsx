@@ -103,12 +103,7 @@ export function Team({ repo }: { repo: RepoApi }) {
         onClick={() => setOpen(!open)}
       >
         {here.length ? (
-          <PeopleStack
-            members={here}
-            picture={picture}
-            max={TOOLBAR_FACES}
-            titles={false}
-          />
+          <PeopleStack members={here} picture={picture} max={TOOLBAR_FACES} />
         ) : (
           <Users />
         )}

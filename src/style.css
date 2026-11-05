@@ -2638,7 +2638,6 @@ textarea::placeholder {
 }
 .team {
   position: relative;
-  flex-shrink: 0;
   min-width: 0;
 }
 .team-button {
@@ -2661,6 +2660,7 @@ textarea::placeholder {
   --ring: var(--hover);
 }
 .team-elsewhere {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
