@@ -7,7 +7,7 @@ import type { ActivityCommit, BranchCommits } from "../activity";
 export const ACTIVITY_REFS_FORMAT = "%(refname)%00%(symref)%00%(objectname)";
 /** Mailmapped author, so one person with two spellings counts once. */
 export const ACTIVITY_LOG_FORMAT = "%H%x00%P%x00%aN%x00%aE%x00%ct";
-/** Enough for weeks of a busy team; older commits past it just go uncounted. */
+/** Enough for a year of a busy team; older commits past it just go uncounted. */
 export const ACTIVITY_LOG_LIMIT = 20_000;
 
 /** A branch tip: local ("feature/x") or a remote's copy ("origin/feature/x"). */
@@ -76,6 +76,13 @@ export function defaultBranch(
   return ["main", "master"].find((name) => names.has(name)) ?? null;
 }
 
+/**
+ * Branches a team shares besides the default one: many teams work on dev and
+ * bring it into main now and then. Other branches are cut from these, so what
+ * these hold isn't the other branches' own work.
+ */
+export const SHARED_BRANCHES = ["dev", "develop", "development"];
+
 type LogCommit = {
   parents: string[];
   name: string;
@@ -101,8 +108,9 @@ export function parseActivityLog(output: string) {
 /**
  * Splits recent commits into branches. The log holds only recent commits, so
  * walking parents from a tip stops where the window does: older commits have
- * no newer ancestors. A feature branch gets what its tips reach and the
- * default branch's don't; merges keep the walk going but aren't counted.
+ * no newer ancestors. The default branch gets all it reaches; a shared branch
+ * like dev, what the default branch doesn't reach; any other branch, what
+ * neither does. Merges keep the walk going but aren't counted.
  */
 export function branchCommits(
   refs: ActivityRef[],
@@ -122,7 +130,10 @@ export function branchCommits(
     return seen;
   };
   const tipsOf = (list: ActivityRef[]) => list.map((r) => r.tip);
+  const shared = (branch: string) =>
+    branch === base || SHARED_BRANCHES.includes(branch);
   const inBase = reach(tipsOf(refs.filter((r) => r.branch === base)));
+  const inShared = reach(tipsOf(refs.filter((r) => shared(r.branch))));
   const pushed = reach(tipsOf(refs.filter((r) => r.remote)));
 
   // One entry per branch name, local copy and server copies together, as the branch menu has them.
@@ -137,10 +148,12 @@ export function branchCommits(
     const tips = tipsOf(members).filter((tip) => log.has(tip));
     if (!tips.length) continue;
     const isBase = branch === base;
+    // What the branches it was cut from hold isn't its own work.
+    const taken = isBase ? null : shared(branch) ? inBase : inShared;
     const commits: ActivityCommit[] = [];
     for (const sha of reach(tips)) {
       const commit = log.get(sha)!;
-      if (commit.parents.length > 1 || (!isBase && inBase.has(sha))) continue;
+      if (commit.parents.length > 1 || taken?.has(sha)) continue;
       commits.push({
         sha,
         name: commit.name,

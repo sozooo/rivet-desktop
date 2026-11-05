@@ -35,7 +35,7 @@ export function BranchMenu({
   onSwitch: (target: string) => void;
   onNewBranch: () => void;
   onAllBranches: () => void;
-  /** Who worked on which branch lately: faces beside each branch. */
+  /** Who worked on which branch: faces beside each, faded for work long ago. */
   team?: Team;
 }) {
   const { t, mode } = useI18n();
@@ -75,9 +75,9 @@ export function BranchMenu({
       >
         {onServer ? <Cloud /> : <GitBranch />}
         <span>{label(name)}</span>
-        {team?.activity && (
+        {team?.history && (
           <PeopleStack
-            members={membersOf(activityFor(team.activity, name), team.mine)}
+            members={membersOf(activityFor(team.history, name), team.mine)}
             picture={team.picture}
             max={3}
           />

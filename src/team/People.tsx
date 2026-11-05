@@ -50,6 +50,8 @@ export function MemberAvatar({
       url={account?.avatarUrl}
       seed={member.key}
       title={title}
+      // Worked there long ago: still shown, but faded.
+      className={member.recent ? undefined : "quiet"}
     />
   );
 }

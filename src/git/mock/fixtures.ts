@@ -740,8 +740,9 @@ export function colleagueCommits(): {
 }
 
 /**
- * What teammates saved recently on the sample's other branches: who, and when
- * (Unix ms). The current branch and main come from the history instead.
+ * What teammates saved on the sample's other branches, lately and long ago:
+ * who, and when (Unix ms). The current branch and main come from the history
+ * instead.
  */
 export function branchWork(): Record<string, [Person, number][]> {
   return {
@@ -752,8 +753,12 @@ export function branchWork(): Record<string, [Person, number][]> {
       [people.sam, hours(26)],
       [people.kai, hours(30)],
       [people.sam, hours(50)],
+      [people.mira, days(45)],
     ],
-    "fix/camera-jitter": [[people.alex, days(3)]],
+    "fix/camera-jitter": [
+      [people.alex, days(3)],
+      [people.jamie, days(60)],
+    ],
     "origin/art/forest-textures": [
       [people.mira, minutes(40)],
       [people.dana, hours(5)],

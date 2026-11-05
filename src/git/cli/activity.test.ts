@@ -175,6 +175,20 @@ describe("branchActivity on a real repository", () => {
     // A shorter window drops older work: just over an hour leaves Bob's fix out.
     const recent = await backend.branchActivity(0.05);
     expect(recent.branches.map((b) => b.name)).toEqual(["feature/hair"]);
+
+    // A year comes from the same log: the old idea and main's start count too.
+    runs.length = 0;
+    const year = await backend.branchActivity(365);
+    expect(runs).toHaveLength(1);
+    expect(activityFor(year, "old/idea")!.authors).toMatchObject([
+      { name: "Bob Ray", commits: 1, last: Math.floor(days(21) / 1000) * 1000 },
+    ]);
+    expect(activityFor(year, "main")!.authors.map((a) => a.name)).toEqual([
+      "Bob Ray",
+      "Annie",
+      "Cleo Park",
+    ]);
+    expect(activityFor(year, "main")!.commits).toBe(5);
   });
 
   it("works without a server, and in a repository with no commits", async () => {
@@ -268,5 +282,29 @@ describe("branch activity parsing", () => {
       { name: "main", refs: ["main", "origin/main"], shas: ["m1+", "m2"] },
       { name: "feature", refs: ["feature"], shas: ["f1"] },
     ]);
+  });
+
+  it("counts dev as shared, so branches cut from it keep only their own work", () => {
+    // main: m1; dev: m1 <- d1 <- d2; art, cut from dev: d1 <- a1.
+    const log = parseActivityLog(
+      [
+        fields("a1", "d1", "Dana", "dana@x", "400"),
+        fields("d2", "d1", "Cleo", "cleo@x", "300"),
+        fields("d1", "m1", "Bob", "bob@x", "200"),
+        fields("m1", "", "Ann", "ann@x", "100"),
+      ].join("\n"),
+    );
+    const branches = branchCommits(
+      [
+        { ref: "main", remote: null, branch: "main", tip: "m1" },
+        { ref: "dev", remote: null, branch: "dev", tip: "d2" },
+        { ref: "art", remote: null, branch: "art", tip: "a1" },
+      ],
+      log,
+      "main",
+    );
+    expect(
+      branches.map((b) => `${b.name}: ${b.commits.map((c) => c.sha).sort()}`),
+    ).toEqual(["main: m1", "dev: d1,d2", "art: a1"]);
   });
 });

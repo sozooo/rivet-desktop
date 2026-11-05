@@ -2,7 +2,9 @@ import {
   ACTIVITY_DAYS,
   DAY,
   groupActivity,
+  HISTORY_DAYS,
   type BranchActivity,
+  type BranchCommits,
 } from "../activity";
 import type { GitBackend, TransferOptions } from "../backend";
 import { localName } from "../branches";
@@ -129,6 +131,13 @@ const PROJECT_VERSION = "ProjectSettings/ProjectVersion.txt";
 /** The operation under way, and the files git said conflict when it stopped. */
 type OperationState = { operation: Operation | null; conflicts: string[] };
 
+/** Every branch's commits over HISTORY_DAYS, which activity windows are cut from. */
+type ActivityHistory = {
+  base: string | null;
+  remoteUrl: string | null;
+  branches: BranchCommits[];
+};
+
 type Tracked = {
   entry: StatusEntry;
   /** Selected parts first, then the rest, in the same order as FileChange.hunks. */
@@ -170,8 +179,15 @@ export class CliBackend implements GitBackend {
   };
   /** The last fetch, pull or push: they take turns, since each moves remote refs. */
   private remoteTurn: Promise<unknown> = Promise.resolve();
-  /** Who worked where, kept while the branch tips stay put (and for an hour at most). */
-  private activity?: { key: string; result: Promise<BranchActivity> };
+  /**
+   * Who worked where: a year of history, kept while the branch tips stay put
+   * (and for an hour at most), and each window asked for so far.
+   */
+  private activity?: {
+    key: string;
+    history: Promise<ActivityHistory>;
+    windows: Map<number, Promise<BranchActivity>>;
+  };
 
   constructor(private git: GitRunner) {}
 
@@ -754,20 +770,29 @@ export class CliBackend implements GitBackend {
       "refs/remotes",
     ]);
     // Commits, fetches, pulls and pushes all move a tip; time moves the window.
-    const key = [days, Math.floor(Date.now() / 3_600_000), refsOut].join("\n");
+    const key = [Math.floor(Date.now() / 3_600_000), refsOut].join("\n");
     if (this.activity?.key !== key) {
-      const result = this.loadActivity(refsOut, days);
-      this.activity = { key, result };
-      result.catch(() => {
-        if (this.activity?.result === result) this.activity = undefined;
+      const history = this.loadActivity(refsOut);
+      this.activity = { key, history, windows: new Map() };
+      history.catch(() => {
+        if (this.activity?.history === history) this.activity = undefined;
       });
     }
-    return this.activity.result;
+    const { history, windows } = this.activity;
+    let result = windows.get(days);
+    if (!result) {
+      result = history.then((loaded) =>
+        groupActivity({ ...loaded, since: Date.now() - days * DAY, days }),
+      );
+      windows.set(days, result);
+    }
+    return result;
   }
 
-  private async loadActivity(refsOut: string, days: number) {
+  /** A year of every branch's commits; the windows are cut from it. */
+  private async loadActivity(refsOut: string): Promise<ActivityHistory> {
     const { refs, heads } = parseActivityRefs(refsOut);
-    const since = Date.now() - days * DAY;
+    const since = Date.now() - HISTORY_DAYS * DAY;
     const [logOut, urlsOut] = await Promise.all([
       refs.length
         ? this.run([
@@ -785,13 +810,11 @@ export class CliBackend implements GitBackend {
     const urls = parseRemoteUrls(urlsOut);
     const remote = mainRemote(refs, urls);
     const base = defaultBranch(refs, heads, remote);
-    return groupActivity({
-      since,
-      days,
+    return {
       base,
       remoteUrl: (remote && urls.get(remote)) ?? null,
       branches: branchCommits(refs, parseActivityLog(logOut), base),
-    });
+    };
   }
 
   async stashFiles(index: number) {

@@ -75,19 +75,24 @@ export function BranchesView({
               >
                 <Icon size={16} />
                 <span>{b}</span>
-                {team.activity && (
+                {team.history && (
                   <PeopleStack
-                    members={membersOf(
-                      activityFor(team.activity, b),
-                      team.mine,
-                    )}
+                    members={membersOf(activityFor(team.history, b), team.mine)}
                     picture={team.picture}
                     max={3}
                   />
                 )}
-                {b === branches.current && (
-                  <Check size={14} aria-label={t("branches.current")} />
-                )}
+                {/* Always there, so the faces line up whichever row is current. */}
+                <Check
+                  size={14}
+                  className={
+                    b === branches.current ? "row-check" : "row-check off"
+                  }
+                  aria-label={
+                    b === branches.current ? t("branches.current") : undefined
+                  }
+                  aria-hidden={b !== branches.current}
+                />
               </button>
             ))}
         </section>

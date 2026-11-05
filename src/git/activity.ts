@@ -6,7 +6,18 @@ import type { Person } from "./types";
  */
 export const ACTIVITY_DAYS = 14;
 
+/**
+ * How far back "who worked on a branch" goes, for whose branch it is even
+ * when it has been quiet for a while. Backends read history this far once,
+ * and every shorter window comes from that.
+ */
+export const HISTORY_DAYS = 365;
+
 export const DAY = 86_400_000;
+
+/** Worked somewhere within ACTIVITY_DAYS: around now, not long ago. */
+export const isRecent = (last: number, now = Date.now()) =>
+  last >= now - ACTIVITY_DAYS * DAY;
 
 /** One commit, as far as activity goes: who saved it and when. */
 export type ActivityCommit = {
@@ -38,8 +49,9 @@ export type ActiveBranch = {
   /** Every branch name this stands for, e.g. "feature/x" and "origin/feature/x". */
   refs: string[];
   /**
-   * The default branch counts all its recent commits; every other branch
-   * counts only the ones the default branch doesn't have.
+   * The default branch counts all its recent commits; a shared one like dev,
+   * those the default branch doesn't have; every other branch, those neither
+   * has.
    */
   isBase: boolean;
   commits: number;

@@ -1,5 +1,6 @@
 import {
   activityFor,
+  isRecent,
   personKey,
   type ActiveBranch,
   type BranchActivity,
@@ -7,8 +8,15 @@ import {
 } from "../git/activity";
 import type { GitHubUser } from "../github/api";
 
-/** Someone who worked on a branch, and whether that's the person using Rivet. */
-export type Member = BranchAuthor & { key: string; you: boolean };
+/**
+ * Someone who worked on a branch, whether that's the person using Rivet, and
+ * whether they worked there lately or only long ago.
+ */
+export type Member = BranchAuthor & {
+  key: string;
+  you: boolean;
+  recent: boolean;
+};
 
 /**
  * Addresses that mean "me", lower-cased: git's user.email, and the signed-in
@@ -27,16 +35,26 @@ export function myEmails(
   return new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean));
 }
 
-/** A branch's people: teammates by most recent work, then me. */
+/**
+ * A branch's people: teammates by most recent work, then me; those who worked
+ * there only long ago come after, in the same order.
+ */
 export function membersOf(
   branch: ActiveBranch | undefined,
   mine: Set<string>,
+  now = Date.now(),
 ): Member[] {
   const members = (branch?.authors ?? []).map((author) => {
     const key = personKey(author);
-    return { ...author, key, you: mine.has(key) };
+    return {
+      ...author,
+      key,
+      you: mine.has(key),
+      recent: isRecent(author.last, now),
+    };
   });
-  return [...members.filter((m) => !m.you), ...members.filter((m) => m.you)];
+  const rank = (m: Member) => (m.recent ? 0 : 2) + (m.you ? 1 : 0);
+  return members.sort((a, b) => rank(a) - rank(b));
 }
 
 export type TeamSummary = {

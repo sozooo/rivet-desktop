@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { groupActivity, type ActivityCommit } from "../git/activity";
+import {
+  ACTIVITY_DAYS,
+  DAY,
+  groupActivity,
+  type ActivityCommit,
+} from "../git/activity";
 import { membersOf, myEmails, summarize } from "./members";
 
 const commit = (
@@ -82,6 +87,22 @@ describe("summarize", () => {
       ["Me", true],
     ]);
     expect(membersOf(undefined, mine)).toEqual([]);
+  });
+
+  it("puts those who worked there only long ago after me", () => {
+    // Two weeks after 400: Ann and I count as lately, Bob as long ago.
+    const now = 400 + ACTIVITY_DAYS * DAY;
+    expect(
+      membersOf(
+        activity.branches.find((b) => b.name === "feature"),
+        mine,
+        now,
+      ).map((m) => [m.name, m.recent]),
+    ).toEqual([
+      ["Ann", true],
+      ["Me", true],
+      ["Bob", false],
+    ]);
   });
 
   it("splits people into this branch and the others", () => {

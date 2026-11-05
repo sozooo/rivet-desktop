@@ -4,18 +4,21 @@ import { membersOf } from "./members";
 import { MemberAvatar, useMemberName } from "./People";
 import type { Team } from "./useTeam";
 
-/** The Branches view's card of who worked on the selected branch lately. */
+/**
+ * The Branches view's card of who worked on the selected branch over the last
+ * year: whose branch it is, with those from long ago faded.
+ */
 export function BranchTeam({ team, branch }: { team: Team; branch: string }) {
   const { t, timeAgo } = useI18n();
   const name = useMemberName();
-  const { activity, mine, picture } = team;
-  if (!activity) return null;
-  const members = membersOf(activityFor(activity, branch), mine);
+  const { history, mine, picture } = team;
+  if (!history) return null;
+  const members = membersOf(activityFor(history, branch), mine);
   return (
     <div className="branch-card branch-team">
       <div className="branch-card-title branch-team-title">
         <strong>{t("branches.team")}</strong>
-        <span>{t("team.window", { count: activity.days })}</span>
+        <span>{t("team.history")}</span>
       </div>
       {members.length ? (
         <div className="branch-team-list">
@@ -33,9 +36,7 @@ export function BranchTeam({ team, branch }: { team: Team; branch: string }) {
           ))}
         </div>
       ) : (
-        <div className="card-note">
-          {t("team.nobodyHere", { count: activity.days })}
-        </div>
+        <div className="card-note">{t("team.nobodyInHistory")}</div>
       )}
     </div>
   );

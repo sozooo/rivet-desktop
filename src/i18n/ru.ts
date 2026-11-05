@@ -636,6 +636,10 @@ export const ru: Record<keyof typeof en, Message> = {
     many: "За последние {count} дней здесь ничего не сохраняли",
     other: "За последние {count} дня здесь ничего не сохраняли",
   },
+  "team.history": "По коммитам за последний год",
+  "team.history@simple": "По версиям, сохранённым за последний год",
+  "team.nobodyInHistory": "За последний год коммитов не было",
+  "team.nobodyInHistory@simple": "За последний год здесь ничего не сохраняли",
   "team.switchTo": "Перейти на ветку {branch}",
   "team.versions": {
     one: "{count} коммит",
