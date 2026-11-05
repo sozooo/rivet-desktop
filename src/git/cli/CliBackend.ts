@@ -1159,6 +1159,10 @@ export class CliBackend implements GitBackend {
     if (moved.length) await this.run(["add", "--renormalize", "--", ...moved]);
   }
 
+  pendingLfs() {
+    return pendingLfs(this.git);
+  }
+
   async lfsPull(options?: TransferOptions) {
     const onProgress = options?.onProgress;
     // Knowing the sizes ahead lets progress count bytes from the first file on.

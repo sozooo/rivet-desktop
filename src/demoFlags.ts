@@ -11,7 +11,7 @@ const params = new URLSearchParams(
 
 export const demoFlags = {
   git: params.get("git") as "missing" | "old" | "offline" | null,
-  lfs: params.get("lfs") as "missing" | null,
+  lfs: params.get("lfs") as "missing" | "pending" | null,
   identity: params.get("identity") as "empty" | null,
   fail: params.get("fail"),
   crash: params.has("crash"),

@@ -60,7 +60,7 @@ src/
 src-tauri/      Rust: runs git, reads files, finds repositories, keeps the GitHub token and the log
 ```
 
-The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`). `?gitignore=missing` shows a sample project whose Unity folders aren't ignored, and `?gitignore=committed` one that committed them. `?open=unity,blender` (or just one of them) pretends Unity has the project open and Blender has `Art/Tree.blend` open with unsaved changes, so syncing, switching branches or discarding a scene asks to save first.
+The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?lfs=pending` (large files not downloaded yet), `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`). `?gitignore=missing` shows a sample project whose Unity folders aren't ignored, and `?gitignore=committed` one that committed them. `?open=unity,blender` (or just one of them) pretends Unity has the project open and Blender has `Art/Tree.blend` open with unsaved changes, so syncing, switching branches or discarding a scene asks to save first.
 
 Unity's `.gitignore` is GitHub's template, vendored in `src/unity/Unity.gitignore` (its header names the commit) with a few Rivet additions at the end.
 

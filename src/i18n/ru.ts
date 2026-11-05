@@ -1079,6 +1079,22 @@ export const ru: Record<keyof typeof en, Message> = {
   "lfs.download": "Скачать файлы LFS",
   "lfs.download@simple": "Скачать файлы",
   "lfs.downloading": "Скачиваю…",
+  "lfs.pendingTitle": "Часть больших файлов не скачана",
+  "lfs.pending": {
+    one: "{count} файл LFS ({size}) пока только указатель. Докачайте его, чтобы Unity получил настоящий файл.",
+    few: "{count} файла LFS ({size}) пока только указатели. Докачайте их, чтобы Unity получил настоящие файлы.",
+    many: "{count} файлов LFS ({size}) пока только указатели. Докачайте их, чтобы Unity получил настоящие файлы.",
+    other:
+      "{count} файла LFS ({size}) пока только указатели. Докачайте их, чтобы Unity получил настоящие файлы.",
+  },
+  "lfs.pending@simple": {
+    one: "{count} большой файл ({size}) ещё не скачан. Пока его нет, Unity покажет его пустым.",
+    few: "{count} больших файла ({size}) ещё не скачаны. Пока их нет, Unity покажет их пустыми.",
+    many: "{count} больших файлов ({size}) ещё не скачаны. Пока их нет, Unity покажет их пустыми.",
+    other:
+      "{count} больших файла ({size}) ещё не скачаны. Пока их нет, Unity покажет их пустыми.",
+  },
+  "lfs.resume": "Докачать",
   "lfs.downloaded": "Файлы LFS скачаны.",
   "lfs.downloaded@simple": "Файлы скачаны.",
 

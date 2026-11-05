@@ -159,6 +159,28 @@ describe("CliBackend on a real repository", () => {
     );
   });
 
+  it("counts LFS files that are only pointers on this computer", async () => {
+    const { dir, backend } = await repoWithCommit();
+    const content = new Uint8Array(2048).fill(7);
+    const oid = createHash("sha256").update(content).digest("hex");
+    write(dir, ".gitattributes", "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+    write(
+      dir,
+      "Art/Tree.psd",
+      `version https://git-lfs.github.com/spec/v1\noid sha256:${oid}\nsize ${content.length}\n`,
+    );
+    git(dir, "add", "-A");
+    git(dir, "commit", "-q", "-m", "Tree");
+    expect(await backend.pendingLfs()).toEqual({ files: 1, bytes: 2048 });
+
+    write(
+      dir,
+      `.git/lfs/objects/${oid.slice(0, 2)}/${oid.slice(2, 4)}/${oid}`,
+      content,
+    );
+    expect(await backend.pendingLfs()).toEqual({ files: 0, bytes: 0 });
+  });
+
   it("detects renames and discards every kind of change", async () => {
     const { dir, backend } = await repoWithCommit();
     git(dir, "mv", "README.md", "About.md");

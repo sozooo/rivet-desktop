@@ -976,6 +976,18 @@ export const en = {
   "lfs.download": "Download LFS files",
   "lfs.download@simple": "Download the files",
   "lfs.downloading": "Downloading…",
+  "lfs.pendingTitle": "Some large files aren't here yet",
+  "lfs.pending": {
+    one: "{count} LFS file ({size}) is still only a pointer. Download it so Unity gets the real file.",
+    other:
+      "{count} LFS files ({size}) are still only pointers. Download them so Unity gets the real files.",
+  },
+  "lfs.pending@simple": {
+    one: "{count} large file ({size}) hasn't been downloaded yet. Until it is, Unity shows it as empty.",
+    other:
+      "{count} large files ({size}) haven't been downloaded yet. Until they are, Unity shows them as empty.",
+  },
+  "lfs.resume": "Download the rest",
   "lfs.downloaded": "LFS files downloaded.",
   "lfs.downloaded@simple": "Files downloaded.",
 

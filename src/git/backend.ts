@@ -90,6 +90,11 @@ export interface GitBackend {
   setupLfs(patterns: string[]): Promise<void>;
   /** Downloads LFS files that are only pointers so far. */
   lfsPull(options?: TransferOptions): Promise<void>;
+  /**
+   * The current version's LFS files that are still only pointers here, e.g.
+   * after a project was opened without its art; null when git-lfs can't tell.
+   */
+  pendingLfs(): Promise<{ files: number; bytes: number } | null>;
   /** Lets git merge Unity scenes and prefabs with UnityYAMLMerge at `tool`. */
   setupSmartMerge(tool: string): Promise<void>;
 

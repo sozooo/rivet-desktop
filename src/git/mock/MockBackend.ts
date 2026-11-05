@@ -531,6 +531,13 @@ export class MockBackend implements GitBackend {
     this.lfsDownloaded = true;
   }
 
+  async pendingLfs() {
+    // `?lfs=pending` shows a project opened without part of its art.
+    return demoFlags.lfs === "pending" && !this.lfsDownloaded
+      ? { files: 12, bytes: 356_515_840 }
+      : null;
+  }
+
   async setupSmartMerge() {
     if (this.smartMerge === undefined)
       throw new Error("This is not a Unity project.");

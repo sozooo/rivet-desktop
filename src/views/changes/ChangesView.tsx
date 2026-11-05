@@ -27,6 +27,7 @@ import { Composer } from "./Composer";
 import { ConflictView, useConflictNote } from "./ConflictView";
 import { GeneratedHint } from "./GeneratedHint";
 import { LfsHint } from "./LfsHint";
+import { LfsPendingHint } from "./LfsPendingHint";
 import { MergeBanner } from "./MergeBanner";
 import { StashDetail, StashList, useStashName } from "./Stashes";
 
@@ -207,6 +208,7 @@ export function ChangesView({
           </>
         ) : (
           <>
+            <LfsPendingHint repo={repo} />
             <GeneratedHint repo={repo} />
             <LfsHint repo={repo} />
             <div className="group-heading changes-heading">
