@@ -8,9 +8,13 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import { activityFor } from "../git/activity";
 import { localName, remoteOnly } from "../git/branches";
 import type { RepoSnapshot } from "../git/types";
 import { useI18n } from "../i18n/i18n";
+import { membersOf } from "../team/members";
+import { PeopleStack } from "../team/People";
+import type { Team } from "../team/useTeam";
 import { useDismiss } from "../ui/hooks";
 
 /** From this many branches on, finding one by eye gets slow. */
@@ -23,6 +27,7 @@ export function BranchMenu({
   onSwitch,
   onNewBranch,
   onAllBranches,
+  team,
 }: {
   branches: RepoSnapshot["branches"];
   /** Why switching has to wait, e.g. a merge in progress. */
@@ -30,6 +35,8 @@ export function BranchMenu({
   onSwitch: (target: string) => void;
   onNewBranch: () => void;
   onAllBranches: () => void;
+  /** Who worked on which branch lately: faces beside each branch. */
+  team?: Team;
 }) {
   const { t, mode } = useI18n();
   const [open, setOpen] = useState(false);
@@ -68,7 +75,15 @@ export function BranchMenu({
       >
         {onServer ? <Cloud /> : <GitBranch />}
         <span>{label(name)}</span>
-        {current && <Check />}
+        {team?.activity && (
+          <PeopleStack
+            members={membersOf(activityFor(team.activity, name), team.mine)}
+            picture={team.picture}
+            max={3}
+          />
+        )}
+        {/* Always there, so the faces line up whichever row is current. */}
+        <Check className="branch-check" aria-hidden={!current} />
       </button>
     );
   }

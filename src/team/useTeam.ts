@@ -15,12 +15,16 @@ const requests = new WeakMap<RepoSnapshot, Promise<BranchActivity>>();
  * commits, fetches, syncs and switching. The backend answers from its cache
  * while no branch moved. Keeps the last answer while the next one loads.
  */
-export function useBranchActivity(backend: GitBackend, snapshot: RepoSnapshot) {
+export function useBranchActivity(
+  backend: GitBackend,
+  snapshot: RepoSnapshot | undefined,
+) {
   const [state, setState] = useState<{
     backend: GitBackend;
     activity: BranchActivity;
   }>();
   useEffect(() => {
+    if (!snapshot) return;
     let live = true;
     let request = requests.get(snapshot);
     if (!request) {
@@ -39,14 +43,18 @@ export function useBranchActivity(backend: GitBackend, snapshot: RepoSnapshot) {
   return state?.backend === backend ? state.activity : undefined;
 }
 
-/** The team view's data: activity, who "me" is, and people's pictures. */
-export function useTeam({ backend, snapshot }: RepoApi) {
+/**
+ * The team view's data: activity, who "me" is, and people's pictures. The
+ * snapshot may still be loading, for the workspace's own top bar.
+ */
+export function useTeam({
+  backend,
+  snapshot,
+}: Pick<RepoApi, "backend"> & { snapshot: RepoSnapshot | undefined }) {
   const activity = useBranchActivity(backend, snapshot);
   const { user } = useAccount();
-  const mine = useMemo(
-    () => myEmails(snapshot.user.email, user),
-    [snapshot.user.email, user],
-  );
+  const email = snapshot?.user.email ?? "";
+  const mine = useMemo(() => myEmails(email, user), [email, user]);
   const picture = useGitHubPictures(activity, user, mine);
   return { activity, mine, picture };
 }

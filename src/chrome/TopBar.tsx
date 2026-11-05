@@ -21,6 +21,7 @@ import { progressDetail } from "../sync/progressText";
 import { useDismiss } from "../ui/hooks";
 import { BranchMenu } from "./BranchMenu";
 import { SyncButton } from "./SyncButton";
+import type { Team } from "../team/useTeam";
 
 /** Re-renders every minute so relative times stay fresh. */
 function useMinuteTick() {
@@ -52,6 +53,7 @@ export function TopBar({
   onNewBranch,
   onPullRequests,
   middle,
+  team,
 }: {
   snapshot: RepoSnapshot;
   repository: Repository;
@@ -80,6 +82,8 @@ export function TopBar({
   onPullRequests: () => void;
   /** Between the branch and the actions: search, and who works where. */
   middle?: ReactNode;
+  /** Who worked on which branch, for faces in the branch menu. */
+  team?: Team;
 }) {
   useMinuteTick();
   const { t, mode, timeAgo, language } = useI18n();
@@ -205,6 +209,7 @@ export function TopBar({
               onSwitch={onSwitchBranch}
               onNewBranch={onNewBranch}
               onAllBranches={onBranches}
+              team={team}
             />
             <button
               className="fetch-control"

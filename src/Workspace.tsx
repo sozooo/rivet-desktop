@@ -9,6 +9,7 @@ import {
 import { NavRail, type Mode } from "./chrome/NavRail";
 import { StatusBar } from "./chrome/StatusBar";
 import { ToolbarMiddle } from "./chrome/ToolbarMiddle";
+import { useTeam } from "./team/useTeam";
 import { TopBar } from "./chrome/TopBar";
 import { SettingsDialog, ShortcutsDialog } from "./dialogs/InfoDialogs";
 import { OpenAppsDialog } from "./dialogs/OpenAppsDialog";
@@ -231,6 +232,9 @@ export function Workspace({
     setCancel(handle);
     return handle;
   }
+
+  // Who worked where, for the faces in the branch menu.
+  const team = useTeam({ backend, snapshot });
 
   // Teammates' work shows up by itself, with one button to bring it in.
   useBackgroundFetch({
@@ -466,6 +470,7 @@ export function Workspace({
     <PreviewContext.Provider value={preview}>
       <TopBar
         middle={<ToolbarMiddle repo={repo} />}
+        team={team}
         snapshot={snapshot}
         repository={repository}
         repositories={repositories}

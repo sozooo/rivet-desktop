@@ -2802,8 +2802,11 @@ textarea::placeholder {
 .branch-list button[aria-checked="true"] {
   font-weight: 600;
 }
-.branch-list button > svg:last-child:not(:first-child) {
+.branch-list button > .branch-check {
   color: var(--accent);
+}
+.branch-list button[aria-checked="false"] > .branch-check {
+  visibility: hidden;
 }
 .dropdown button:disabled:hover {
   background: none;
@@ -4872,4 +4875,17 @@ img.avatar {
   font-size: var(--text-small);
   color: var(--muted);
   border-top: 1px solid var(--border);
+}
+/* Faces of who worked on each branch, small enough for a menu row. */
+.branch-list button > .people {
+  --ring: var(--surface);
+  flex: 0 0 auto;
+  overflow: visible;
+}
+.branch-list .people .avatar {
+  width: 18px;
+  height: 18px;
+}
+.branch-list button:hover .people {
+  --ring: var(--hover);
 }
