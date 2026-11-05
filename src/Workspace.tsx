@@ -8,6 +8,7 @@ import {
 } from "react";
 import { NavRail, type Mode } from "./chrome/NavRail";
 import { StatusBar } from "./chrome/StatusBar";
+import { ToolbarMiddle } from "./chrome/ToolbarMiddle";
 import { TopBar } from "./chrome/TopBar";
 import { SettingsDialog, ShortcutsDialog } from "./dialogs/InfoDialogs";
 import { OpenAppsDialog } from "./dialogs/OpenAppsDialog";
@@ -435,6 +436,7 @@ export function Workspace({
   return (
     <PreviewContext.Provider value={preview}>
       <TopBar
+        middle={<ToolbarMiddle repo={repo} />}
         snapshot={snapshot}
         repository={repository}
         repositories={repositories}

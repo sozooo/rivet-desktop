@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -51,6 +51,7 @@ export function TopBar({
   onPush,
   onNewBranch,
   onPullRequests,
+  middle,
 }: {
   snapshot: RepoSnapshot;
   repository: Repository;
@@ -77,6 +78,8 @@ export function TopBar({
   onPush: () => void;
   onNewBranch: () => void;
   onPullRequests: () => void;
+  /** Between the branch and the actions: search, and who works where. */
+  middle?: ReactNode;
 }) {
   useMinuteTick();
   const { t, mode, timeAgo, language } = useI18n();
@@ -233,6 +236,7 @@ export function TopBar({
             )}
           </div>
         </div>
+        {middle}
         <div className="top-actions">
           {simple ? (
             <SyncButton
