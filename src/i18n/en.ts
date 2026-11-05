@@ -487,6 +487,9 @@ export const en = {
   "diff.split": "Side-by-side diff",
   "diff.actions": "File actions",
   "diff.reveal": "Show in folder",
+  "diff.limited":
+    "Showing the first {shown} of {total} lines, so the window stays quick.",
+  "diff.showAll": "Show all lines",
   "diff.copyPath": "Copy path",
   "diff.discard": "Discard changes…",
   "diff.discard@simple": "Undo my changes…",

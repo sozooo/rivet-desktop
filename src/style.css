@@ -4392,3 +4392,13 @@ img.avatar {
   margin-top: 2px;
   color: var(--warn);
 }
+/* A huge diff shows its first lines; the rest is one click away. */
+.diff-limit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  font-size: var(--text-small);
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}

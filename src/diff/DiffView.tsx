@@ -21,6 +21,7 @@ import { FileIcon, StatusIcon } from "../ui/FileIcon";
 import { useDismiss, useStoredState } from "../ui/hooks";
 import { useNotify } from "../ui/Toast";
 import { DiffHunk } from "./DiffHunk";
+import { limitHunks } from "./limit";
 
 export function DiffView({
   file,
@@ -54,7 +55,7 @@ export function DiffView({
   const menuRef = useRef<HTMLDivElement>(null);
   useDismiss(menuRef, menu, () => setMenu(false));
   const notify = useNotify();
-  const { t, mode } = useI18n();
+  const { t, mode, language } = useI18n();
   const sides = useContext(SideLabels);
   const { reveal } = useContext(PreviewContext);
   // Simple mode keeps one plain view: no layout or whitespace switches.
@@ -64,9 +65,14 @@ export function DiffView({
   const textFirst = kind === "unity-yaml" && advanced;
   const [asText, setAsText] = useState(textFirst);
   useEffect(() => setAsText(textFirst), [file?.path, textFirst]);
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => setShowAll(false), [file?.path]);
 
   if (!file) return <>{empty}</>;
   const { added, removed } = lineStats(file.hunks);
+  const limited = showAll
+    ? { hunks: file.hunks, shown: 0, total: 0 }
+    : limitHunks(file.hunks);
   const folder = dirName(file.path);
   const preview = kind !== "code" && !!revisions && !asText;
   const canToggle =
@@ -205,7 +211,7 @@ export function DiffView({
           </div>
         )}
         {!preview &&
-          file.hunks.map((hunk, i) => (
+          limited.hunks.map((hunk, i) => (
             <DiffHunk
               key={i}
               hunk={hunk}
@@ -214,6 +220,19 @@ export function DiffView({
               onToggle={onToggleHunk && (() => onToggleHunk(i))}
             />
           ))}
+        {!preview && limited.shown < limited.total && (
+          <div className="diff-limit">
+            <span>
+              {t("diff.limited", {
+                shown: limited.shown.toLocaleString(language),
+                total: limited.total.toLocaleString(language),
+              })}
+            </span>
+            <button className="text-button" onClick={() => setShowAll(true)}>
+              {t("diff.showAll")}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

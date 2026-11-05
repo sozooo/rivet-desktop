@@ -543,6 +543,9 @@ export const ru: Record<keyof typeof en, Message> = {
   "diff.split": "Рядом",
   "diff.actions": "Действия с файлом",
   "diff.reveal": "Показать в папке",
+  "diff.limited":
+    "Показаны первые {shown} из {total} строк, чтобы окно не тормозило.",
+  "diff.showAll": "Показать все строки",
   "diff.copyPath": "Скопировать путь",
   "diff.discard": "Отменить изменения…",
   "diff.discard@simple": "Вернуть как было…",
