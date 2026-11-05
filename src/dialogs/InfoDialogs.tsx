@@ -260,6 +260,7 @@ function VersionLine() {
 }
 
 const shortcuts: [string, Key][] = [
+  ["Ctrl + K", "shortcuts.search"],
   ["Ctrl + Enter", "shortcuts.commit"],
   ["Ctrl + =  /  Ctrl + −", "shortcuts.zoom"],
   ["Ctrl + 0", "shortcuts.zoomReset"],

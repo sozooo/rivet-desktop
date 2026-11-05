@@ -30,6 +30,7 @@ import type {
 import {
   FILE_LOG_FORMAT,
   LOG_FORMAT,
+  RECENT_FORMAT,
   STASH_FORMAT,
   conflictPaths,
   fileStatus,
@@ -39,6 +40,7 @@ import {
   parseDiff,
   parseFileLog,
   parseLog,
+  parseRecentFiles,
   parseRefs,
   parseStages,
   parseStashList,
@@ -703,6 +705,26 @@ export class CliBackend implements GitBackend {
       literal(path),
     ]);
     return parseFileLog(out, this.branch, path);
+  }
+
+  async trackedFiles() {
+    const out = await this.run(["ls-files", "-z"]);
+    // A conflicted file is listed once per side.
+    return [...new Set(out.split("\0").filter(Boolean))];
+  }
+
+  async recentFiles(commits: number) {
+    // An empty repository has no HEAD to read.
+    const out = await this.tryRun([
+      "log",
+      `-n${commits}`,
+      "-z",
+      "--no-renames",
+      "--name-status",
+      `--format=${RECENT_FORMAT}`,
+      "HEAD",
+    ]);
+    return parseRecentFiles(out);
   }
 
   async stashFiles(index: number) {

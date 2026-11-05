@@ -100,10 +100,16 @@ export function Workspace({
   const [cancel, setCancel] = useState<CancelHandle | null>(null);
   const cancellable = useCancelAvailable(cancel);
   const [checking, setChecking] = useState(false);
-  /** A file to show when another view sends the user to Changes or History. */
-  const [focus, setFocus] = useState<{ changes?: string; history?: string }>(
-    {},
-  );
+  /** A file or commit to show when another view sends the user to Changes or History. */
+  const [focus, setFocus] = useState<{
+    changes?: string;
+    history?: string;
+    commit?: string;
+  }>({});
+  /** Each time something is sent to a view, it starts over on it. */
+  const [jumps, setJumps] = useState({ changes: 0, history: 0 });
+  const jump = (view: keyof typeof jumps) =>
+    setJumps((j) => ({ ...j, [view]: j[view] + 1 }));
   const [sidebarOpen, setSidebarOpen] = useStoredState(
     "rivet.sidebar.open",
     true,
@@ -351,11 +357,34 @@ export function Workspace({
     askBeforeRewrite,
     showChanges: (path) => {
       setFocus({ changes: path });
+      jump("changes");
       setMode("Changes");
     },
     showFileHistory: (path) => {
       setFocus({ history: path });
+      jump("history");
       setMode("History");
+    },
+    showCommit: (sha) => {
+      setFocus({ commit: sha });
+      jump("history");
+      setMode("History");
+    },
+    switchBranch,
+    blocked:
+      snapshot.operation || unresolved(snapshot.files).length
+        ? t("top.syncMerging")
+        : working
+          ? t("top.busy")
+          : null,
+    command: (id) => {
+      if (id === "fetch") return fetchRemote();
+      if (id === "theme") return preferences.setTheme(dark ? "light" : "dark");
+      if (id === "history" || id === "branches") {
+        setFocus({});
+        return setMode(id === "history" ? "History" : "Branches");
+      }
+      setDialog({ kind: id });
     },
   };
 
@@ -485,16 +514,18 @@ export function Workspace({
         >
           {view === "Changes" ? (
             <ChangesView
+              key={jumps.changes}
               repo={repo}
               phase={phase}
               initialPath={focus.changes}
             />
           ) : view === "History" ? (
             <HistoryView
-              key={focus.history}
+              key={`${focus.history ?? focus.commit}:${jumps.history}`}
               repo={repo}
               phase={phase}
               initialFile={focus.history}
+              initialCommit={focus.commit}
             />
           ) : (
             <BranchesView

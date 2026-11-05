@@ -3,6 +3,7 @@ import type {
   DiffLine,
   FileStatus,
   FileVersion,
+  RecentFile,
   StashEntry,
 } from "../types";
 
@@ -325,6 +326,37 @@ export function parseFileLog(
         status: STATUS_LETTERS[fields[0]?.[0]] ?? "modified",
       };
     });
+}
+
+/** For `git log -z --no-renames --name-status`: each commit's sha and time, then its files. */
+export const RECENT_FORMAT = "%x1e%H%x1f%at";
+
+/**
+ * Each file once, as of the newest commit that changed it. With -z a commit
+ * is "\x1e<sha>\x1f<time>\0", then "\n" and "<status>\0<path>\0" pairs.
+ */
+export function parseRecentFiles(output: string): RecentFile[] {
+  const seen = new Map<string, RecentFile>();
+  for (const record of output.split("\x1e")) {
+    const head = record.indexOf("\0");
+    if (head < 0) continue;
+    const [sha, time] = record.slice(0, head).split("\x1f");
+    const fields = record
+      .slice(head + 1)
+      .replace(/^\n/, "")
+      .split("\0");
+    for (let i = 0; i + 1 < fields.length; i += 2) {
+      const [status, path] = [fields[i], fields[i + 1]];
+      if (!path || seen.has(path)) continue;
+      seen.set(path, {
+        path,
+        sha,
+        date: Number(time) * 1000,
+        deleted: status === "D",
+      });
+    }
+  }
+  return [...seen.values()];
 }
 
 // ---------------------------------------------------------------------------

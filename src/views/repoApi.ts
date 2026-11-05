@@ -4,6 +4,10 @@ import type { RepoSnapshot } from "../git/types";
 import type { Rewrites } from "../openApps/openApps";
 import type { Repository } from "../repositories";
 
+/** The workspace's own commands, which search offers as actions. */
+export type WorkspaceCommand =
+  "fetch" | "history" | "branches" | "settings" | "shortcuts" | "theme";
+
 /** What every view gets from the workspace for the open repository. */
 export type RepoApi = {
   repository: Repository;
@@ -30,4 +34,18 @@ export type RepoApi = {
   showChanges: (path?: string) => void;
   /** Opens History on the commits that changed one file. */
   showFileHistory: (path: string) => void;
+  /** Opens History on one commit. */
+  showCommit: (sha: string) => void;
+  /**
+   * Switches to a local or server branch as the branch menu does: asks first
+   * only when there are unsaved changes.
+   */
+  switchBranch: (target: string) => void;
+  /**
+   * Why syncing and switching branches have to wait (a merge to finish, or
+   * an operation under way), or null when they can go ahead.
+   */
+  blocked: string | null;
+  /** Runs one of the workspace's own commands. */
+  command: (id: WorkspaceCommand) => void;
 };

@@ -7,6 +7,7 @@ import type {
   Divergence,
   FileChange,
   FileVersion,
+  RecentFile,
   RepoSnapshot,
   Revision,
   Side,
@@ -44,6 +45,13 @@ export interface GitBackend {
   resolveGuid?(guid: string): Promise<string | null>;
   /** Commits that changed a file, newest first, following renames. */
   fileHistory(path: string): Promise<FileVersion[]>;
+  /** Every file git tracks, by repository path, each once. */
+  trackedFiles(): Promise<string[]>;
+  /**
+   * Files the latest `commits` commits on HEAD changed, deleted ones too,
+   * newest first and each once.
+   */
+  recentFiles(commits: number): Promise<RecentFile[]>;
 
   setStaged(path: string, staged: boolean, hunk?: number): Promise<void>;
   setAllStaged(staged: boolean): Promise<void>;

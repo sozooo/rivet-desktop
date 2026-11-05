@@ -18,6 +18,8 @@ Rivet uses Git for Windows if it's installed. If it isn't, Rivet downloads its o
 - **Changes**: tick files or single hunks, or nothing to save everything. Put changes aside and bring them back later, and open any file's folder in Explorer.
 - **History** with a commit graph. Undo the last save if it hasn't been sent yet, put any file back to an older version, and see every version of one file.
 - **Branches**: switch from the top bar, including branches that so far exist only on the server.
+- **Search everything** from the toolbar or with Ctrl+K: changed files, every file in the project (deleted ones too), versions by message or author, branches, and actions such as Sync or Switch to branch. It matches loosely ("plco" finds PlayerController), puts file names before folders, and stays instant in Unity projects with tens of thousands of files. Arrows move, Enter opens, Esc closes.
+- **Who works where**: faces in the top bar show who saved versions on your branch in the last 14 days and how many work on others; a click lists every active branch with its people and switches to one. Git has no presence, so this comes from commits (a feature branch counts what main lacks). Signed in to GitHub, faces are people's GitHub pictures; otherwise initials in a colour of their own.
 - **Sync** that says what will happen and how far it got (big art files counted in megabytes, also when cloning), and teammates' new work noticed in the background. Downloads and sending can be cancelled while that is safe (not once a pull is merging), and nothing is lost.
 - **Cloning that never leaves a mess**: a clone cancelled or failed half-way removes the folder it made, and when only the art download broke, the project opens anyway and "Download the rest" picks up where it stopped.
 - **Open in Unity or Blender**: before Rivet brings in or puts back files, it checks whether Unity has the project open or Blender has one of those `.blend` files open, and says to save (and close Blender) first, so the next Ctrl+S doesn't save the old version over the new one. Unity is open when it holds `Temp/UnityLockfile`; Blender's open file comes from its window title.
@@ -56,11 +58,12 @@ src/
   errors/       Plain-language errors, error log, crash screen
   github/       GitHub sign-in and repository list
   openApps/     Asking first when Unity or Blender has files open that an action rewrites
+  search/       Project search (Ctrl+K): fuzzy ranking, the file index, the toolbar field
   i18n/         Russian and English texts
 src-tauri/      Rust: runs git, reads files, finds repositories, keeps the GitHub token and the log
 ```
 
-The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?lfs=pending` (large files not downloaded yet), `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`). `?gitignore=missing` shows a sample project whose Unity folders aren't ignored, and `?gitignore=committed` one that committed them. `?open=unity,blender` (or just one of them) pretends Unity has the project open and Blender has `Art/Tree.blend` open with unsaved changes, so syncing, switching branches or discarding a scene asks to save first.
+The browser demo can show screens that are hard to reach on purpose; add switches to its address: `?git=missing`, `?git=old`, `?git=offline`, `?lfs=missing`, `?lfs=pending` (large files not downloaded yet), `?identity=empty`, `?crash`, or `?fail=<id>` with an id from `src/errors/samples.ts` (for example `?fail=offline`). `?gitignore=missing` shows a sample project whose Unity folders aren't ignored, and `?gitignore=committed` one that committed them. `?open=unity,blender` (or just one of them) pretends Unity has the project open and Blender has `Art/Tree.blend` open with unsaved changes, so syncing, switching branches or discarding a scene asks to save first. `?files=50000` gives the sample project that many more files, to try search at scale.
 
 Unity's `.gitignore` is GitHub's template, vendored in `src/unity/Unity.gitignore` (its header names the commit) with a few Rivet additions at the end.
 
