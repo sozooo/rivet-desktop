@@ -8,6 +8,62 @@ import { demoTransfers } from "./simulate";
 const message = { summary: "Change things", description: "" };
 
 describe("MockBackend", () => {
+  it("shows teammates across branches, and my new versions on mine", async () => {
+    const git = new MockBackend("sample");
+    const activity = await git.branchActivity();
+    const people = (name: string) =>
+      activity.branches
+        .find((b) => b.name === name)!
+        .authors.map((a) => `${a.name} ${a.commits}`);
+    expect(activity.branches.map((b) => b.name).sort()).toEqual([
+      "develop",
+      "feature/player-movement",
+      "fix/camera-jitter",
+      "main",
+      "origin/art/forest-textures",
+    ]);
+    // Teammates' work waiting on the server counts; the merge doesn't.
+    expect(people("feature/player-movement")).toEqual([
+      "Jamie Chen 2",
+      "Sam Rivera 1",
+      "Alex Morgan 1",
+    ]);
+    expect(people("origin/art/forest-textures")).toEqual([
+      "Mira Sokolova 4",
+      "Dana Brooks 3",
+    ]);
+    expect(activity.remoteUrl).toContain("github.com");
+
+    await git.commit(message, "all");
+    const after = await git.branchActivity();
+    const mine = after.branches.find((b) =>
+      b.refs.includes("feature/player-movement"),
+    )!;
+    expect(mine.authors[0]).toMatchObject({ name: "Alex Morgan", commits: 2 });
+    expect(mine.authors[0].pushedSha).toBeUndefined();
+
+    // Switching branches keeps each branch's people.
+    await git.switchBranch("origin/art/forest-textures");
+    const switched = await git.branchActivity();
+    const names = (name: string) =>
+      switched.branches
+        .find((b) => b.name === name)!
+        .authors.map((a) => a.name);
+    expect(names("art/forest-textures")).toEqual([
+      "Mira Sokolova",
+      "Dana Brooks",
+    ]);
+    // My commit above is the latest there.
+    expect(names("feature/player-movement")).toEqual([
+      "Alex Morgan",
+      "Jamie Chen",
+      "Sam Rivera",
+    ]);
+
+    const empty = await new MockBackend("empty").branchActivity();
+    expect(empty.branches).toEqual([]);
+  });
+
   it("commits every change when nothing is selected", async () => {
     const git = new MockBackend("sample");
     const before = await git.snapshot();

@@ -30,4 +30,11 @@ export type RepoApi = {
   showChanges: (path?: string) => void;
   /** Opens History on the commits that changed one file. */
   showFileHistory: (path: string) => void;
+  /**
+   * Switches branches as the top bar's branch menu does: straight away, or
+   * asking first when there are unsaved changes. Check `switchBlocked` first.
+   */
+  switchBranch: (target: string) => void;
+  /** Why switching has to wait right now (a merge, another operation), or null. */
+  switchBlocked: string | null;
 };

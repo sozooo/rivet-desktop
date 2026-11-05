@@ -1,3 +1,4 @@
+import type { BranchActivity } from "./activity";
 import type { CancelHandle } from "./cancel";
 import type { ProgressListener } from "./progress";
 import type {
@@ -44,6 +45,12 @@ export interface GitBackend {
   resolveGuid?(guid: string): Promise<string | null>;
   /** Commits that changed a file, newest first, following renames. */
   fileHistory(path: string): Promise<FileVersion[]>;
+  /**
+   * Who saved versions on which branch (local and server copies together) in
+   * the last `days`. Feature branches count only what the default branch
+   * lacks. Cheap to call again: unchanged branches give the same result.
+   */
+  branchActivity(days?: number): Promise<BranchActivity>;
 
   setStaged(path: string, staged: boolean, hunk?: number): Promise<void>;
   setAllStaged(staged: boolean): Promise<void>;

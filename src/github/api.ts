@@ -123,3 +123,56 @@ export const cloneUrlFor = (repository: GitHubRepository, login: string) =>
     /^https:\/\/github\.com\//,
     `https://${encodeURIComponent(login)}@github.com/`,
   );
+
+/**
+ * "owner/name" of a repository on github.com, from any address git accepts for it
+ * (HTTPS with or without a login, SSH, scp-style), or null for anything else.
+ */
+export function githubRepository(remoteUrl: string): string | null {
+  const match = remoteUrl
+    .trim()
+    .match(
+      /^(?:https?:\/\/(?:[^@/]+@)?github\.com\/|(?:ssh:\/\/)?git@github\.com[:/])([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/i,
+    );
+  return match ? `${match[1]}/${match[2]}` : null;
+}
+
+/**
+ * The account behind a GitHub noreply address, without asking GitHub:
+ * "123+login@users.noreply.github.com", or the older "login@users.noreply.github.com".
+ */
+export function noreplyAccount(email: string): GitHubUser | null {
+  const match = email
+    .trim()
+    .match(/^(?:(\d+)\+)?([\w-]+)@users\.noreply\.github\.com$/i);
+  if (!match) return null;
+  const [, id, login] = match;
+  return {
+    ...(id && { id: Number(id) }),
+    login,
+    name: null,
+    avatarUrl: id
+      ? `https://avatars.githubusercontent.com/u/${id}?v=4`
+      : `https://github.com/${login}.png`,
+  };
+}
+
+/**
+ * The GitHub account a commit's author email belongs to, or null when GitHub
+ * doesn't know the address. One light request: the commit list starting at it,
+ * one item long, without files.
+ */
+export async function fetchCommitAuthor(
+  fetch: Fetch,
+  token: string,
+  repository: string,
+  sha: string,
+): Promise<GitHubUser | null> {
+  const response = await get(
+    fetch,
+    `${api}/repos/${repository}/commits?sha=${encodeURIComponent(sha)}&per_page=1`,
+    token,
+  );
+  const [item]: Json[] = await response.json();
+  return item?.author?.login ? toUser(item.author) : null;
+}

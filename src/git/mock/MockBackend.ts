@@ -1,4 +1,11 @@
 import { demoFlags } from "../../demoFlags";
+import {
+  ACTIVITY_DAYS,
+  DAY,
+  groupActivity,
+  type ActivityCommit,
+  type BranchCommits,
+} from "../activity";
 import type { GitBackend, TransferOptions } from "../backend";
 import { localName } from "../branches";
 import { isConflicted } from "../conflicts";
@@ -84,6 +91,12 @@ export class MockBackend implements GitBackend {
   private restored = new Map<string, Revision>();
   /** Unity's generated files no .gitignore leaves out; only with `?gitignore=`. */
   private generated: UnityGenerated | undefined;
+  /** Teammates' recent work on the sample's other branches. */
+  private branchWork: ReturnType<typeof fixtures.branchWork>;
+  /** The branch the sample history belongs to, above main's marker. */
+  private home: string;
+  /** Which branch each commit made in the demo was made on. */
+  private madeOn = new Map<string, string>();
 
   /**
    * "empty" is a repository Rivet just created for a Unity project, with only
@@ -116,6 +129,8 @@ export class MockBackend implements GitBackend {
     // The sample keeps Photoshop files in LFS, but not the rest of its art.
     this.lfsPatterns = sample ? ["*.psd"] : [];
     this.smartMerge = sample ? false : undefined;
+    this.branchWork = sample ? fixtures.branchWork() : {};
+    this.home = this.current;
   }
 
   async snapshot(): Promise<RepoSnapshot> {
@@ -190,6 +205,72 @@ export class MockBackend implements GitBackend {
     const [ahead, behind] =
       branch === base ? [0, 0] : (fixtures.divergence[branch] ?? [0, 0]);
     return { base, ahead, behind };
+  }
+
+  /**
+   * The sample's history is its first branch's down to main's marker, and
+   * main's below it; the other branches have sample work of their own.
+   * Commits made in the demo count on the branch they were made on.
+   */
+  async branchActivity(days = ACTIVITY_DAYS) {
+    const work = new Map<string, ActivityCommit[]>();
+    const add = (branch: string, commit: ActivityCommit) =>
+      work.set(branch, [...(work.get(branch) ?? []), commit]);
+    const activity = (
+      commit: Omit<Commit, "parents">,
+      pushed: boolean,
+    ): ActivityCommit => ({
+      sha: commit.sha,
+      name: commit.author.name,
+      email: commit.author.email,
+      date: commit.date,
+      pushed,
+    });
+    const marker = this.commits.findIndex((c) => c.refs?.includes("main"));
+    const split =
+      this.home === "main" ? 0 : marker < 0 ? this.commits.length : marker;
+    this.commits.forEach((commit, index) => {
+      // Merges aren't anyone's work; commits not pushed yet are only here.
+      if (commit.parents.length > 1) return;
+      const branch =
+        this.madeOn.get(commit.sha) ?? (index < split ? this.home : "main");
+      add(branch, activity(commit, index >= this.ahead));
+    });
+    for (const commit of this.incoming) add(this.home, activity(commit, true));
+    for (const [key, sample] of Object.entries(this.branchWork))
+      sample.forEach(([person, date], index) =>
+        add(key.startsWith("origin/") ? localName(key) : key, {
+          sha: `${key}-${index}`,
+          name: person.name,
+          email: person.email,
+          date,
+          pushed: key !== "fix/camera-jitter",
+        }),
+      );
+    const branches = [...work].map(([short, commits]): BranchCommits => {
+      const local = this.local.includes(short);
+      const remote =
+        this.remote.includes(`origin/${short}`) ||
+        (this.hasRemote && short === this.home);
+      return {
+        name: local ? short : `origin/${short}`,
+        refs: [
+          ...(local ? [short] : []),
+          ...(remote ? [`origin/${short}`] : []),
+        ],
+        isBase: short === "main",
+        commits,
+      };
+    });
+    return groupActivity({
+      since: Date.now() - days * DAY,
+      days,
+      base: this.commits.length ? "main" : null,
+      remoteUrl: this.hasRemote
+        ? "https://github.com/kinetic-studio/kinetic.git"
+        : null,
+      branches,
+    });
   }
 
   async readFile(path: string, revision: string): Promise<Uint8Array | null> {
@@ -287,6 +368,7 @@ export class MockBackend implements GitBackend {
       if (tooLarge(f) && staged.some((s) => s.path === f.path))
         this.unpushedLarge.push({ path: f.path, size: f.size! });
     this.contents.set(commit.sha, staged);
+    this.madeOn.set(commit.sha, this.current);
     for (const f of staged) this.restored.delete(f.path);
     this.commits = [commit, ...this.commits];
     this.files = this.files
@@ -565,6 +647,7 @@ export class MockBackend implements GitBackend {
       parents: this.commits[0] ? [this.commits[0].sha] : [],
     };
     this.contents.set(commit.sha, untrackCommit(tracked));
+    this.madeOn.set(commit.sha, this.current);
     this.commits = [commit, ...this.commits];
     this.ahead++;
     // Their changes and the .gitignore went into the commit; the rest stays as it was.

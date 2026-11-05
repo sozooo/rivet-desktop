@@ -357,6 +357,14 @@ export function Workspace({
       setFocus({ history: path });
       setMode("History");
     },
+    switchBranch,
+    // What the top bar's branch menu waits for.
+    switchBlocked:
+      snapshot.operation || unresolved(snapshot.files).length
+        ? t("top.syncMerging")
+        : working
+          ? t("top.busy")
+          : null,
   };
 
   async function fetchRemote() {
