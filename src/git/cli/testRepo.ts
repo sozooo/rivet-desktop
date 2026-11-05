@@ -40,6 +40,39 @@ export function git(cwd: string, ...args: string[]) {
   return result.stdout.toString();
 }
 
+/**
+ * Commits what is staged (or nothing) as someone else, saved at `date` (Unix
+ * ms; git keeps whole seconds), the way a teammate's commit arrives.
+ */
+export function commitAs(
+  cwd: string,
+  who: { name: string; email: string },
+  message: string,
+  date = Date.now(),
+) {
+  const when = `@${Math.floor(date / 1000)} +0000`;
+  const result = spawnSync(
+    "git",
+    ["commit", "-q", "--allow-empty", "-m", message],
+    {
+      cwd,
+      env: {
+        ...env,
+        GIT_AUTHOR_NAME: who.name,
+        GIT_AUTHOR_EMAIL: who.email,
+        GIT_AUTHOR_DATE: when,
+        GIT_COMMITTER_NAME: who.name,
+        GIT_COMMITTER_EMAIL: who.email,
+        GIT_COMMITTER_DATE: when,
+      },
+      encoding: "buffer",
+    },
+  );
+  if (result.status !== 0)
+    throw new Error(`git commit as ${who.name}: ${result.stderr.toString()}`);
+  return git(cwd, "rev-parse", "HEAD").trim();
+}
+
 let counter = 0;
 export function makeRepo(name = "repo") {
   const dir = join(root, `${name}-${counter++}`);

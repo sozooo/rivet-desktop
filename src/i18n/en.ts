@@ -526,6 +526,52 @@ export const en = {
     "Changes stay on their branch. Operations happen only when you choose.",
   "branches.recent": "Recent commits",
   "branches.viewHistory": "View history",
+  "branches.team": "Who worked here",
+
+  "team.title": {
+    one: "Who committed to {branch} in the last {count} day. Click to see every branch.",
+    other:
+      "Who committed to {branch} in the last {count} days. Click to see every branch.",
+  },
+  "team.title@simple":
+    "Who's working on this branch right now. Click to see the other branches.",
+  "team.moreElsewhere": "{count} more on other branches",
+  "team.moreElsewhere.one": "{count} more on another branch",
+  "team.onlyElsewhere": {
+    one: "{count} person on other branches",
+    other: "{count} people on other branches",
+  },
+  "team.onlyElsewhere.one": {
+    one: "{count} person on another branch",
+    other: "{count} people on another branch",
+  },
+  "team.heading": "Who worked where",
+  "team.heading@simple": "Who's working where",
+  "team.window": {
+    one: "Commits from the last {count} day",
+    other: "Commits from the last {count} days",
+  },
+  "team.window@simple": {
+    one: "Versions saved in the last {count} day",
+    other: "Versions saved in the last {count} days",
+  },
+  "team.thisBranch": "THIS BRANCH",
+  "team.otherBranches": "OTHER BRANCHES",
+  "team.youAreHere": "you're here",
+  "team.nobodyHere": {
+    one: "No commits in the last {count} day",
+    other: "No commits in the last {count} days",
+  },
+  "team.nobodyHere@simple": {
+    one: "Nobody saved anything here in the last {count} day",
+    other: "Nobody saved anything here in the last {count} days",
+  },
+  "team.switchTo": "Switch to {branch}",
+  "team.versions": { one: "{count} commit", other: "{count} commits" },
+  "team.versions@simple": { one: "{count} version", other: "{count} versions" },
+  "team.person": "{name}: {versions}, {time}",
+  "team.you": "you",
+  "team.youName": "{name} (you)",
 
   "diff.unified": "Unified diff",
   "diff.split": "Side-by-side diff",

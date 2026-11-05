@@ -2,6 +2,7 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { fetch as httpFetch } from "@tauri-apps/plugin-http";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import {
+  fetchCommitAuthor,
   fetchRepositories,
   fetchUser,
   GitHubApiError,
@@ -9,7 +10,7 @@ import {
   type GitHubUser,
 } from "./api";
 import { githubClientId, githubConfigured } from "./config";
-import { demoRepositories, demoUser } from "./demo";
+import { demoRepositories, demoTeam, demoUser } from "./demo";
 import {
   delay,
   pollForToken,
@@ -32,6 +33,15 @@ export interface GitHub {
   completeSignIn(code: DeviceCode, signal: AbortSignal): Promise<GitHubUser>;
   signOut(): Promise<void>;
   repositories(): Promise<GitHubRepository[]>;
+  /**
+   * The account behind a commit's author in an "owner/name" repository, or null
+   * when GitHub doesn't know the address. Rejects with GitHubApiError (403 or
+   * 429 when rate limited). `email` is the commit's; only the demo reads it.
+   */
+  commitAuthor(
+    repository: string,
+    commit: { sha: string; email: string },
+  ): Promise<GitHubUser | null>;
   /** Opens a github.com page in the system browser. */
   openPage(url: string): Promise<void>;
 }
@@ -79,6 +89,10 @@ const desktopGitHub: GitHub = {
     if (!token) throw new Error("Not signed in to GitHub.");
     return fetchRepositories(httpFetch, token);
   },
+  async commitAuthor(repository, { sha }) {
+    if (!token) throw new Error("Not signed in to GitHub.");
+    return fetchCommitAuthor(httpFetch, token, repository, sha);
+  },
   openPage: (url) => openUrl(url),
 };
 
@@ -118,6 +132,10 @@ const browserGitHub: GitHub = {
   async repositories() {
     await delay(700);
     return demoRepositories();
+  },
+  async commitAuthor(_repository, { email }) {
+    await delay(150);
+    return demoTeam[email.toLowerCase()] ?? null;
   },
   async openPage() {
     approveDemo?.();

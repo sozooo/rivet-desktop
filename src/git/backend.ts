@@ -1,3 +1,4 @@
+import type { BranchActivity } from "./activity";
 import type { CancelHandle } from "./cancel";
 import type { ProgressListener } from "./progress";
 import type {
@@ -52,6 +53,12 @@ export interface GitBackend {
    * newest first and each once.
    */
   recentFiles(commits: number): Promise<RecentFile[]>;
+  /**
+   * Who saved versions on which branch (local and server copies together) in
+   * the last `days`. Feature branches count only what the default branch
+   * lacks. Cheap to call again: unchanged branches give the same result.
+   */
+  branchActivity(days?: number): Promise<BranchActivity>;
 
   setStaged(path: string, staged: boolean, hunk?: number): Promise<void>;
   setAllStaged(staged: boolean): Promise<void>;

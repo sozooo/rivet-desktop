@@ -1,14 +1,38 @@
 import type { GitHubRepository, GitHubUser } from "./api";
 
-const avatar = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#e3d3b4"/><circle cx="20" cy="16" r="7" fill="#9a7b4f"/><path d="M5 40c2-9 8-13 15-13s13 4 15 13z" fill="#9a7b4f"/></svg>`;
+/** A head-and-shoulders picture in two colours, as a data URL. */
+const picture = (background: string, figure: string) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="${background}"/><circle cx="20" cy="16" r="7" fill="${figure}"/><path d="M5 40c2-9 8-13 15-13s13 4 15 13z" fill="${figure}"/></svg>`,
+  )}`;
 
 /** The account the browser demo signs in to. */
 export const demoUser: GitHubUser = {
   id: 48213077,
   login: "alexkim-art",
   name: "Alex Kim",
-  avatarUrl: `data:image/svg+xml,${encodeURIComponent(avatar)}`,
+  avatarUrl: picture("#e3d3b4", "#9a7b4f"),
 };
+
+/** GitHub accounts of the sample project's teammates, by commit email. */
+export const demoTeam: Record<string, GitHubUser> = Object.fromEntries(
+  (
+    [
+      ["jamie@kinetic.dev", "jamiechen", "#cfe0ef", "#4f7598"],
+      ["sam@kinetic.dev", "samrivera", "#e8d6ec", "#86598f"],
+      ["mira@kinetic.dev", "mira-sokolova", "#d5e8d4", "#4f8a5b"],
+      ["kai@kinetic.dev", "kaitanaka", "#f1dccb", "#a5663a"],
+    ] as const
+  ).map(([email, login, background, figure], index) => [
+    email,
+    {
+      id: 7310200 + index,
+      login,
+      name: null,
+      avatarUrl: picture(background, figure),
+    },
+  ]),
+);
 
 const day = 86_400_000;
 const samples: [string, boolean, string | null, number][] = [

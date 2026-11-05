@@ -42,6 +42,8 @@ export const people = {
   jamie: { name: "Jamie Chen", email: "jamie@kinetic.dev" },
   sam: { name: "Sam Rivera", email: "sam@kinetic.dev" },
   mira: { name: "Mira Sokolova", email: "mira@kinetic.dev" },
+  kai: { name: "Kai Tanaka", email: "kai@kinetic.dev" },
+  dana: { name: "Dana Brooks", email: "dana@kinetic.dev" },
 } satisfies Record<string, Person>;
 
 /** One hunk around the lines that differ, with three lines of context. */
@@ -735,6 +737,33 @@ export function colleagueCommits(): {
       files: [workingChanges()[2]],
     },
   ];
+}
+
+/**
+ * What teammates saved recently on the sample's other branches: who, and when
+ * (Unix ms). The current branch and main come from the history instead.
+ */
+export function branchWork(): Record<string, [Person, number][]> {
+  return {
+    develop: [
+      [people.kai, hours(3)],
+      [people.kai, hours(4)],
+      [people.kai, hours(7)],
+      [people.sam, hours(26)],
+      [people.kai, hours(30)],
+      [people.sam, hours(50)],
+    ],
+    "fix/camera-jitter": [[people.alex, days(3)]],
+    "origin/art/forest-textures": [
+      [people.mira, minutes(40)],
+      [people.dana, hours(5)],
+      [people.mira, hours(6)],
+      [people.dana, hours(9)],
+      [people.mira, hours(28)],
+      [people.dana, hours(31)],
+      [people.mira, hours(54)],
+    ],
+  };
 }
 
 /** Ahead/behind counts relative to main for the sample branches. */

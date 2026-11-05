@@ -1,3 +1,9 @@
+import {
+  ACTIVITY_DAYS,
+  DAY,
+  groupActivity,
+  type BranchActivity,
+} from "../activity";
 import type { GitBackend, TransferOptions } from "../backend";
 import { localName } from "../branches";
 import { during } from "../cancel";
@@ -56,6 +62,17 @@ import {
   withoutProgress,
   type ProgressListener,
 } from "../progress";
+import {
+  ACTIVITY_LOG_FORMAT,
+  ACTIVITY_LOG_LIMIT,
+  ACTIVITY_REFS_FORMAT,
+  branchCommits,
+  defaultBranch,
+  mainRemote,
+  parseActivityLog,
+  parseActivityRefs,
+  parseRemoteUrls,
+} from "./activity";
 import { GitError, type GitRunner, type RunOptions } from "./runner";
 import { pendingLfs, reportProgress } from "./transfers";
 
@@ -153,6 +170,8 @@ export class CliBackend implements GitBackend {
   };
   /** The last fetch, pull or push: they take turns, since each moves remote refs. */
   private remoteTurn: Promise<unknown> = Promise.resolve();
+  /** Who worked where, kept while the branch tips stay put (and for an hour at most). */
+  private activity?: { key: string; result: Promise<BranchActivity> };
 
   constructor(private git: GitRunner) {}
 
@@ -725,6 +744,54 @@ export class CliBackend implements GitBackend {
       "HEAD",
     ]);
     return parseRecentFiles(out);
+  }
+
+  async branchActivity(days = ACTIVITY_DAYS) {
+    const refsOut = await this.run([
+      "for-each-ref",
+      `--format=${ACTIVITY_REFS_FORMAT}`,
+      "refs/heads",
+      "refs/remotes",
+    ]);
+    // Commits, fetches, pulls and pushes all move a tip; time moves the window.
+    const key = [days, Math.floor(Date.now() / 3_600_000), refsOut].join("\n");
+    if (this.activity?.key !== key) {
+      const result = this.loadActivity(refsOut, days);
+      this.activity = { key, result };
+      result.catch(() => {
+        if (this.activity?.result === result) this.activity = undefined;
+      });
+    }
+    return this.activity.result;
+  }
+
+  private async loadActivity(refsOut: string, days: number) {
+    const { refs, heads } = parseActivityRefs(refsOut);
+    const since = Date.now() - days * DAY;
+    const [logOut, urlsOut] = await Promise.all([
+      refs.length
+        ? this.run([
+            "log",
+            "--branches",
+            "--remotes",
+            // Git stops walking at older commits, so this stays quick in old projects.
+            `--max-age=${Math.floor(since / 1000)}`,
+            `-n${ACTIVITY_LOG_LIMIT}`,
+            `--format=${ACTIVITY_LOG_FORMAT}`,
+          ])
+        : "",
+      this.tryRun(["config", "--get-regexp", "^remote\\..*\\.url$"]),
+    ]);
+    const urls = parseRemoteUrls(urlsOut);
+    const remote = mainRemote(refs, urls);
+    const base = defaultBranch(refs, heads, remote);
+    return groupActivity({
+      since,
+      days,
+      base,
+      remoteUrl: (remote && urls.get(remote)) ?? null,
+      branches: branchCommits(refs, parseActivityLog(logOut), base),
+    });
   }
 
   async stashFiles(index: number) {

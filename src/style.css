@@ -392,6 +392,15 @@ textarea::placeholder {
   font-size: 8px;
   margin: 0;
 }
+/* Initials in a colour of their own: the same person looks the same everywhere. */
+.avatar[data-hue] {
+  background: hsl(var(--avatar-hue) 42% 87%);
+  color: hsl(var(--avatar-hue) 34% 32%);
+}
+.app.dark .avatar[data-hue] {
+  background: hsl(var(--avatar-hue) 20% 31%);
+  color: hsl(var(--avatar-hue) 42% 84%);
+}
 .sidebar {
   width: var(--sidebar-width);
   flex-shrink: 0;
@@ -1852,6 +1861,70 @@ textarea::placeholder {
   font-size: var(--text-caption);
   color: var(--muted);
 }
+/* Branches view: faces beside each branch, and who worked on the selected one. */
+.object-row > .people {
+  --ring: var(--sidebar);
+  flex: none;
+  overflow: visible;
+}
+.object-row > .people .avatar {
+  width: 18px;
+  height: 18px;
+  font-size: var(--text-caption);
+}
+/* Too small to overlap without hiding letters: side by side. */
+.object-row > .people .avatar + .avatar {
+  margin-left: 2px;
+}
+.object-row > .people .avatar {
+  box-shadow: none;
+}
+.object-row:hover > .people {
+  --ring: var(--hover);
+}
+.object-row.selected > .people {
+  --ring: var(--accent-soft);
+}
+.branch-team {
+  margin-bottom: 16px;
+}
+.branch-team-title span {
+  font-size: var(--text-caption);
+  color: var(--muted);
+}
+.branch-team-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 26px;
+  padding: 16px 20px;
+}
+.branch-team-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.branch-team-person .avatar {
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  flex-shrink: 0;
+  font-size: var(--text-small);
+}
+.branch-team-person > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.branch-team-person strong {
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+.branch-team-person small {
+  font-size: var(--text-caption);
+  color: var(--muted);
+}
 /* Stashes live at the bottom of the Changes list. */
 .stash-section {
   margin-top: 18px;
@@ -2741,6 +2814,164 @@ textarea::placeholder {
   padding-top: 5px;
 }
 .branch-menu-actions button {
+  color: var(--muted);
+}
+/* Who worked where: faces beside the search, and every active branch on click. */
+.people {
+  /* The ring between overlapping faces takes the colour behind them. */
+  --ring: var(--bg);
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.people .avatar {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+.people .avatar + .avatar {
+  margin-left: -4px;
+}
+/* The first face, the most recent, lies on top of the next. */
+.people > * {
+  position: relative;
+}
+.people > :nth-child(1) {
+  z-index: 5;
+}
+.people > :nth-child(2) {
+  z-index: 4;
+}
+.people > :nth-child(3) {
+  z-index: 3;
+}
+.people > :nth-child(4) {
+  z-index: 2;
+}
+.people > :nth-child(5) {
+  z-index: 1;
+}
+.people .people-more {
+  background: var(--hover);
+  color: var(--muted);
+  font-weight: 500;
+}
+.team {
+  position: relative;
+  min-width: 0;
+}
+.team-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 4px 9px 4px 6px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+.team-button:hover,
+.team-button[aria-expanded="true"] {
+  background: var(--hover);
+}
+.team-button:hover .people,
+.team-button[aria-expanded="true"] .people {
+  --ring: var(--hover);
+}
+.team-elsewhere {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dropdown.team-menu {
+  top: calc(100% + 7px);
+  right: 0;
+  width: 380px;
+  padding: 0;
+  transform-origin: top right;
+  animation: menu-arrive 190ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.team-menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 15px 4px;
+}
+.team-menu-head strong {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.team-menu-head span {
+  font-size: var(--text-caption);
+  color: var(--muted);
+}
+.team-menu .branch-menu-note {
+  padding: 6px 15px 0;
+}
+.team-branches {
+  max-height: 420px;
+  overflow: auto;
+  padding: 0 6px 6px;
+}
+.team-menu .people {
+  --ring: var(--surface);
+}
+.dropdown .team-branch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 9px;
+  border-radius: 5px;
+  text-align: left;
+  font-size: var(--text-small);
+}
+.dropdown .team-branch.current {
+  background: var(--accent-soft);
+}
+.team-branch.current .people {
+  --ring: var(--accent-soft);
+}
+.dropdown button.team-branch:hover:not(:disabled) .people {
+  --ring: var(--hover);
+}
+.dropdown .team-branch > svg {
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--muted);
+}
+.team-branch-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.team-branch-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+.team-branch-name > span:first-child,
+.team-branch-who,
+.team-branch-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-branch-name .tag {
+  flex-shrink: 0;
+  font-weight: 400;
+}
+.team-branch-who,
+.team-branch-meta {
+  font-size: var(--text-caption);
   color: var(--muted);
 }
 .fetch-control {

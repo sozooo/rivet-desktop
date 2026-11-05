@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   cloneUrlFor,
+  fetchCommitAuthor,
   fetchRepositories,
   fetchUser,
   GitHubApiError,
+  githubRepository,
   nextPage,
+  noreplyAccount,
   toRepository,
 } from "./api";
 import type { Fetch } from "./deviceFlow";
@@ -167,5 +170,82 @@ describe("cloneUrlFor", () => {
     expect(
       cloneUrlFor(toRepository(raw(1, "studio/game")), "alexkim-art"),
     ).toBe("https://alexkim-art@github.com/studio/game.git");
+  });
+});
+
+describe("githubRepository", () => {
+  it("reads owner/name from every address git takes for github.com", () => {
+    for (const url of [
+      "https://github.com/kinetic-studio/kinetic.git",
+      "https://github.com/kinetic-studio/kinetic",
+      "https://alex@github.com/kinetic-studio/kinetic.git",
+      "git@github.com:kinetic-studio/kinetic.git",
+      "ssh://git@github.com/kinetic-studio/kinetic.git",
+      "  HTTPS://GitHub.com/kinetic-studio/kinetic/ ",
+    ])
+      expect(githubRepository(url)).toBe("kinetic-studio/kinetic");
+    expect(githubRepository("https://github.com/a/my.game.git")).toBe(
+      "a/my.game",
+    );
+  });
+
+  it("says null for other servers", () => {
+    for (const url of [
+      "https://gitlab.com/a/b.git",
+      "https://github.com.evil.dev/a/b.git",
+      "https://github.com/a",
+      "D:/remotes/team.git",
+      "",
+    ])
+      expect(githubRepository(url)).toBeNull();
+  });
+});
+
+describe("noreplyAccount", () => {
+  it("knows the account from GitHub's private addresses", () => {
+    expect(noreplyAccount("123+mira@users.noreply.github.com")).toEqual({
+      id: 123,
+      login: "mira",
+      name: null,
+      avatarUrl: "https://avatars.githubusercontent.com/u/123?v=4",
+    });
+    expect(noreplyAccount("mira@users.noreply.github.com")?.avatarUrl).toBe(
+      "https://github.com/mira.png",
+    );
+    expect(noreplyAccount("mira@studio.dev")).toBeNull();
+  });
+});
+
+describe("fetchCommitAuthor", () => {
+  const url =
+    "https://api.github.com/repos/team/game/commits?sha=abc123&per_page=1";
+
+  it("asks for one commit without its files and reads the account", async () => {
+    const { fetch, requests } = fakeApi({
+      [url]: {
+        body: [
+          {
+            sha: "abc123",
+            author: { login: "mira", id: 5, avatar_url: "https://a/5" },
+          },
+        ],
+      },
+    });
+    expect(
+      await fetchCommitAuthor(fetch, "t0k", "team/game", "abc123"),
+    ).toEqual({ id: 5, login: "mira", name: null, avatarUrl: "https://a/5" });
+    expect(requests[0].headers.Authorization).toBe("Bearer t0k");
+  });
+
+  it("says null when GitHub doesn't know the address, and fails on errors", async () => {
+    const { fetch } = fakeApi({
+      [url]: { body: [{ sha: "abc123", author: null }] },
+    });
+    expect(
+      await fetchCommitAuthor(fetch, "t", "team/game", "abc123"),
+    ).toBeNull();
+    await expect(
+      fetchCommitAuthor(fetch, "t", "team/game", "missing"),
+    ).rejects.toBeInstanceOf(GitHubApiError);
   });
 });

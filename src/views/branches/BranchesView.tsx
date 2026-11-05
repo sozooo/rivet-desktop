@@ -10,7 +10,12 @@ import {
   Tag,
 } from "lucide-react";
 import { shortSha } from "../../git/paths";
+import { activityFor } from "../../git/activity";
 import { useI18n } from "../../i18n/i18n";
+import { BranchTeam } from "../../team/BranchTeam";
+import { membersOf } from "../../team/members";
+import { PeopleStack } from "../../team/People";
+import { useTeam } from "../../team/useTeam";
 import { useAsync } from "../../ui/hooks";
 import { Panes } from "../../ui/Panes";
 import type { RepoApi } from "../repoApi";
@@ -27,6 +32,7 @@ export function BranchesView({
   const { snapshot, backend, openOperation } = repo;
   const { branches, commits } = snapshot;
   const { t, timeAgo } = useI18n();
+  const team = useTeam(repo);
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState(branches.current);
   const isCurrent = target === branches.current;
@@ -69,6 +75,16 @@ export function BranchesView({
               >
                 <Icon size={16} />
                 <span>{b}</span>
+                {team.activity && (
+                  <PeopleStack
+                    members={membersOf(
+                      activityFor(team.activity, b),
+                      team.mine,
+                    )}
+                    picture={team.picture}
+                    max={3}
+                  />
+                )}
                 {b === branches.current && (
                   <Check size={14} aria-label={t("branches.current")} />
                 )}
@@ -138,6 +154,7 @@ export function BranchesView({
               </>
             )}
           </div>
+          <BranchTeam team={team} branch={target} />
           <div className="branch-card">
             <div className="branch-card-title">
               <strong>{t("branches.compared")}</strong>
