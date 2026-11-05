@@ -161,6 +161,7 @@ textarea::placeholder {
 .toolbar-middle {
   flex: 1;
   min-width: 0;
+  container-type: inline-size;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -449,7 +450,13 @@ textarea::placeholder {
 .search-box {
   position: relative;
   flex: 0 1 300px;
-  min-width: 150px;
+  min-width: 110px;
+}
+/* In a narrow window the field keeps its text and drops the shortcut hint. */
+@container (max-width: 320px) {
+  .search-shortcut {
+    display: none;
+  }
 }
 .search-field {
   display: flex;
@@ -2861,7 +2868,17 @@ textarea::placeholder {
 }
 .team {
   position: relative;
-  min-width: 0;
+  /* The faces stay whole; the search field gives way first. */
+  flex-shrink: 0;
+}
+.team-button .people {
+  flex-shrink: 0;
+}
+/* In a narrow window the count of people elsewhere goes; the popover has it. */
+@container (max-width: 480px) {
+  .team-elsewhere {
+    display: none;
+  }
 }
 .team-button {
   display: flex;
